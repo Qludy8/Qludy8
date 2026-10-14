@@ -1,3 +1,199 @@
-export const EN_DATA = {};
-export const EN_SERVER = {};
-export const EN_SERVER_PATTERNS = [];
+// Dictionnaire anglais — données de jeu (shared/) et messages du serveur (clé = texte français exact).
+// Les objets de config portent déjà leur champ anglais (fr → en, tag → tagEn…) : on les reprend ici pour que
+// t() / tr() traduisent aussi ces textes quand ils arrivent seuls (notes de transactions, notifications…).
+// ⚠ Ne pas importer shared/catalog.js ici (cycle catalog → i18n → lang → catalog).
+import { BRAND, RARITIES, WEAR, PATTERN, COLLECTIONS, BASE_PACKS, GRADING, QUEST_DIFF, QUESTS, LEGAL, LEGAL_EN } from '../config.js';
+
+const pairs = (list) => Object.fromEntries(list.filter((o) => o.en).map((o) => [o.fr, o.en]));
+
+// Libellés de valeur (shared/rules.js cardValue, shared/patterns.js describeSeed).
+// Le serveur les envoie en français dans `parts` : ceux avec {x} servent aussi de motifs pour tr().
+const LABELS = {
+  'Usure {k}': 'Wear {k}',
+  'Traqueur': 'Tracker',
+  'Holo': 'Holo',
+  'Float extrême': 'Extreme float',
+  'Carte erreur': 'Misprint',
+  'Grade {g}': 'Grade {g}',
+  'Population {n}': 'Population {n}',
+  'Centrage {c}': 'Centering {c}',
+  'Fondu {v} %': 'Fade {v}%',
+  '{v} % de bleu': '{v}% blue',
+  'Braise & Givre': 'Ember & Frost',
+  'Nuit profonde': 'Deep Night',
+  'Aurore': 'Aurora',
+  'Mélange': 'Blend',
+};
+// « Graine légendaire (Fondu 99.1 %) » → « Legendary seed (Fade 99.1%) »
+const SEED_LABELS = Object.fromEntries(Object.values(PATTERN.tiers).map((x) => [`${x.fr} ({label})`, `${x.en} ({label})`]));
+
+export const EN_DATA = {
+  ...pairs(RARITIES),
+  ...pairs(WEAR.tiers),
+  ...pairs(Object.values(PATTERN.tiers)),
+  ...pairs(COLLECTIONS),
+  ...Object.fromEntries(COLLECTIONS.map((c) => [`Collection ${c.fr}`, `${c.en} Collection`])),
+  ...pairs(BASE_PACKS),
+  ...Object.fromEntries(BASE_PACKS.map((p) => [p.tag, p.tagEn])),
+  ...pairs(Object.values(GRADING.services)),
+  ...pairs(Object.values(QUEST_DIFF)),
+  ...pairs(Object.values(QUESTS).flat()),
+  [BRAND.tagline]: BRAND.taglineEn,
+  [LEGAL]: LEGAL_EN,
+  ...LABELS,
+  ...SEED_LABELS,
+  // GRADING.labels (les autres sont déjà en anglais)
+  'Abîmée': 'Damaged',
+
+  // catalog.js PATTERNS (motifs géométriques)
+  'Rayures': 'Stripes',
+  'Chevrons': 'Chevrons',
+  'Alvéoles': 'Honeycomb',
+  'Écailles': 'Scales',
+  'Triangles': 'Triangles',
+  'Pois': 'Polka Dots',
+  'Carbone': 'Carbon',
+  'Damier': 'Checkerboard',
+  'Hexagrammes': 'Hexagrams',
+  'Vagues': 'Waves',
+  'Circuit': 'Circuit',
+  'Éclairs': 'Lightning',
+  'Tribal': 'Tribal',
+  'Glitch': 'Glitch',
+  'Étoiles': 'Stars',
+  'Losanges': 'Diamonds',
+  // catalog.js CAMOS
+  'Forêt': 'Woodland',
+  'Numérique': 'Digital',
+  'Tigré': 'Tiger Stripe',
+  'Urbain': 'Urban',
+  'Éclaté': 'Splinter',
+  // catalog.js FINISHES
+  'Mat': 'Matte',
+  'Brossé': 'Brushed',
+  'Laqué': 'Lacquered',
+  'Anodisé': 'Anodized',
+  'Givré': 'Frosted',
+  'Céramique': 'Ceramic',
+  // catalog.js ART_FR (thèmes d'illustration)
+  'Dragon': 'Dragon',
+  'Filigrane': 'Filigree',
+  'Koï': 'Koi',
+  'Grande vague': 'Great Wave',
+  'Mégapole': 'Megacity',
+  'Scorpion': 'Scorpion',
+  'Dunes': 'Dunes',
+  'Runes': 'Runes',
+  'Cerisier': 'Cherry Blossom',
+  'Grue': 'Crane',
+  'Galaxie': 'Galaxy',
+  'Planète': 'Planet',
+  'Givre': 'Frost',
+  'Loup': 'Wolf',
+  'Tigre': 'Tiger',
+  'Serpent': 'Serpent',
+  'Phénix': 'Phoenix',
+  'Flammes': 'Flames',
+};
+
+// Messages fixes du serveur (erreurs, notifications, notes de transactions)
+export const EN_SERVER = {
+  // game.js
+  'Solde insuffisant': 'Insufficient balance',
+  'Mode admin désactivé': 'Admin mode is disabled',
+  'Carte introuvable': 'Card not found',
+  'Quête inconnue': 'Unknown quest',
+  'Quête non terminée': 'Quest not completed',
+  'Déjà réclamée': 'Already claimed',
+  'Récompense déjà réclamée aujourd’hui': 'Reward already claimed today',
+  'Booster inconnu': 'Unknown pack',
+  'Plus de colis gratuit disponible': 'No free parcels left',
+  'Aucune carte': 'No cards selected',
+  'Toutes les cartes doivent avoir la même rareté': 'All cards must have the same rarity',
+  'Rareté maximale atteinte': 'Maximum rarity reached',
+  'Les cartes gradées ne peuvent pas entrer dans un contrat': 'Graded cards can’t be used in a contract',
+  'Contrat': 'Contract',
+  'Annonce introuvable': 'Listing not found',
+  'Annonce déjà vendue ou retirée': 'Listing already sold or withdrawn',
+  'C’est votre propre annonce': 'This is your own listing',
+  'Joueur introuvable': 'Player not found',
+  'C’est vous !': 'That’s you!',
+  'Ce joueur n’accepte pas les demandes': 'This player doesn’t accept requests',
+  'Déjà amis': 'Already friends',
+  'Demande déjà envoyée': 'Request already sent',
+  'Aucune demande': 'No request',
+  'Rien à accepter': 'Nothing to accept',
+  'Vous ne pouvez échanger qu’avec vos amis': 'You can only trade with your friends',
+  'Échange vide': 'Empty trade',
+  'Montant trop élevé': 'Amount too high',
+  'Trop d’échanges en attente': 'Too many pending trades',
+  'Échange introuvable': 'Trade not found',
+  'Échange introuvable ou clos': 'Trade not found or closed',
+  'Seul l’initiateur peut annuler': 'Only the sender can cancel',
+  'Seul le destinataire peut répondre': 'Only the recipient can respond',
+  'Votre proposition d’échange a été refusée': 'Your trade offer was declined',
+  'Action inconnue': 'Unknown action',
+  'Vous n’êtes plus amis': 'You are no longer friends',
+  'Votre échange a été accepté !': 'Your trade was accepted!',
+  'Service inconnu': 'Unknown service',
+  'Carte déjà gradée': 'Card already graded',
+  'Commande introuvable ou déjà révélée': 'Order not found or already revealed',
+  'Pas encore prêt': 'Not ready yet',
+  'Carte non gradée': 'Card not graded',
+  'Certificat inconnu': 'Unknown certificate',
+  'Ce compte Discord est déjà lié à un autre joueur': 'This Discord account is already linked to another player',
+  'Vérification Discord': 'Discord verification',
+  // auth.js
+  'Pseudo : 3 à 20 caractères (lettres, chiffres, _ - .)': 'Username: 3 to 20 characters (letters, digits, _ - .)',
+  'Mot de passe : 8 caractères minimum': 'Password: 8 characters minimum',
+  'E-mail invalide': 'Invalid email',
+  'Pseudo déjà pris': 'Username already taken',
+  'E-mail déjà utilisé': 'Email already in use',
+  'Bienvenue': 'Welcome',
+  'Connexion requise': 'Login required',
+  'Trop de tentatives, réessayez plus tard': 'Too many attempts, try again later',
+  // api.js
+  'Requête JSON attendue': 'JSON request expected',
+  'Identifiants incorrects': 'Incorrect username or password',
+  // discord.js
+  'Vérifiez votre compte avec Discord pour utiliser cette fonction': 'Verify your account with Discord to use this feature',
+  'Discord n’est pas configuré sur ce serveur': 'Discord isn’t configured on this server',
+  'Session de vérification expirée': 'Verification session expired',
+  'Autorisation refusée': 'Authorization denied',
+  'Échange du code Discord refusé': 'Discord code exchange refused',
+  'Profil Discord illisible': 'Couldn’t read the Discord profile',
+  'Erreur Discord': 'Discord error',
+  'Indisponible': 'Unavailable',
+  // index.js
+  'Route inconnue': 'Unknown route',
+  'JSON invalide': 'Invalid JSON',
+  'Erreur interne': 'Internal error',
+};
+
+// Messages construits (`${…}` → {nom}) ; les parties capturées sont elles-mêmes retraduites par tr().
+// Ordre : le plus spécifique d'abord (« {x} » capture n'importe quel texte).
+export const EN_SERVER_PATTERNS = [
+  ['{buyer} a acheté {skin} pour {price} Mu (vous recevez {net} Mu)', '{buyer} bought {skin} for {price} Mu (you receive {net} Mu)'],
+  ['{name} vous a envoyé une demande d’ami', '{name} sent you a friend request'],
+  ['{name} a accepté votre demande d’ami', '{name} accepted your friend request'],
+  ['{name} vous propose un échange', '{name} sent you a trade offer'],
+  ['Carte indisponible ({status})', 'Card unavailable ({status})'],
+  ['Jour {n}', 'Day {n}'],
+  ['{n} carte(s) – {service}', '{n} card(s) – {service}'],
+  ['{n} carte(s)', '{n} card(s)'],
+  ['Il faut exactement {n} cartes', 'Exactly {n} cards are required'],
+  ['Prix autorisé : {min} – {max}', 'Allowed price: {min} – {max}'],
+  ['Maximum {n} annonces actives', 'Maximum {n} active listings'],
+  ['Annonce #{id} (frais {fee})', 'Listing #{id} (fee {fee})'],
+  ['Annonce #{id}', 'Listing #{id}'],
+  ['Maximum {n} cartes par côté', 'Maximum {n} cards per side'],
+  ['Échange #{id}', 'Trade #{id}'],
+  ['1 à {n} cartes', '1 to {n} cards'],
+  ['Compte Discord trop récent (minimum {n} jours)', 'Discord account too new (minimum {n} days)'],
+  ['{n} × {pack}', '{n} × {pack}'],
+  // libellés de valeur des cartes (`parts`) calculés côté serveur
+  ...Object.entries(SEED_LABELS),
+  ...Object.entries(LABELS).filter(([fr]) => fr.includes('{')),
+  // « Modèle | Nom du skin » (le nom est dans le dictionnaire, ajouté par shared/catalog.js)
+  ['{model} | {skin}', '{model} | {skin}'],
+];

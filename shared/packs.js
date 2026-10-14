@@ -34,11 +34,11 @@ function finalize(p) {
 export const PACKS = [
   ...BASE_PACKS.map((p) => finalize({ ...p, group: 'base' })),
   ...COLLECTIONS.map((c) => finalize({
-    key: `col-${c.key}`, group: 'collection', fr: c.fr, tag: `Collection ${c.fr}`, filter: { collection: c.key },
+    key: `col-${c.key}`, group: 'collection', fr: c.fr, en: c.en, tag: `Collection ${c.fr}`, tagEn: `${c.en} Collection`, filter: { collection: c.key },
     cards: 5, rates: COLLECTION_PACK_RATES, theme: c.theme, art: c.arts[0], collection: c.key, sym: c.sym,
   })),
   ...MODELS.map((m) => finalize({
-    key: `model-${m.key}`, group: 'model', fr: m.name, tag: m.clsFr, filter: { models: [m.key] },
+    key: `model-${m.key}`, group: 'model', fr: m.name, en: m.name, tag: m.clsFr, tagEn: m.clsEn, filter: { models: [m.key] },
     cards: 5, rates: MODEL_PACK_RATES, theme: CLASS_THEME[m.cls], hero: m.key, sym: m.sym || CLASS_SYM[m.cls],
     // petite variation de prix d'un modèle à l'autre (marge 82–92 %)
     evTarget: 0.82 + (m.key.charCodeAt(0) % 11) / 100,

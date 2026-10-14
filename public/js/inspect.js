@@ -44,7 +44,7 @@ export function inspector(skin, { f = null, pt = null, title = t('Inspection'), 
         pi.style.setProperty('--fill', `${((pv / 999) * 100).toFixed(1)}%`);
         el.querySelector('[data-pv]').textContent = pv;
         const d = describeSeed(skin, pv), pl = el.querySelector('[data-pl]');
-        pl.textContent = d ? `${d.label}${d.tier ? ` · ${d.tierFr} ×${d.mult}` : ''}` : '—';
+        pl.textContent = d ? `${d.label}${d.tier ? ` · ${L(d, 'tierFr')} ×${d.mult}` : ''}` : '—';
         pl.style.setProperty('--rc', d?.tier ? TIER_COL[d.tier] : '#8e93a6');
         pl.classList.toggle('r', true);
         pi.style.setProperty('--thumb', d?.tier ? TIER_COL[d.tier] : '#ffb020');

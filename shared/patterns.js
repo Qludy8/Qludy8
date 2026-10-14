@@ -3,6 +3,7 @@
 // (comme les graines célèbres de certains jeux) : top 3 = légendaire, 15 suivantes = rare, 40 suivantes = recherchée.
 import { PATTERN } from './config.js';
 import { STYLES, hashStr } from './catalog.js';
+import { t } from './i18n.js';
 
 const TIER_SIZES = [3, 15, 40];
 const cache = new Map();
@@ -27,13 +28,13 @@ export function describeSeed(skin, seed) {
   const u = seedScore(skin.m, skin.st, seed);
   const tier = ranking(skin.m, skin.st).tier.get(seed) || 0;
   let label, value;
-  if (skin.st === 'fade') { value = 80 + 20 * u ** 4; label = `Fondu ${value.toFixed(1)} %`; }
-  else if (skin.st === 'hardened') { value = 8 + 88 * u ** 3; label = `${Math.round(value)} % de bleu`; }
+  if (skin.st === 'fade') { value = 80 + 20 * u ** 4; label = t('Fondu {v} %', { v: value.toFixed(1) }); }
+  else if (skin.st === 'hardened') { value = 8 + 88 * u ** 3; label = t('{v} % de bleu', { v: Math.round(value) }); }
   else {
-    const kind = tier === 1 ? 'Braise & Givre' : tier === 2 ? 'Nuit profonde' : tier === 3 ? 'Aurore' : 'Mélange';
+    const kind = tier === 1 ? t('Braise & Givre') : tier === 2 ? t('Nuit profonde') : tier === 3 ? t('Aurore') : t('Mélange');
     value = tier; label = kind;
   }
-  return { tier, label, value, u, tierFr: tier ? PATTERN.tiers[tier].fr : null, mult: tier ? PATTERN.tiers[tier].mult : 1 };
+  return { tier, label, value, u, tierFr: tier ? PATTERN.tiers[tier].fr : null, tierEn: tier ? PATTERN.tiers[tier].en : null, mult: tier ? PATTERN.tiers[tier].mult : 1 };
 }
 
 // Fiche des graines rares pour un modèle + style

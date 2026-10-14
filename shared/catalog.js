@@ -1,40 +1,42 @@
 // Catalogue procédural DÉTERMINISTE (identique côté serveur et navigateur, aucun appel réseau).
 // Uniquement des armes imaginaires : noms inventés, silhouettes originales, skins générés.
 import { RARITIES, SKINS_PER_MODEL, CATALOG_QUOTA, KNIFE_QUOTA, COLLECTIONS } from './config.js';
+import { L } from './i18n.js';
+import { EN } from './lang/en.js';
 
 export const MODELS = [
-  { key: 'vyrex9', sym: '비',    name: 'Vyrex-9',      cls: 'pistol',   clsFr: 'Pistolet compact',        glyph: 'V9' },
-  { key: 'quasar', sym: '퀘',    name: 'Quasar .50',   cls: 'pistol',   clsFr: 'Pistolet lourd',          glyph: 'Q50' },
-  { key: 'orrin6', sym: '륜',    name: 'Orrin Six',    cls: 'revolver', clsFr: 'Revolver',                glyph: 'O6' },
-  { key: 'zephra', sym: '제',    name: 'Zephra S4',    cls: 'smg',      clsFr: 'Pistolet-mitrailleur',    glyph: 'S4' },
-  { key: 'rhoden', sym: '로',    name: 'Rhoden R7',    cls: 'rifle',    clsFr: 'Fusil d’assaut',          glyph: 'R7' },
-  { key: 'taluk', sym: '탈',     name: 'Taluk A3',     cls: 'rifle',    clsFr: 'Fusil bullpup',           glyph: 'A3' },
-  { key: 'lumen', sym: '루',     name: 'Lumen DM-2',   cls: 'dmr',      clsFr: 'Fusil de tireur d’élite', glyph: 'DM' },
-  { key: 'longshade', sym: '롱', name: 'Longshade L9', cls: 'sniper',   clsFr: 'Fusil de précision',      glyph: 'L9' },
-  { key: 'gorgon', sym: '고',    name: 'Gorgon-12',    cls: 'shotgun',  clsFr: 'Fusil à pompe',           glyph: 'G12' },
-  { key: 'bastion', sym: '바',   name: 'Bastion H2',   cls: 'lmg',      clsFr: 'Mitrailleuse légère',     glyph: 'H2' },
-  { key: 'nightfang', sym: '밤', name: 'Nightfang',    cls: 'knife',    clsFr: 'Lame griffe',             glyph: 'NF' },
-  { key: 'marrow', sym: '골',    name: 'Marrow',       cls: 'knife',    clsFr: 'Lame-baïonnette',         glyph: 'MW' },
-  { key: 'halcyon', sym: '나',   name: 'Halcyon',      cls: 'knife',    clsFr: 'Couteau balancier',       glyph: 'HC' },
-  { key: 'ridgeback', sym: '등', name: 'Ridgeback',    cls: 'knife',    clsFr: 'Couteau de chasse',       glyph: 'RB' },
-  { key: 'tern', sym: '갈',      name: 'Tern',         cls: 'knife',    clsFr: 'Couteau pliant',          glyph: 'TN' },
-  { key: 'hookjaw', sym: '구',   name: 'Hookjaw',      cls: 'knife',    clsFr: 'Lame à crochet',          glyph: 'HJ' },
-  { key: 'vespera', sym: '침',   name: 'Vespera',      cls: 'knife',    clsFr: 'Stylet',                  glyph: 'VS' },
+  { key: 'vyrex9', sym: '비',    name: 'Vyrex-9',      cls: 'pistol',   clsFr: 'Pistolet compact',        clsEn: 'Compact pistol',    glyph: 'V9' },
+  { key: 'quasar', sym: '퀘',    name: 'Quasar .50',   cls: 'pistol',   clsFr: 'Pistolet lourd',          clsEn: 'Heavy pistol',      glyph: 'Q50' },
+  { key: 'orrin6', sym: '륜',    name: 'Orrin Six',    cls: 'revolver', clsFr: 'Revolver',                clsEn: 'Revolver',          glyph: 'O6' },
+  { key: 'zephra', sym: '제',    name: 'Zephra S4',    cls: 'smg',      clsFr: 'Pistolet-mitrailleur',    clsEn: 'Submachine gun',    glyph: 'S4' },
+  { key: 'rhoden', sym: '로',    name: 'Rhoden R7',    cls: 'rifle',    clsFr: 'Fusil d’assaut',          clsEn: 'Assault rifle',     glyph: 'R7' },
+  { key: 'taluk', sym: '탈',     name: 'Taluk A3',     cls: 'rifle',    clsFr: 'Fusil bullpup',           clsEn: 'Bullpup rifle',     glyph: 'A3' },
+  { key: 'lumen', sym: '루',     name: 'Lumen DM-2',   cls: 'dmr',      clsFr: 'Fusil de tireur d’élite', clsEn: 'Marksman rifle',    glyph: 'DM' },
+  { key: 'longshade', sym: '롱', name: 'Longshade L9', cls: 'sniper',   clsFr: 'Fusil de précision',      clsEn: 'Sniper rifle',      glyph: 'L9' },
+  { key: 'gorgon', sym: '고',    name: 'Gorgon-12',    cls: 'shotgun',  clsFr: 'Fusil à pompe',           clsEn: 'Shotgun',           glyph: 'G12' },
+  { key: 'bastion', sym: '바',   name: 'Bastion H2',   cls: 'lmg',      clsFr: 'Mitrailleuse légère',     clsEn: 'Light machine gun', glyph: 'H2' },
+  { key: 'nightfang', sym: '밤', name: 'Nightfang',    cls: 'knife',    clsFr: 'Lame griffe',             clsEn: 'Claw blade',        glyph: 'NF' },
+  { key: 'marrow', sym: '골',    name: 'Marrow',       cls: 'knife',    clsFr: 'Lame-baïonnette',         clsEn: 'Bayonet',           glyph: 'MW' },
+  { key: 'halcyon', sym: '나',   name: 'Halcyon',      cls: 'knife',    clsFr: 'Couteau balancier',       clsEn: 'Butterfly knife',   glyph: 'HC' },
+  { key: 'ridgeback', sym: '등', name: 'Ridgeback',    cls: 'knife',    clsFr: 'Couteau de chasse',       clsEn: 'Hunting knife',     glyph: 'RB' },
+  { key: 'tern', sym: '갈',      name: 'Tern',         cls: 'knife',    clsFr: 'Couteau pliant',          clsEn: 'Folding knife',     glyph: 'TN' },
+  { key: 'hookjaw', sym: '구',   name: 'Hookjaw',      cls: 'knife',    clsFr: 'Lame à crochet',          clsEn: 'Hook blade',        glyph: 'HJ' },
+  { key: 'vespera', sym: '침',   name: 'Vespera',      cls: 'knife',    clsFr: 'Stylet',                  clsEn: 'Stiletto',          glyph: 'VS' },
 ];
 export const MODEL_BY_KEY = Object.fromEntries(MODELS.map((m) => [m.key, m]));
 export const COLLECTION_BY_KEY = Object.fromEntries(COLLECTIONS.map((c) => [c.key, c]));
 
 // Styles de skin (du plus simple au plus détaillé)
 export const STYLES = {
-  solid:    { fr: 'Teinte',          desc: 'Recoloration unie avec nuances de matière.' },
-  twotone:  { fr: 'Bicolore',        desc: 'Deux teintes séparées par une découpe nette.' },
-  camo:     { fr: 'Camouflage',      desc: 'Taches ou pixels ; la graine décale le motif.' },
-  geo:      { fr: 'Motif',           desc: 'Motif géométrique répété sur toute l’arme.' },
-  fade:     { fr: 'Fondu',           desc: 'Dégradé de 3 couleurs ; la graine fixe le pourcentage de fondu.', patternBased: true },
-  hardened: { fr: 'Trempe',          desc: 'Acier trempé : métal doré marbré de bleu. La graine fixe la part de bleu.', patternBased: true },
-  marble:   { fr: 'Marbrure',        desc: 'Veines de couleurs mêlées ; certaines graines n’affichent que deux couleurs.', patternBased: true },
-  damascus: { fr: 'Acier damassé',   desc: 'Strates d’acier ondulées, façon forge.' },
-  art:      { fr: 'Illustration',    desc: 'Œuvre détaillée peinte sur toute l’arme, avec ornements.' },
+  solid:    { fr: 'Teinte', en: 'Tint', desc: 'Recoloration unie avec nuances de matière.', descEn: 'Solid recolor with subtle material shading.' },
+  twotone:  { fr: 'Bicolore', en: 'Two-Tone', desc: 'Deux teintes séparées par une découpe nette.', descEn: 'Two tones split by a clean cut.' },
+  camo:     { fr: 'Camouflage', en: 'Camo', desc: 'Taches ou pixels ; la graine décale le motif.', descEn: 'Blotches or pixels; the seed shifts the pattern.' },
+  geo:      { fr: 'Motif', en: 'Pattern', desc: 'Motif géométrique répété sur toute l’arme.', descEn: 'Geometric pattern repeated across the whole weapon.' },
+  fade:     { fr: 'Fondu', en: 'Fade', desc: 'Dégradé de 3 couleurs ; la graine fixe le pourcentage de fondu.', descEn: 'Three-color gradient; the seed sets the fade percentage.', patternBased: true },
+  hardened: { fr: 'Trempe', en: 'Hardened', desc: 'Acier trempé : métal doré marbré de bleu. La graine fixe la part de bleu.', descEn: 'Hardened steel: gold metal marbled with blue. The seed sets the amount of blue.', patternBased: true },
+  marble:   { fr: 'Marbrure', en: 'Marble', desc: 'Veines de couleurs mêlées ; certaines graines n’affichent que deux couleurs.', descEn: 'Veins of swirled colors; some seeds show only two colors.', patternBased: true },
+  damascus: { fr: 'Acier damassé', en: 'Damascus Steel', desc: 'Strates d’acier ondulées, façon forge.', descEn: 'Rippling layers of steel, forge-style.' },
+  art:      { fr: 'Illustration', en: 'Artwork', desc: 'Œuvre détaillée peinte sur toute l’arme, avec ornements.', descEn: 'Detailed artwork painted across the whole weapon, with ornaments.' },
 };
 
 export const PATTERNS = [
@@ -108,6 +110,40 @@ const ART_NAMES = {
   flames: ['Brasier', 'Fournaise', 'Combustion'],
 };
 
+// Noms anglais (index parallèles à NOUNS / QUALS / ART_NAMES) : nom anglais = « qualificatif nom »
+const NOUNS_EN = ['Dawn', 'Mist', 'Ash', 'Eclipse', 'Falcon', 'Frost', 'Harpoon', 'Judgment', 'Karma', 'Legion',
+  'Mirage', 'Storm', 'Quartz', 'Requiem', 'Specter', 'Tempest', 'Vertigo', 'Wyvern', 'Zenith', 'Aurora', 'Bastion',
+  'Raven', 'Delta', 'Echo', 'Furnace', 'Gorgon', 'Hydra', 'Icarus', 'Jackal', 'Kraken', 'Lynx', 'Meteor', 'Nemesis',
+  'Oracle', 'Pulsar', 'Raptor', 'Sirocco', 'Titan', 'Vortex', 'Watcher', 'Arcana', 'Gale', 'Citadel', 'Dune',
+  'Riot', 'Forge', 'Granite', 'Horizon', 'Blaze', 'Lagoon', 'Mercury', 'Neon', 'Odyssey', 'Prism', 'Rampart',
+  'Sentinel', 'Thunder', 'Flint', 'Comet', 'Mistral', 'Bramble', 'Shell', 'Wake', 'Lookout', 'Cobalt'];
+const QUALS_EN = ['Crimson', 'Amber', 'Onyx', 'Ivory', 'Copper', 'Opal', 'Indigo', 'Ruby', 'Jade', 'Obsidian',
+  'Nocturnal', 'Solar', 'Lunar', 'Arctic', 'Feral', 'Ashen', 'Golden', 'Silver', 'Scarlet', 'Saffron', 'Azure',
+  'Coral', 'Basalt', 'Platinum', 'Rusted', 'Cyan', 'Magenta', 'Bronze', 'Ebony', 'Turquoise', 'Violet', 'Electric',
+  'Spectral', 'Shattered', 'Cursed', 'Sacred', 'Phantom', 'Crystal', 'Abyssal', 'Volcanic', 'Stellar', 'Silent',
+  'Royal', 'Antique', 'Shadow', 'Radiant', 'Glacial', 'Fiery', 'Toxic', 'Celestial', 'Sylvan', 'Imperial'];
+const ART_NAMES_EN = {
+  dragon: ['Dragon’s Breath', 'Golden Scale', 'Celestial Dragon', 'Imperial Claw', 'Dynast'],
+  filigree: ['Heirloom', 'Engraving', 'Relic', 'Court Jewel', 'Crown'],
+  koi: ['Celestial Koi', 'Moon Pond', 'Golden Carp', 'Swirl'],
+  wave: ['Great Swell', 'Black Tide', 'Undertow', 'Tsunami'],
+  city: ['Megacity', 'Night Neon', 'Skyline', 'Avenue 2099'],
+  circuit: ['Source Code', 'Overload', 'Synapse', 'Protocol'],
+  scorpion: ['Royal Sting', 'Sand Scorpion', 'Ochre Venom'],
+  dunes: ['Sea of Dunes', 'Ochre Mirage', 'Golden Sirocco'],
+  runes: ['Ancient Runes', 'Forge Seal', 'Anvil'],
+  sakura: ['Hanami', 'Petals', 'Eternal Spring', 'Pink Bough'],
+  crane: ['Rising Cranes', 'Sacred Crane', 'Migration'],
+  galaxy: ['Milky Way', 'Nebula', 'Supernova', 'Event Horizon'],
+  planet: ['Rings', 'Orbit', 'Gas Giant'],
+  frost: ['Frost Crystals', 'Blizzard', 'Permafrost'],
+  wolf: ['Polar Wolf', 'Wolfpack', 'Howl'],
+  tiger: ['Tiger King', 'Roar', 'Golden Prowler'],
+  serpent: ['Molt', 'Jade Serpent', 'Anaconda'],
+  phoenix: ['Rebirth', 'Wing of Fire', 'Golden Phoenix', 'Living Embers'],
+  flames: ['Blaze', 'Furnace', 'Combustion'],
+};
+
 // PRNG entier déterministe (mulberry32)
 export function mulberry32(a) {
   return function () {
@@ -136,11 +172,18 @@ function build() {
       const col = COLLECTIONS[Math.floor(rng() * COLLECTIONS.length)];
       const st = pickW(rng, m.cls === 'knife' ? KNIFE_STYLE_W : STYLE_W[r]);
       const art = st === 'art' ? col.arts[Math.floor(rng() * col.arts.length)] : null;
-      let name, tries = 0;
+      let name, nameEn, tries = 0;
       do {
-        name = art && tries < 20
-          ? `${ART_NAMES[art][Math.floor(rng() * ART_NAMES[art].length)]}${tries > 3 ? ' ' + QUALS[Math.floor(rng() * QUALS.length)] : ''}`
-          : `${NOUNS[Math.floor(rng() * NOUNS.length)]} ${QUALS[Math.floor(rng() * QUALS.length)]}`;
+        // même ordre de tirages qu'avant l'ajout de l'anglais (le catalogue ne doit pas changer)
+        if (art && tries < 20) {
+          const a = Math.floor(rng() * ART_NAMES[art].length);
+          const q = tries > 3 ? Math.floor(rng() * QUALS.length) : -1;
+          name = q < 0 ? ART_NAMES[art][a] : `${ART_NAMES[art][a]} ${QUALS[q]}`;
+          nameEn = q < 0 ? ART_NAMES_EN[art][a] : `${QUALS_EN[q]} ${ART_NAMES_EN[art][a]}`;
+        } else {
+          const n = Math.floor(rng() * NOUNS.length), q = Math.floor(rng() * QUALS.length);
+          name = `${NOUNS[n]} ${QUALS[q]}`; nameEn = `${QUALS_EN[q]} ${NOUNS_EN[n]}`;
+        }
         tries++;
       } while (used.has(name));
       used.add(name);
@@ -152,7 +195,7 @@ function build() {
       const H = HUES[col.key];
       skins.push({
         id: `${m.key}-${String(i + 1).padStart(3, '0')}`,
-        m: m.key, cls: m.cls, n: name, r, base, fmin, fmax: Math.max(fmax, fmin + 0.2),
+        m: m.key, cls: m.cls, n: name, nEn: nameEn, r, base, fmin, fmax: Math.max(fmax, fmin + 0.2),
         col: col.key, st, art,
         p: Math.floor(rng() * PATTERNS.length),
         cm: Math.floor(rng() * CAMOS.length),
@@ -169,5 +212,7 @@ function build() {
 
 export const SKINS = build();
 export const SKIN_BY_ID = new Map(SKINS.map((s) => [s.id, s]));
-export const skinTitle = (s) => `${MODEL_BY_KEY[s.m].name} | ${s.n}`;
+export const skinTitle = (s) => `${MODEL_BY_KEY[s.m].name} | ${L(s, 'n')}`;
+// noms de skins dans le dictionnaire : les messages du serveur (« Modèle | Nom ») se traduisent via tr()
+for (const s of SKINS) EN[s.n] ??= s.nEn;
 export const skinCollection = (s) => COLLECTION_BY_KEY[s.col];

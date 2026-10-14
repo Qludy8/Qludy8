@@ -1,7 +1,8 @@
 // Règles pures partagées serveur + navigateur : usure, centrage, gradation, valeur d'une carte.
-// Aucune dépendance, aucun aléa : tout tirage aléatoire se fait côté serveur (server/cards.js).
+// Aucune dépendance (hors i18n), aucun aléa : tout tirage aléatoire se fait côté serveur (server/cards.js).
 import { WEAR, MODIFIERS, CENTERING, MISPRINT, GRADING, RARITIES } from './config.js';
 import { describeSeed } from './patterns.js';
+import { t, L, locale } from './i18n.js';
 
 export const FLOAT_DECIMALS = 6;
 
@@ -43,8 +44,8 @@ export function extremeMult(f) {
 }
 
 export function gradeLabel(g) {
-  for (const [min, label] of GRADING.labels) if (g >= min) return label;
-  return GRADING.labels[GRADING.labels.length - 1][1];
+  for (const [min, label] of GRADING.labels) if (g >= min) return t(label);
+  return t(GRADING.labels[GRADING.labels.length - 1][1]);
 }
 export function gradeMult(g) { return stepDown(GRADING.valueMult, g); }
 export function popBonus(pop) {
@@ -61,23 +62,23 @@ export function cardValue(card, skin, pop = null) {
   const push = (label, mult) => { if (mult !== 1) parts.push({ label, mult: Math.round(mult * 100) / 100 }); };
   const wear = wearOf(card.f);
   let v = skin.base;
-  v *= wear.mult; push(`Usure ${wear.key}`, wear.mult);
-  if (card.tr != null) { v *= MODIFIERS.tracker.mult; push('Traqueur', MODIFIERS.tracker.mult); }
-  if (card.foil) { v *= MODIFIERS.foil.mult; push('Holo', MODIFIERS.foil.mult); }
-  const ex = extremeMult(card.f); v *= ex; push('Float extrême', ex);
+  v *= wear.mult; push(t('Usure {k}', { k: wear.key }), wear.mult);
+  if (card.tr != null) { v *= MODIFIERS.tracker.mult; push(t('Traqueur'), MODIFIERS.tracker.mult); }
+  if (card.foil) { v *= MODIFIERS.foil.mult; push(t('Holo'), MODIFIERS.foil.mult); }
+  const ex = extremeMult(card.f); v *= ex; push(t('Float extrême'), ex);
   const seed = describeSeed(skin, card.pt);
-  if (seed?.tier) { v *= seed.mult; push(`${seed.tierFr} (${seed.label})`, seed.mult); }
-  if (card.mp) { v *= MISPRINT.valueMult; push('Carte erreur', MISPRINT.valueMult); }
+  if (seed?.tier) { v *= seed.mult; push(`${L(seed, 'tierFr')} (${seed.label})`, seed.mult); }
+  if (card.mp) { v *= MISPRINT.valueMult; push(t('Carte erreur'), MISPRINT.valueMult); }
   if (card.g != null) {
-    const gm = gradeMult(card.g); v *= gm; push(`Grade ${card.g}`, gm);
-    if (pop != null) { const pb = popBonus(pop); v *= pb; push(`Population ${pop}`, pb); }
+    const gm = gradeMult(card.g); v *= gm; push(t('Grade {g}', { g: card.g }), gm);
+    if (pop != null) { const pb = popBonus(pop); v *= pb; push(t('Population {n}', { n: pop }), pb); }
   } else if (!card.mp) {
     const cm = stepDown(CENTERING.valueMult, centeringScore(card.cx, card.cy));
-    v *= cm; push(`Centrage ${centeringLabel(card.cx, card.cy)}`, cm);
+    v *= cm; push(t('Centrage {c}', { c: centeringLabel(card.cx, card.cy) }), cm);
   }
   return { value: Math.max(1, Math.round(v)), parts };
 }
 
 export const rarityOf = (r) => RARITIES[r];
 export const fmtFloat = (f) => f.toFixed(FLOAT_DECIMALS);
-export const fmtCredits = (n) => Math.round(n).toLocaleString('fr-FR');
+export const fmtCredits = (n) => Math.round(n).toLocaleString(locale());

@@ -31,13 +31,15 @@ const PAT = EN_PATTERNS.map(([fr, en]) => {
   const src = fr.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\?\{(\w+)\\?\}/g, (_, k) => { names.push(k); return '(.+?)'; });
   return [new RegExp(`^${src}$`), en, names];
 });
+const KEEP = new Set(['name', 'nom', 'buyer', 'user', 'username']);
 export function tr(msg) {
   if (lang !== 'en' || msg == null) return msg;
   const s = String(msg);
   if (EN[s] != null) return EN[s];
   for (const [re, en, names] of PAT) {
     const m = s.match(re);
-    if (m) return fill(en, Object.fromEntries(names.map((k, i) => [k, tr(m[i + 1])])));
+    // les noms de joueurs ne sont jamais traduits (un pseudo « Aurore » reste « Aurore »)
+    if (m) return fill(en, Object.fromEntries(names.map((k, i) => [k, KEEP.has(k) ? m[i + 1] : tr(m[i + 1])])));
   }
   return s;
 }
