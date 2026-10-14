@@ -1,9 +1,10 @@
 // Services de jeu : portefeuille, cartes, boosters, marché, amis, échanges, gradation, missions.
 // Toute mutation passe par tx() → atomique. Les routes HTTP (server/api.js) ne font qu'appeler ces fonctions.
 import {
-  PACKS, ECONOMY, MISSIONS, LEVELS, GRADING, TRADES, TRADE_UP, RARITIES, DISCORD,
+  ECONOMY, MISSIONS, LEVELS, GRADING, TRADES, TRADE_UP, RARITIES, DISCORD,
 } from '../shared/config.js';
 import { SKIN_BY_ID, SKINS, MODEL_BY_KEY } from '../shared/catalog.js';
+import { PACK_BY_KEY } from '../shared/packs.js';
 import { cardValue, wearOf } from '../shared/rules.js';
 import { db, tx, one, all, run, now, today } from './db.js';
 import { openPack, gradeCard, gradingFee, newSerial, rand, rollCard } from './cards.js';
@@ -13,7 +14,6 @@ export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
 const bad = (msg) => new HttpError(400, msg);
-const PACK_BY_KEY = Object.fromEntries(PACKS.map((p) => [p.key, p]));
 
 // ───────────────────────────── Portefeuille
 export function credit(userId, amount, type, note = null) {
@@ -41,7 +41,7 @@ export function notify(userId, text, link = null) {
 function popOf(skinId, grade) {
   return one("SELECT COUNT(*) n FROM cards WHERE skin_id = ? AND grade = ? AND status != 'BURNED'", skinId, grade).n;
 }
-export const rowToCard = (r) => ({ f: r.float, cx: r.cx, cy: r.cy, tr: r.tracker, foil: r.foil, mp: r.misprint, g: r.grade });
+export const rowToCard = (r) => ({ f: r.float, cx: r.cx, cy: r.cy, tr: r.tracker, foil: r.foil, mp: r.misprint, g: r.grade, pt: r.pattern });
 export function valueOfRow(r) {
   const skin = SKIN_BY_ID.get(r.skin_id);
   return cardValue(rowToCard(r), skin, r.grade != null ? popOf(r.skin_id, r.grade) : null).value;
@@ -59,8 +59,8 @@ export function cardOut(r, extra = {}) {
 }
 export function insertCard(ownerId, c, origin) {
   const skin = SKIN_BY_ID.get(c.s);
-  const res = run(`INSERT INTO cards (serial, skin_id, rarity, owner_id, float, cx, cy, tracker, foil, misprint, origin, created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`, newSerial(), c.s, skin.r, ownerId, c.f, c.cx, c.cy, c.tr, c.foil, c.mp, origin, now());
+  const res = run(`INSERT INTO cards (serial, skin_id, rarity, owner_id, float, cx, cy, tracker, foil, misprint, pattern, origin, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, newSerial(), c.s, skin.r, ownerId, c.f, c.cx, c.cy, c.tr, c.foil, c.mp, c.pt ?? null, origin, now());
   const id = Number(res.lastInsertRowid);
   run('INSERT INTO ownership (card_id, from_id, to_id, reason, at) VALUES (?,?,?,?,?)', id, null, ownerId, origin, now());
   return id;
@@ -234,7 +234,7 @@ export function tradeUp(userId, ids) {
       run('INSERT INTO ownership (card_id, from_id, to_id, reason, at) VALUES (?,?,?,?,?)', x.id, userId, null, 'TRADE_UP', now());
     }
     const src = SKIN_BY_ID.get(rows[randomInt(0, rows.length)].skin_id);
-    const c = rollCard(r + 1, [src.cls]);
+    const c = rollCard(r + 1, { classes: [src.cls] });
     const skin = SKIN_BY_ID.get(c.s);
     const avg = rows.reduce((a, x) => a + x.float, 0) / rows.length;
     c.f = Math.round((skin.fmin + avg * (skin.fmax - skin.fmin)) * 1e6) / 1e6;
@@ -501,7 +501,7 @@ function nextCert() {
   if (certCounter == null) certCounter = Number(one("SELECT v FROM meta WHERE k = 'cert'")?.v || 0);
   certCounter++;
   run("INSERT INTO meta (k, v) VALUES ('cert', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(certCounter));
-  return `ARG-${new Date().getFullYear()}-${String(certCounter).padStart(6, '0')}`;
+  return `MGG-${new Date().getFullYear()}-${String(certCounter).padStart(6, '0')}`;
 }
 export function revealGrading(me, orderId) {
   return tx(() => {

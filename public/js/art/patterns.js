@@ -25,6 +25,9 @@ export function palette(skin) {
 
 const R = (x) => Math.round(x * 10) / 10;
 
+// index du catalogue (16 motifs) → générateur
+const GEO_MAP = [1, 2, 3, 10, 11, 12, 13, 17, 23, 6, 8, 15, 18, 19, 20, 24];
+
 // id : identifiant unique du <pattern> ; renvoie la chaîne SVG complète (<pattern>/<linearGradient>…)
 export function patternDef(id, skin) {
   const c = palette(skin);
@@ -33,7 +36,7 @@ export function patternDef(id, skin) {
     `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${w}" height="${hgt}" ${extra}>${inner}</pattern>`;
   const bg = (w, hgt, col = c.c1) => `<rect width="${w}" height="${hgt}" fill="${col}"/>`;
 
-  switch (skin.p) {
+  switch (GEO_MAP[skin.p] ?? 1) {
     case 0: // Uni
       return `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.c1l}"/><stop offset=".55" stop-color="${c.c1}"/><stop offset="1" stop-color="${c.c1d}"/></linearGradient>`;
     case 1: // Rayures
@@ -172,6 +175,8 @@ export function patternDef(id, skin) {
     case 23: // Hexagrammes
       return pat(48, 48, bg(48, 48, c.c1d) +
         `<path d="M24 6 L39 32 L9 32 Z M24 42 L9 16 L39 16 Z" fill="none" stroke="${c.c2}" stroke-width="2"/><circle cx="24" cy="24" r="3" fill="${c.c1l}"/>`);
+    case 24: // Losanges
+      return pat(36, 36, bg(36, 36, c.c1d) + `<path d="M18 0 L36 18 L18 36 L0 18 Z" fill="${c.c1}" stroke="${c.c2}" stroke-width="2"/><path d="M18 9 L27 18 L18 27 L9 18 Z" fill="${c.c2}"/>`);
     default:
       return `<linearGradient id="${id}"><stop offset="0" stop-color="${c.c1}"/></linearGradient>`;
   }

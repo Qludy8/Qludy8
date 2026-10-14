@@ -1,4 +1,4 @@
-// Armaris – serveur HTTP (Express) : API JSON + fichiers statiques (public/ et shared/).
+// Mugigo – serveur HTTP (Express) : API JSON + fichiers statiques (public/ et shared/).
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -31,4 +31,4 @@ app.use((err, _req, res, _next) => {
 
 if (process.env.BOTS !== '0') startBots();
 const port = Number(process.env.PORT || 3000);
-app.listen(port, () => console.log(`Armaris prêt sur http://localhost:${port}`));
+app.listen(port, () => console.log(`Mugigo prêt sur http://localhost:${port}`));

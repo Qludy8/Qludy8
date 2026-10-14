@@ -1,5 +1,5 @@
 // Vérification de compte par Discord (OAuth2, scope « identify »).
-// Variables : DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, PUBLIC_URL (ex. https://armaris.example).
+// Variables : DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, PUBLIC_URL (ex. https://mugigo.example).
 // En local sans application Discord : DISCORD_DEV_MOCK=1 active un bouton de vérification simulée.
 import { randomBytes } from 'node:crypto';
 import { DISCORD } from '../shared/config.js';

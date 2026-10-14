@@ -6,6 +6,7 @@ process.env.DB_FILE = ':memory:';
 const { one, all, run } = await import('../server/db.js');
 const G = await import('../server/game.js');
 const { createUser } = await import('../server/auth.js');
+const { PACK_BY_KEY } = await import('../shared/packs.js');
 
 const a = createUser({ username: 'alice', password: 'password123' });
 const b = createUser({ username: 'bob', password: 'password123' });
@@ -18,7 +19,7 @@ test('boosters offerts puis payants', () => {
   assert.equal(r.balance, 300);
   assert.equal(r.packs.flatMap((p) => p.cards).length, 15);
   G.openPacks(a, 'standard', 1);
-  assert.equal(bal(a), 150);
+  assert.equal(bal(a), 300 - PACK_BY_KEY.standard.price);
   assert.throws(() => G.openPacks(a, 'blades', 1), /Solde insuffisant/);
   assert.equal(owned(a).length, 20, 'rollback : aucune carte créée si le paiement échoue');
 });
@@ -81,7 +82,7 @@ test('gradation : verrouillage, révélation, certificat', () => {
   run('UPDATE grading_orders SET ready_at = 0 WHERE id = ?', orderId);
   const [res] = G.revealGrading(a, orderId);
   assert.ok(res.g >= 1 && res.g <= 10);
-  assert.match(res.cert, /^ARG-\d{4}-\d{6}$/);
+  assert.match(res.cert, /^MGG-\d{4}-\d{6}$/);
   G.unslab(a, c.id);
   assert.equal(one('SELECT grade FROM cards WHERE id = ?', c.id).grade, null);
 });

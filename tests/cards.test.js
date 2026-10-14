@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rollFloat, rollCentering, openPack, gradeCard, rollCard } from '../server/cards.js';
 import { SKINS, SKIN_BY_ID } from '../shared/catalog.js';
-import { PACKS, CENTERING, GRADING, PITY } from '../shared/config.js';
+import { CENTERING, GRADING, PITY } from '../shared/config.js';
+import { PACKS, packFilter } from '../shared/packs.js';
 import { wearOf } from '../shared/rules.js';
 
 test('le float reste dans les bornes du skin', () => {
@@ -15,8 +16,8 @@ test('distribution d’usure proche des poids', () => {
   const s = SKINS.find((x) => x.fmin === 0 && x.fmax === 1);
   const n = 20000, c = {};
   for (let i = 0; i < n; i++) { const k = wearOf(rollFloat(s)).key; c[k] = (c[k] || 0) + 1; }
-  assert.ok(Math.abs(c.BS / n - 0.44) < 0.02);
-  assert.ok(Math.abs(c.FN / n - 0.04) < 0.01);
+  assert.ok(Math.abs(c.RV / n - 0.44) < 0.02);
+  assert.ok(Math.abs(c.IM / n - 0.04) < 0.01);
 });
 
 test('centrage dans les bornes', () => {
@@ -27,7 +28,8 @@ test('les cartes respectent le pool du booster', () => {
   for (const p of PACKS) {
     for (let i = 0; i < 50; i++) for (const c of openPack(p).cards) {
       const s = SKIN_BY_ID.get(c.s);
-      if (p.classes) assert.ok(p.classes.includes(s.cls));
+      assert.ok(packFilter(p.filter)(s), `${p.key} : ${s.id} hors contenu`);
+      assert.ok(c.pt >= 0 && c.pt < 1000);
       assert.ok(p.rates[s.r] > 0, `${p.key} rareté ${s.r} interdite`);
       if (c.foil) assert.ok(s.r >= 2);
     }

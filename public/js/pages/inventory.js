@@ -1,6 +1,9 @@
 // Inventaire (sélection multiple, vente, contrat, gradation), fiche carte, suivi de gradation.
 import { RARITIES, WEAR, ECONOMY, GRADING, TRADE_UP, CENTERING } from '/shared/config.js';
-import { SKIN_BY_ID, MODEL_BY_KEY, PATTERNS, FINISHES } from '/shared/catalog.js';
+import { SKIN_BY_ID, MODEL_BY_KEY, FINISHES, COLLECTION_BY_KEY } from '/shared/catalog.js';
+import { describeSeed } from '/shared/patterns.js';
+import { styleLabel } from '../art/card.js';
+import { inspector } from '../inspect.js';
 import { wearOf, fmtFloat, centeringScore, centeringLabel, gradeLabel } from '/shared/rules.js';
 import { api, post, store } from '../api.js';
 import { cardOf } from '../opening.js';
@@ -177,19 +180,22 @@ export async function cardPage({ view, params, stale, rerender, cert }) {
           <dt>Float</dt><dd>${fmtFloat(c.f)}</dd><dt>Usure</dt><dd>${esc(w.fr)} (${w.key})</dd>
           <dt>Centrage</dt><dd>${centeringLabel(c.cx, c.cy)} · G/D ${c.cx.toFixed(1)}/${(100 - c.cx).toFixed(1)} · H/B ${c.cy.toFixed(1)}/${(100 - c.cy).toFixed(1)}</dd>
           <dt>Note de centrage estimée</dt><dd>${c.mp ? '—' : centeringScore(c.cx, c.cy)}</dd>
-          <dt>Motif</dt><dd>${esc(PATTERNS[s.p])}</dd><dt>Finition</dt><dd>${esc(FINISHES[s.f])}</dd>
+          <dt>Collection</dt><dd style="color:${COLLECTION_BY_KEY[s.col].theme[0]}">${esc(COLLECTION_BY_KEY[s.col].fr)}</dd><dt>Style</dt><dd>${esc(styleLabel(s))}</dd><dt>Graine</dt><dd>${c.pt ?? '—'}${describeSeed(s, c.pt) ? ` · <span style="color:${describeSeed(s, c.pt).tier ? '#ffd76a' : 'inherit'}">${esc(describeSeed(s, c.pt).label)}</span>` : ''}</dd><dt>Finition</dt><dd>${esc(FINISHES[s.f])}</dd>
           <dt>Exemplaires</dt><dd>${d.copies}</dd><dt>Obtenue</dt><dd>${new Date(c.created_at).toLocaleDateString('fr-FR')}</dd></dl></div>
         <div class="panel"><h3>${c.g != null ? `Gradation · ${c.g} ${esc(gradeLabel(c.g))}` : 'Population gradée'}</h3>
           ${subs.map(([k, label]) => `<div class="subgrade" style="animation-delay:0s;opacity:1"><span>${label}</span><div class="bar"><i style="width:${c.subs[k] * 10}%"></i></div><b>${c.subs[k]}</b></div>`).join('')}
           ${d.population.length ? `<table class="t" style="margin-top:10px"><thead><tr><th>Note</th><th>Population</th></tr></thead><tbody>${d.population.map((p) => `<tr><td>${p.grade} ${esc(gradeLabel(p.grade))}</td><td>${p.n}</td></tr>`).join('')}</tbody></table>` : '<p class="muted small">Aucun exemplaire gradé pour l’instant.</p>'}
         </div>
       </div>
+      <div class="panel" style="margin-top:18px" data-insp></div>
       <div class="panel" style="margin-top:18px"><h3>Historique des prix (${esc(skinTitle(s))})</h3>${priceChart(d.sales)}</div>
       <div class="panel" style="margin-top:18px"><h3>Historique de propriété</h3><table class="t"><tbody>
         ${d.history.map((h) => `<tr><td class="muted small">${ago(h.at)}</td><td>${esc(h.from_name || '—')} → ${esc(h.to_name || 'Système')}</td><td class="muted">${esc(h.reason)}</td><td style="text-align:right">${h.price ? cr(h.price) : ''}</td></tr>`).join('')}
       </tbody></table></div>
     </div></div>`;
 
+  const ins = inspector(s, { f: c.f, pt: c.pt, title: 'Inspection', lockedNote: 'les curseurs ne modifient que l’aperçu' });
+  view.querySelector('[data-insp]').innerHTML = ins.html; ins.bind(view.querySelector('[data-insp]'));
   const run = async (fn, okMsg) => { try { await fn(); if (okMsg) toast(okMsg, 'good'); store.refresh(); rerender(); } catch (e) { toast(esc(e.message), 'error'); } };
   view.addEventListener('click', async (e) => {
     const t = e.target;

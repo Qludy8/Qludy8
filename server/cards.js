@@ -1,7 +1,8 @@
 // Tirages côté serveur : rareté, skin, float, centrage, modificateurs, carte erreur, gradation.
 import { randomInt, randomBytes } from 'node:crypto';
-import { RARITIES, WEAR, MODIFIERS, CENTERING, MISPRINT, GRADING, PITY } from '../shared/config.js';
+import { RARITIES, WEAR, MODIFIERS, CENTERING, MISPRINT, GRADING, PITY, PATTERN } from '../shared/config.js';
 import { SKINS } from '../shared/catalog.js';
+import { packFilter } from '../shared/packs.js';
 import { wearOf, centeringScore, FLOAT_DECIMALS } from '../shared/rules.js';
 
 // Uniforme [0,1) cryptographique (53 bits)
@@ -20,12 +21,13 @@ const pickWeighted = (weights) => {
   return 0;
 };
 
-// Index : pool[classesKey][rarity] = skins
+// Index : pool[filtre][rareté] = skins
 const poolCache = new Map();
-export function poolFor(classes, rarity) {
-  const key = (classes ? classes.join(',') : '*') + ':' + rarity;
+export function poolFor(filter, rarity) {
+  const key = JSON.stringify(filter || {}) + ':' + rarity;
   if (!poolCache.has(key)) {
-    poolCache.set(key, SKINS.filter((s) => s.r === rarity && (!classes || classes.includes(s.cls))));
+    const ok = packFilter(filter || {});
+    poolCache.set(key, SKINS.filter((s) => s.r === rarity && ok(s)));
   }
   return poolCache.get(key);
 }
@@ -53,12 +55,12 @@ export function rollCentering() {
 }
 
 export function newSerial() {
-  return 'AR-' + randomBytes(5).toString('hex').toUpperCase();
+  return 'MG-' + randomBytes(5).toString('hex').toUpperCase();
 }
 
-/** Tire une carte complète pour une rareté et des classes d'armes données. */
-export function rollCard(rarity, classes) {
-  let pool = poolFor(classes, rarity);
+/** Tire une carte complète pour une rareté et un filtre de contenu ({ classes, models, collection }). */
+export function rollCard(rarity, filter) {
+  let pool = poolFor(filter, rarity);
   if (!pool.length) pool = poolFor(null, rarity);
   const skin = pool[randomInt(0, pool.length)];
   const f = rollFloat(skin);
@@ -71,7 +73,8 @@ export function rollCard(rarity, classes) {
     const sameModel = SKINS.filter((s) => s.m === skin.m && s.id !== skin.id);
     mp = sameModel[randomInt(0, sameModel.length)].id;
   }
-  return { s: skin.id, f, cx, cy, tr, foil, mp, g: null };
+  const pt = randomInt(0, PATTERN.seeds);
+  return { s: skin.id, f, cx, cy, tr, foil, mp, g: null, pt };
 }
 
 /**
@@ -95,7 +98,7 @@ export function openPack(pack, pity = { ultra: 0, legend: 0 }, usePity = true) {
   const next = usePity
     ? { ultra: best >= 3 ? 0 : pity.ultra + 1, legend: best >= 4 ? 0 : pity.legend + 1 }
     : pity;
-  const cards = rarities.map((r) => rollCard(r, pack.classes));
+  const cards = rarities.map((r) => rollCard(r, pack.filter));
   return { cards, pity: next, pityTriggered };
 }
 

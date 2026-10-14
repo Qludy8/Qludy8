@@ -1,11 +1,13 @@
 // Monte-Carlo : valeur espérée (EV) de chaque booster vs son prix + retour en « vente au système ».
 // Usage : npm run calibrate [-- 20000]
-import { PACKS, ECONOMY, RARITIES } from '../shared/config.js';
+import { ECONOMY, RARITIES } from '../shared/config.js';
+import { PACKS } from '../shared/packs.js';
 import { SKIN_BY_ID } from '../shared/catalog.js';
 import { openPack } from '../server/cards.js';
 import { cardValue } from '../shared/rules.js';
 
 const N = Number(process.argv[2] || 20000);
+let sumV = 0, sumB = 0;
 console.log(`Simulation : ${N} ouvertures par booster\n`);
 for (const pack of PACKS) {
   let total = 0; const byR = new Array(RARITIES.length).fill(0);
@@ -16,7 +18,7 @@ for (const pack of PACKS) {
     for (const c of res.cards) {
       const s = SKIN_BY_ID.get(c.s);
       const v = cardValue(c, s).value;
-      total += v; byR[s.r] += v;
+      total += v; byR[s.r] += v; sumV += v; sumB += s.base;
     }
   }
   const ev = total / N;
@@ -27,3 +29,4 @@ for (const pack of PACKS) {
     `\n    part de l'EV par rareté : ${byR.map((x, r) => `${RARITIES[r].fr} ${((x / total) * 100).toFixed(0)}%`).join(' · ')}`,
   );
 }
+console.log(`\nMultiplicateur moyen mesuré (valeur / base) : ${(sumV / sumB).toFixed(3)}  → AVG_CARD_MULT dans shared/packs.js`);

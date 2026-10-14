@@ -1,6 +1,7 @@
 // Règles pures partagées serveur + navigateur : usure, centrage, gradation, valeur d'une carte.
 // Aucune dépendance, aucun aléa : tout tirage aléatoire se fait côté serveur (server/cards.js).
 import { WEAR, MODIFIERS, CENTERING, MISPRINT, GRADING, RARITIES } from './config.js';
+import { describeSeed } from './patterns.js';
 
 export const FLOAT_DECIMALS = 6;
 
@@ -53,7 +54,7 @@ export function popBonus(pop) {
 
 /**
  * Valeur de référence d'une carte (en crédits) + détail des multiplicateurs.
- * card : { f, cx, cy, tr, foil, mp, g } ; skin : entrée du catalogue ; pop : population à cette note (si gradée)
+ * card : { f, cx, cy, tr, foil, mp, g, pt } ; skin : entrée du catalogue ; pop : population à cette note (si gradée)
  */
 export function cardValue(card, skin, pop = null) {
   const parts = [];
@@ -64,6 +65,8 @@ export function cardValue(card, skin, pop = null) {
   if (card.tr != null) { v *= MODIFIERS.tracker.mult; push('Traqueur', MODIFIERS.tracker.mult); }
   if (card.foil) { v *= MODIFIERS.foil.mult; push('Holo', MODIFIERS.foil.mult); }
   const ex = extremeMult(card.f); v *= ex; push('Float extrême', ex);
+  const seed = describeSeed(skin, card.pt);
+  if (seed?.tier) { v *= seed.mult; push(`${seed.tierFr} (${seed.label})`, seed.mult); }
   if (card.mp) { v *= MISPRINT.valueMult; push('Carte erreur', MISPRINT.valueMult); }
   if (card.g != null) {
     const gm = gradeMult(card.g); v *= gm; push(`Grade ${card.g}`, gm);

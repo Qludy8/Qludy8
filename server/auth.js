@@ -5,7 +5,7 @@ import { one, run, tx, now } from './db.js';
 import { HttpError, credit } from './game.js';
 
 const SESSION_MS = 30 * 864e5;
-const COOKIE = 'armaris_sid';
+const COOKIE = 'mugigo_sid';
 
 export function hashPassword(pw) {
   const salt = randomBytes(16);

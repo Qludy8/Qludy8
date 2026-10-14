@@ -8,11 +8,11 @@ const skin = SKINS.find((s) => s.r === 3);
 const base = { f: 0.05, cx: 50, cy: 50, tr: null, foil: 0, mp: null, g: null };
 
 test('paliers d’usure', () => {
-  assert.equal(wearOf(0).key, 'FN');
-  assert.equal(wearOf(0.07).key, 'MW');
-  assert.equal(wearOf(0.2).key, 'FT');
-  assert.equal(wearOf(0.44).key, 'WW');
-  assert.equal(wearOf(0.99).key, 'BS');
+  assert.equal(wearOf(0).key, 'IM');
+  assert.equal(wearOf(0.07).key, 'PM');
+  assert.equal(wearOf(0.2).key, 'EP');
+  assert.equal(wearOf(0.44).key, 'US');
+  assert.equal(wearOf(0.99).key, 'RV');
 });
 
 test('note de centrage façon PSA', () => {

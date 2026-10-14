@@ -1,7 +1,7 @@
-# Armaris — cartes d’armes à collectionner
+# Mugigo (무기고) — cartes d’armes à collectionner
 
 Jeu web de cartes à collectionner (dans l’esprit de kyara.games) dont les cartes sont des **armes imaginaires** :
-boosters illustrés, **3 600 skins** procéduraux, usure par **float** (0 → 1), **centrage** des cartes,
+**31 boosters illustrés** (généraux, par collection, par arme), **4 500 skins** procéduraux sur 15 armes inventées (dont 5 formes de couteaux), usure par **float** (0 → 1, paliers IM / PM / EP / US / RV), **graines de motif** avec graines rares, **centrage** des cartes,
 **cartes erreur** ultra-rares, **gradation** façon PSA, marché entre joueurs, **amis & échanges**, collection complète,
 classements, missions et vérification de compte par **Discord**.
 
@@ -36,10 +36,13 @@ vérification simulée pour tester en local.
 
 | Fonction | Détails |
 |---|---|
+| Styles de skins | Teinte, bicolore, camouflage, motif, fondu, trempe, marbrure, acier damassé, 19 illustrations (dragon, koï, vague, phénix…) |
+| Graines de motif | 0–999 par carte ; fondu / trempe / marbrure : 3 graines légendaires, 15 rares, 40 recherchées par modèle (fiche « Motifs ») |
+| Boutique | Onglet présent mais verrouillé (`SHOP.enabled = false` dans `shared/config.js`) |
 | Raretés | Commun, Peu commun, Rare, Ultra rare, Légendaire, Mythique, **Transcendant** |
-| Catalogue | 12 modèles d’armes inventés × 300 skins, 24 motifs (camouflage, pixels, flammes, circuit, nébuleuse…) × 6 finitions |
+| Catalogue | 15 modèles inventés × 300 skins, 10 collections thématiques |
 | Illustrations | Cartes et boosters en SVG : silhouettes originales peintes avec le motif du skin, cadre de rareté, holo animé |
-| Usure | Float à 6 décimales, 5 états (Neuf → Brisé). Visuellement : la peinture s’écaille, la carte se raye, les coins blanchissent, plis et taches |
+| Usure | Float à 6 décimales, 5 états (Immaculée, Peu marquée, Éprouvée, Usée, Ravagée). La peinture s’écaille, se décolore et se tache ; la carte se raye, perd ses couleurs, se plie |
 | Centrage | Bordures gauche/droite et haut/bas réellement décalées sur la carte (ex. 58/42) → ×0,85 à ×1,12 sur la valeur |
 | Carte erreur | 1/2 000 : deux cartes à moitié sur la même feuille, ×40 |
 | Gradation | Économique / Standard / Express ; 4 sous-notes (centrage, coins, bords, surface), note 1–10, slab avec certificat, bonus de faible population, slab cassable |
@@ -50,8 +53,8 @@ vérification simulée pour tester en local.
 | Collection | Les 3 600 cartes visibles, progression par modèle et par rareté, fiche skin avec annonces et historique de prix |
 
 ### Équilibrage
-Tout est dans `shared/config.js`. Les prix des boosters sont calibrés pour que la **valeur moyenne d’un booster vaille
-81 à 91 % de son prix** : la revente immédiate au système ne rend qu’environ 45–50 %, donc impossible de « farmer »
+Tout est dans `shared/config.js`. Les prix des boosters sont **calculés automatiquement** (`shared/packs.js`) pour que la valeur moyenne d’un booster vaille
+environ 87 % de son prix : la revente immédiate au système ne rend qu’environ 45–50 %, donc impossible de « farmer »
 des crédits en boucle, mais les gros tirages (Mythique, Transcendant, cartes erreur, gradés 10) restent très rentables.
 Les sources de revenus réguliers sont les colis gratuits, la connexion quotidienne, les missions et le commerce.
 

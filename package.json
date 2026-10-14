@@ -1,9 +1,9 @@
 {
-  "name": "armaris",
+  "name": "mugigo",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Armaris – jeu de cartes à collectionner d'armes fictives (100 % fictif, aucune monnaie réelle)",
+  "description": "Mugigo (무기고) – jeu de cartes à collectionner d'armes fictives (100 % fictif, aucune monnaie réelle)",
   "engines": { "node": ">=22.9" },
   "scripts": {
     "start": "node --experimental-sqlite --no-warnings --env-file-if-exists=.env server/index.js",

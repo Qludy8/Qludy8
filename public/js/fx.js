@@ -52,37 +52,81 @@ export class Particles {
   }
 }
 
-// ───────── Sons courts synthétisés (aucun fichier audio)
-let actx = null;
+// ───────── Sons synthétisés (WebAudio, aucun fichier) : doux, réverbérés, de plus en plus épiques avec la rareté
+let actx = null, bus = null, verb = null;
+function audio() {
+  if (actx) return actx;
+  actx = new AudioContext();
+  const comp = actx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4;
+  const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+  bus = actx.createGain(); bus.gain.value = 0.55;
+  bus.connect(lp).connect(comp).connect(actx.destination);
+  // réverbération : réponse impulsionnelle générée (bruit décroissant, 2,6 s)
+  const len = actx.sampleRate * 2.6, ir = actx.createBuffer(2, len, actx.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 2.6; }
+  verb = actx.createConvolver(); verb.buffer = ir;
+  const wet = actx.createGain(); wet.gain.value = 0.32;
+  verb.connect(wet).connect(lp);
+  return actx;
+}
+function out(node, send = 0.5) { node.connect(bus); if (send) { const g = actx.createGain(); g.gain.value = send; node.connect(g).connect(verb); } }
+function env(g, t, a, peak, dur) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
+// cloche douce : fondamentale + partiels
+function bell(f, t, dur = 1.6, vol = 0.08, send = 0.6) {
+  [[1, 1], [2.01, 0.32], [3.98, 0.12], [5.2, 0.05]].forEach(([m, v]) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = f * m; env(g, t, 0.006, vol * v, dur / m ** 0.4);
+    o.connect(g); out(g, send); o.start(t); o.stop(t + dur + 0.1);
+  });
+}
+// nappe : dents de scie désaccordées filtrées
+function pad(freqs, t, dur, vol = 0.03, cutoff = 1400) {
+  const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(cutoff * 0.4, t); f.frequency.linearRampToValueAtTime(cutoff, t + dur * 0.5);
+  const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  f.connect(g); out(g, 0.8);
+  for (const fr of freqs) for (const det of [-7, 0, 7]) { const o = actx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fr; o.detune.value = det; o.connect(f); o.start(t); o.stop(t + dur + 0.1); }
+}
+function noise(t, dur, { type = 'bandpass', from = 800, to = 2500, q = 0.8, vol = 0.12, send = 0.2 } = {}) {
+  const b = actx.createBuffer(1, actx.sampleRate * dur, actx.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+  f.type = type; f.Q.value = q; f.frequency.setValueAtTime(from, t); f.frequency.exponentialRampToValueAtTime(to, t + dur);
+  env(g, t, dur * 0.25, vol, dur);
+  s.buffer = b; s.connect(f).connect(g); out(g, send); s.start(t);
+}
+function boom(t, vol = 0.35, from = 140, to = 42, dur = 1.4) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(from, t); o.frequency.exponentialRampToValueAtTime(to, t + dur * 0.6);
+  env(g, t, 0.01, vol, dur); o.connect(g); out(g, 0.4); o.start(t); o.stop(t + dur + 0.1);
+}
+const N = (semi) => 261.63 * 2 ** (semi / 12);   // do4 + demi-tons
+const SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+
 export const sound = {
-  get on() { try { return localStorage.getItem('armaris.sound') !== '0'; } catch { return true; } },
-  set on(v) { try { localStorage.setItem('armaris.sound', v ? '1' : '0'); } catch { /* stockage indisponible */ } },
+  get on() { try { return localStorage.getItem('mugigo.sound') !== '0'; } catch { return true; } },
+  set on(v) { try { localStorage.setItem('mugigo.sound', v ? '1' : '0'); } catch { /* stockage indisponible */ } },
   play(kind, rarity = 0) {
     if (!this.on) return;
     try {
-      actx ||= new AudioContext();
-      const t = actx.currentTime;
-      const tone = (freq, dur, type = 'sine', vol = 0.12, delay = 0, slide = 0) => {
-        const o = actx.createOscillator(), g = actx.createGain();
-        o.type = type; o.frequency.setValueAtTime(freq, t + delay);
-        if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t + delay + dur);
-        g.gain.setValueAtTime(0.0001, t + delay); g.gain.exponentialRampToValueAtTime(vol, t + delay + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + delay + dur);
-        o.connect(g).connect(actx.destination); o.start(t + delay); o.stop(t + delay + dur + 0.05);
-      };
-      const noise = (dur, vol = 0.15) => {
-        const b = actx.createBuffer(1, actx.sampleRate * dur, actx.sampleRate), d = b.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-        const s = actx.createBufferSource(), g = actx.createGain(), f = actx.createBiquadFilter();
-        f.type = 'highpass'; f.frequency.value = 1200; g.gain.value = vol;
-        s.buffer = b; s.connect(f).connect(g).connect(actx.destination); s.start();
-      };
-      if (kind === 'tear') noise(0.35, 0.18);
-      else if (kind === 'flip') { noise(0.06, 0.08); tone(420 + rarity * 90, 0.12, 'triangle', 0.05); }
-      else if (kind === 'charge') tone(110, 1.1, 'sawtooth', 0.04, 0, 3.2);
-      else if (kind === 'rare') { [0, 4, 7, 12].forEach((s, i) => tone(440 * 2 ** ((s + rarity * 2) / 12), 0.5, 'triangle', 0.07, i * 0.07)); if (rarity >= 5) tone(55, 1.4, 'sine', 0.3, 0, 0.5); }
-      else if (kind === 'coin') { tone(1320, 0.08, 'square', 0.03); tone(1760, 0.12, 'square', 0.03, 0.06); }
-      else if (kind === 'click') tone(660, 0.05, 'triangle', 0.04);
+      audio();
+      const t = actx.currentTime + 0.01;
+      if (kind === 'tear') { noise(t, 0.45, { from: 600, to: 3200, vol: 0.09 }); boom(t, 0.12, 110, 60, 0.4); }
+      else if (kind === 'flip') { noise(t, 0.08, { from: 1800, to: 1200, vol: 0.05, send: 0.1 }); bell(N(SCALE[Math.min(rarity, 6)] + 12), t + 0.02, 0.6, 0.035, 0.3); }
+      else if (kind === 'charge') {
+        const dur = 0.9 + rarity * 0.25;
+        noise(t, dur, { type: 'lowpass', from: 300, to: 4000, q: 4, vol: 0.05, send: 0.6 });
+        pad([N(-12), N(-5)], t, dur + 0.4, 0.012 + rarity * 0.003, 900 + rarity * 300);
+      } else if (kind === 'rare') {
+        // de plus en plus riche : cloche → accord → arpège + nappe → choeur + timbale → gong scintillant
+        const root = [0, 2, 4, 5, 7, 9, 12][Math.min(rarity, 6)];
+        const arp = rarity <= 1 ? [0] : rarity === 2 ? [0, 7] : rarity === 3 ? [0, 4, 7] : rarity === 4 ? [0, 4, 7, 12, 16] : [0, 4, 7, 11, 12, 16, 19, 24];
+        arp.forEach((s, i) => bell(N(root + s), t + i * (rarity >= 5 ? 0.09 : 0.11), 1.4 + rarity * 0.3, 0.05 + rarity * 0.006));
+        if (rarity >= 3) pad([N(root - 12), N(root - 5), N(root)], t, 1.8 + rarity * 0.4, 0.012 + rarity * 0.004, 1100 + rarity * 250);
+        if (rarity >= 4) boom(t, 0.22 + (rarity - 4) * 0.1, 120, 45, 1.6);
+        if (rarity >= 5) { pad([N(root + 12), N(root + 16), N(root + 19)], t + 0.3, 3, 0.012, 2400); noise(t, 1.8, { from: 6000, to: 9000, vol: 0.03, send: 0.9 }); }
+        if (rarity >= 6) { [1, 2.76, 5.4, 8.9].forEach((m, i) => bell(N(root - 24) * m, t + 0.05, 4, 0.06 / (i + 1), 0.9)); arp.forEach((s, i) => bell(N(root + s + 24), t + 0.9 + i * 0.07, 2, 0.02)); }
+      } else if (kind === 'coin') { bell(N(19), t, 0.7, 0.04, 0.3); bell(N(24), t + 0.08, 0.9, 0.035, 0.3); }
+      else if (kind === 'click') bell(N(12), t, 0.25, 0.02, 0.1);
     } catch { /* audio indisponible */ }
   },
 };

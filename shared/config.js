@@ -1,7 +1,10 @@
-// Armaris – config de jeu : TOUS les paramètres d'équilibrage (partagé serveur + navigateur).
+// Mugigo (무기고) – config de jeu : TOUS les paramètres d'équilibrage (partagé serveur + navigateur).
 // Jeu 100 % fictif : aucune monnaie réelle, aucun paiement.
 
+export const BRAND = { name: 'Mugigo', ko: '무기고', glyph: '무', tagline: 'L’arsenal à collectionner' };
 export const CURRENCY = { name: 'Crédits', symbol: '¢' };
+// Boutique (argent réel) : prévue plus tard. Tant que enabled = false, l'onglet est visible mais verrouillé.
+export const SHOP = { enabled: false };
 
 export const RARITIES = [
   { id: 0, key: 'common',       fr: 'Commun',       color: '#9aa3ad', glow: '#9aa3ad', base: [4, 10] },
@@ -15,18 +18,36 @@ export const RARITIES = [
 
 // Répartition du catalogue : skins par modèle d'arme et par rareté (somme = SKINS_PER_MODEL)
 export const SKINS_PER_MODEL = 300;
-export const CATALOG_QUOTA = [100, 78, 54, 36, 20, 9, 3];
+export const CATALOG_QUOTA = [100, 78, 54, 36, 20, 9, 3];          // armes à feu
+export const KNIFE_QUOTA = [0, 0, 120, 90, 55, 25, 10];            // couteaux : à partir de Rare
 
-// ───── Usure (float 0.0000 → 1.0000, 4 décimales)
+// ───── Usure (float 0 → 1, 6 décimales) – noms propres à Mugigo
 export const WEAR = {
   tiers: [
-    { key: 'FN', fr: 'Neuf',                 min: 0.00, max: 0.07, mult: 1.00, weight: 4 },
-    { key: 'MW', fr: 'Quasi neuf',           min: 0.07, max: 0.15, mult: 0.80, weight: 9 },
-    { key: 'FT', fr: 'Testé sur le terrain', min: 0.15, max: 0.38, mult: 0.60, weight: 34 },
-    { key: 'WW', fr: 'Très usé',             min: 0.38, max: 0.45, mult: 0.45, weight: 9 },
-    { key: 'BS', fr: 'Brisé',                min: 0.45, max: 1.00, mult: 0.30, weight: 44 },
+    { key: 'IM', fr: 'Immaculée',   min: 0.00, max: 0.07, mult: 1.00, weight: 4,  color: '#4ade80' },
+    { key: 'PM', fr: 'Peu marquée', min: 0.07, max: 0.15, mult: 0.80, weight: 9,  color: '#a3e635' },
+    { key: 'EP', fr: 'Éprouvée',    min: 0.15, max: 0.38, mult: 0.60, weight: 34, color: '#facc15' },
+    { key: 'US', fr: 'Usée',        min: 0.38, max: 0.45, mult: 0.45, weight: 9,  color: '#fb923c' },
+    { key: 'RV', fr: 'Ravagée',     min: 0.45, max: 1.00, mult: 0.30, weight: 44, color: '#ef4444' },
   ],
 };
+
+// ───── Graine de motif (0–999) : place le motif sur l'arme ; certaines graines sont rares (voir shared/patterns.js)
+export const PATTERN = { seeds: 1000, tiers: { 1: { fr: 'Graine légendaire', mult: 6 }, 2: { fr: 'Graine rare', mult: 2.5 }, 3: { fr: 'Graine recherchée', mult: 1.35 } } };
+
+// ───── Collections (thèmes de skins)
+export const COLLECTIONS = [
+  { key: 'dragon',  fr: 'Dynastie du Dragon', theme: ['#e0b54a', '#c8102e'], arts: ['dragon', 'filigree'] },
+  { key: 'abysses', fr: 'Abysses',            theme: ['#0ea5e9', '#1e3a8a'], arts: ['koi', 'wave'] },
+  { key: 'neon',    fr: 'Nuit Néon',          theme: ['#ff2bd6', '#2bfff0'], arts: ['city', 'circuit'] },
+  { key: 'desert',  fr: 'Désert d’Ocre',      theme: ['#d6a35c', '#7a4a1e'], arts: ['scorpion', 'dunes'] },
+  { key: 'forge',   fr: 'Forge Ancienne',     theme: ['#ff8a3d', '#4a4f5a'], arts: ['runes', 'filigree'] },
+  { key: 'sakura',  fr: 'Jardin Sakura',      theme: ['#ff9ec7', '#5b2a3a'], arts: ['sakura', 'crane'] },
+  { key: 'cosmos',  fr: 'Cosmos',             theme: ['#8b5cf6', '#0b1030'], arts: ['galaxy', 'planet'] },
+  { key: 'arctique', fr: 'Arctique',          theme: ['#bfe9ff', '#2b4a6b'], arts: ['frost', 'wolf'] },
+  { key: 'jungle',  fr: 'Jungle',             theme: ['#4ade80', '#14532d'], arts: ['tiger', 'serpent'] },
+  { key: 'phenix',  fr: 'Phénix',             theme: ['#ff5a1f', '#ffd36b'], arts: ['phoenix', 'flames'] },
+];
 
 export const MODIFIERS = {
   tracker: { chance: 0.08, mult: 1.4 },                 // compteur de victimes (cosmétique)
@@ -55,32 +76,35 @@ export const GRADING = {
     express:  { fr: 'Express',    baseFee: 300, delayMs: 10 * 60e3 },
   },
   valueFeeRate: 0.02, maxValueFee: 600,
-  model: { k: 9.0, p: 0.75, sigma: { FN: 0.45, MW: 0.55, FT: 0.85, WW: 0.9, BS: 0.9 } },
+  model: { k: 9.0, p: 0.75, sigma: { IM: 0.45, PM: 0.55, EP: 0.85, US: 0.9, RV: 0.9 } },
   weights: { centering: 0.2, corners: 0.25, edges: 0.2, surface: 0.35 },
-  maxByWear: { FN: 10, MW: 10, FT: 9, WW: 7, BS: 6 },
+  maxByWear: { IM: 10, PM: 10, EP: 9, US: 7, RV: 6 },
   labels: [[10, 'Pristine'], [9.5, 'Gem Mint'], [9, 'Mint'], [8, 'NM-MT'], [7, 'NM'], [6, 'EX'], [0, 'Abîmée']],
   valueMult: [[10, 6], [9.5, 3], [9, 2], [8, 1.4], [7, 1.15], [6, 1.0], [5, 0.9], [0, 0.75]],
   popBonus: [[1, 1.30], [5, 1.15], [25, 1.05]],   // [population ≤ n, multiplicateur]
 };
 
 // ───── Boosters (taux par carte en %, indices = rareté 0..6)
-// Prix calibrés avec `npm run calibrate` : EV ≈ 85–92 % du prix, revente système ≈ 50 % → pas de boucle d'argent infinie.
-export const PACKS = [
-  { key: 'standard',  fr: 'Caisse Standard', tag: 'Tous modèles', classes: null,
-    price: 150, cards: 5, rates: [62, 25, 9.5, 3, 0.4, 0.09, 0.01], theme: ['#ff4d2e', '#ffb020'] },
-  { key: 'sidearm',   fr: 'Arme de poing', tag: 'Pistolets & revolvers', classes: ['pistol', 'revolver'],
-    price: 160, cards: 5, rates: [64, 24, 8.5, 2.8, 0.55, 0.13, 0.02], theme: ['#3b9cff', '#5ff3ff'] },
-  { key: 'assault',   fr: 'Rafale', tag: 'SMG, fusils, pompes, LMG', classes: ['smg', 'rifle', 'shotgun', 'lmg'],
-    price: 300, cards: 5, rates: [55, 27, 12, 4.5, 1.1, 0.35, 0.05], theme: ['#4ade80', '#d9ff66'] },
-  { key: 'precision', fr: 'Ligne de mire', tag: 'Snipers', classes: ['sniper'],
-    price: 900, cards: 5, rates: [0, 52, 30, 13, 3.8, 1, 0.2], theme: ['#b266ff', '#ff7ae6'] },
-  { key: 'blades',    fr: 'Éclat d’acier', tag: 'Lames', classes: ['blade'],
-    price: 1750, cards: 5, rates: [0, 0, 62, 26, 9, 2.6, 0.4], theme: ['#ff3d5a', '#ffb020'] },
-  { key: 'prototype', fr: 'Prototype X', tag: 'Armes à énergie', classes: ['energy'],
-    price: 1900, cards: 5, rates: [0, 35, 35, 20, 7, 2.4, 0.6], theme: ['#5ff3ff', '#ff7ae6'] },
-  { key: 'free',      fr: 'Colis gratuit', tag: 'Toutes les 10 minutes', classes: null, free: true,
+// Les prix sont calculés automatiquement (shared/packs.js) pour que la valeur moyenne ≈ PACK_EV_TARGET × prix.
+// `npm run calibrate` vérifie le résultat par simulation.
+export const PACK_EV_TARGET = 0.87;
+export const BASE_PACKS = [
+  { key: 'standard',  fr: 'Caisse Mugigo', ko: '무기고', tag: 'Tous modèles', filter: {},
+    cards: 5, rates: [62, 25, 9.5, 3, 0.4, 0.09, 0.01], theme: ['#ff4d2e', '#ffb020'], hero: 'rhoden' },
+  { key: 'sidearm',   fr: 'Arme de poing', ko: '권총', tag: 'Pistolets & revolvers', filter: { classes: ['pistol', 'revolver'] },
+    cards: 5, rates: [64, 24, 8.5, 2.8, 0.55, 0.13, 0.02], theme: ['#3b9cff', '#5ff3ff'], hero: 'quasar' },
+  { key: 'assault',   fr: 'Rafale', ko: '연사', tag: 'PM, fusils, pompes, mitrailleuses', filter: { classes: ['smg', 'rifle', 'shotgun', 'lmg'] },
+    cards: 5, rates: [55, 27, 12, 4.5, 1.1, 0.35, 0.05], theme: ['#4ade80', '#d9ff66'], hero: 'bastion' },
+  { key: 'precision', fr: 'Ligne de mire', ko: '저격', tag: 'Fusils de précision', filter: { classes: ['sniper', 'dmr'] },
+    cards: 5, rates: [0, 52, 30, 13, 3.8, 1, 0.2], theme: ['#b266ff', '#ff7ae6'], hero: 'longshade' },
+  { key: 'blades',    fr: 'Éclat d’acier', ko: '칼날', tag: 'Couteaux', filter: { classes: ['knife'] },
+    cards: 5, rates: [0, 0, 62, 26, 9, 2.6, 0.4], theme: ['#ff3d5a', '#ffb020'], hero: 'nightfang' },
+  { key: 'free',      fr: 'Colis gratuit', ko: '선물', tag: 'Toutes les 10 minutes', filter: {}, free: true,
     price: 0, cards: 3, rates: [80, 16, 3.6, 0.4, 0, 0, 0], theme: ['#9aa3ad', '#ffffff'] },
 ];
+// Boosters générés : un par collection et un par modèle d'arme (taux renormalisés selon le contenu réel)
+export const COLLECTION_PACK_RATES = [58, 26, 10.5, 4, 1.1, 0.33, 0.07];
+export const MODEL_PACK_RATES = [60, 25, 10, 3.8, 0.9, 0.25, 0.05];
 
 export const PITY = { ultraAfter: 15, legendaryAfter: 90 };   // packs payants sans Ultra+ / Légendaire+
 
@@ -114,4 +138,4 @@ export const DISCORD = {
 
 export const TRADES = { maxCardsPerSide: 12, maxOpenPerUser: 15, maxCredits: 250000 };
 export const TRADE_UP = { inputCount: 10, cost: 25, maxInputRarity: 5 };
-export const LEGAL = 'Jeu fictif sans valeur réelle. Aucune monnaie réelle, aucun achat, aucune revente hors du site. Toutes les armes et tous les skins sont imaginaires et ne sont affiliés à aucune marque ni à aucun éditeur.';
+export const LEGAL = 'Mugigo est un jeu fictif sans valeur réelle. Aucune monnaie réelle, aucun achat, aucune revente hors du site. Toutes les armes et tous les skins sont imaginaires et ne sont affiliés à aucune marque ni à aucun éditeur.';

@@ -1,4 +1,4 @@
-/* Armaris – design system : sombre premium, néons, verre dépoli, cartes à collectionner 63×88. */
+/* Mugigo – design system : sombre premium, néons, verre dépoli, cartes à collectionner 63×88. */
 :root {
   --bg: #08090d;
   --bg2: #0e1017;
@@ -16,8 +16,9 @@
   --radius: 16px;
   --ease: cubic-bezier(.22, 1, .36, 1);
   --spring: cubic-bezier(.34, 1.56, .64, 1);
-  --font: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  --display: 'Chakra Petch', 'Inter', system-ui, sans-serif;
+  --font: 'Nunito', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --display: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+  --ko: 'Jua', 'Baloo 2', sans-serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -58,8 +59,11 @@ h3 { font-size: 17px; }
   padding: 10px clamp(12px, 3vw, 28px); background: rgba(8, 9, 13, .72); backdrop-filter: blur(18px) saturate(1.4);
   border-bottom: 1px solid var(--line);
 }
-.logo { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .12em; }
-.logo svg { width: 32px; height: 32px; filter: drop-shadow(0 0 10px rgba(255, 77, 46, .6)); }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-family: var(--ko); font-size: 26px; line-height: 1; color: #1a0a00;
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 0 18px rgba(255, 120, 46, .55), inset 0 1px 0 rgba(255,255,255,.4); padding-top: 3px; }
+.logo-word { font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: .14em; line-height: .95; }
+.logo-word small { display: block; font-family: var(--ko); font-size: 11px; letter-spacing: .5em; color: var(--accent2); font-weight: 400; }
 .nav { display: flex; gap: 2px; position: relative; overflow-x: auto; scrollbar-width: none; }
 .nav a {
   position: relative; padding: 9px 13px; border-radius: 10px; color: var(--muted); font-weight: 600; font-size: 14px; white-space: nowrap;
@@ -165,16 +169,19 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
   font-family: var(--display); font-weight: 700; font-size: clamp(8px, 1.6vw, 14px); letter-spacing: .14em; color: #fff; background: rgba(255, 30, 80, .85);
   padding: 3px 0; box-shadow: 0 4px 18px rgba(255, 30, 80, .6); }
 .card-svg text { font-family: var(--display); }
-.card-svg .t-model { font-size: 24px; font-weight: 700; fill: #c9cdd8; letter-spacing: 3px; }
-.card-svg .t-rar { font-size: 22px; font-weight: 700; letter-spacing: 2px; }
-.card-svg .t-name { font-size: 42px; font-weight: 700; fill: #fff; }
-.card-svg .t-sub { font-size: 20px; fill: #9aa0b2; font-family: var(--font); }
-.card-svg .t-lab { font-size: 18px; fill: #8a8fa3; letter-spacing: 3px; font-weight: 700; }
-.card-svg .t-val { font-size: 26px; fill: #fff; font-weight: 700; }
-.card-svg .t-serial { font-size: 18px; fill: #6d7285; letter-spacing: 2px; }
-.card-svg .t-glyph { font-size: 200px; font-weight: 700; }
-.card-svg .t-badge { font-size: 16px; font-weight: 700; letter-spacing: 1px; }
-.card-svg .t-back { font-size: 52px; font-weight: 700; fill: #fff; fill-opacity: .8; letter-spacing: 18px; }
+.card-svg .t-model { font-size: 24px; font-weight: 800; fill: #c9cdd8; letter-spacing: 2px; }
+.card-svg .t-rar { font-size: 23px; font-weight: 800; letter-spacing: 1.5px; }
+.card-svg .t-name { font-size: 44px; font-weight: 800; fill: #fff; }
+.card-svg .t-sub { font-size: 20px; fill: #a3a9bb; font-family: var(--font); font-weight: 600; }
+.card-svg .t-sub2 { font-size: 18px; font-family: var(--font); font-weight: 700; }
+.card-svg .t-lab { font-size: 18px; fill: #8a8fa3; letter-spacing: 3px; font-weight: 800; }
+.card-svg .t-val { font-size: 28px; fill: #fff; font-weight: 800; }
+.card-svg .t-serial { font-size: 18px; fill: #6d7285; letter-spacing: 2px; font-weight: 700; }
+.card-svg .t-glyph { font-size: 200px; font-weight: 800; }
+.card-svg .t-badge { font-size: 16px; font-weight: 800; letter-spacing: .5px; }
+.card-svg .t-back { font-size: 46px; font-weight: 800; letter-spacing: 16px; }
+.card-svg .t-backsub { font-size: 26px; font-family: var(--ko); letter-spacing: 10px; }
+.card-svg .t-glyphko { font-size: 120px; font-family: var(--ko); }
 
 /* tuile carte (inventaire, marché…) */
 .cards { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
@@ -389,3 +396,69 @@ table.t tr:hover td { background: rgba(255,255,255,.025); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ───────── Ajouts Mugigo : lueurs, curseurs, inspection, fiche des motifs, boutique */
+.ko { font-family: var(--ko); font-weight: 400; font-size: .7em; color: var(--accent2); letter-spacing: .1em; margin-left: 6px; text-shadow: 0 0 12px rgba(255,176,32,.45); }
+.glow-text { color: var(--gc, var(--accent2)); text-shadow: 0 0 10px color-mix(in srgb, var(--gc, var(--accent2)) 60%, transparent); }
+h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
+.section-title h2 { background: linear-gradient(90deg, #fff, #ffd9b0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pill.r { text-shadow: 0 0 8px color-mix(in srgb, var(--rc) 70%, transparent); box-shadow: 0 0 12px -4px var(--rc); }
+.nav-locked { opacity: .55; }
+.nav-locked:hover { opacity: .8; }
+.hero-compact { padding: clamp(18px, 3vw, 34px); }
+.hero-compact .hero-cards { height: 300px; }
+.home-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 26px; align-items: start; }
+.feed-col { position: sticky; top: 84px; }
+.feed-col .feed { max-height: calc(100vh - 170px); }
+.pack-tile:hover { box-shadow: 0 24px 50px -24px var(--t1), 0 0 0 1px color-mix(in srgb, var(--t2) 40%, transparent); }
+.pack-tile h3 { text-shadow: 0 0 14px color-mix(in srgb, var(--t2) 45%, transparent); }
+
+/* curseurs (range) avec lueur */
+.range { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 6px; outline: none; cursor: pointer; margin: 10px 0 6px;
+  background: linear-gradient(90deg, var(--thumb, var(--accent2)) 0 var(--fill, 50%), rgba(255,255,255,.1) var(--fill, 50%) 100%);
+  box-shadow: 0 0 14px -2px color-mix(in srgb, var(--thumb, var(--accent2)) 60%, transparent); }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid var(--thumb, var(--accent2));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--thumb, var(--accent2)) 25%, transparent), 0 0 18px var(--thumb, var(--accent2)); transition: transform .15s var(--spring); }
+.range::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 4px solid var(--thumb, var(--accent2)); box-shadow: 0 0 18px var(--thumb, var(--accent2)); }
+.slider-field { display: grid; gap: 2px; font-size: 14px; color: var(--muted); font-weight: 700; }
+.slider-field b { font-family: var(--display); font-size: 18px; text-shadow: 0 0 10px currentColor; }
+.range-scale { display: flex; height: 4px; border-radius: 2px; overflow: hidden; opacity: .8; }
+.rate-list { display: grid; gap: 10px; }
+.rate-row { display: grid; grid-template-columns: 110px 1fr 64px; gap: 12px; align-items: center; }
+.rate-name { color: var(--rc); font-weight: 800; text-shadow: 0 0 10px color-mix(in srgb, var(--rg) 55%, transparent); }
+.rate-val { text-align: right; font-family: var(--display); font-weight: 800; color: var(--rc); }
+.slider-track { position: relative; height: 8px; border-radius: 6px; background: rgba(255,255,255,.08); }
+.slider-track i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--rc) 30%, transparent), var(--rc)); box-shadow: 0 0 12px color-mix(in srgb, var(--rg) 70%, transparent); }
+.slider-track b { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: #fff; border: 3px solid var(--rc); box-shadow: 0 0 14px var(--rg); }
+.sim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin: 8px 0 12px; }
+.sim-cell { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid color-mix(in srgb, var(--rc) 30%, transparent); display: grid; gap: 4px; }
+.sim-cell b { font-family: var(--display); font-size: 20px; color: var(--rc); text-shadow: 0 0 10px color-mix(in srgb, var(--rc) 60%, transparent); }
+.sim-cell span { font-size: 12px; color: var(--muted); font-weight: 700; }
+.sim-cell .bar { height: 5px; }
+.inspect { display: grid; gap: 12px; }
+.inspect-stage { border-radius: 16px; background: radial-gradient(ellipse at 50% 60%, #22252f, #0a0b10 70%); border: 1px solid var(--line); padding: 8px; }
+.inspect-stage svg { width: 100%; display: block; }
+.inspect-ctrl { display: grid; gap: 12px; }
+.seed-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { padding: 4px 10px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--rc) 60%, transparent); background: color-mix(in srgb, var(--rc) 12%, transparent);
+  color: var(--rc); font-weight: 800; font-size: 12px; cursor: pointer; text-shadow: 0 0 8px color-mix(in srgb, var(--rc) 60%, transparent); transition: transform .15s var(--spring), box-shadow .2s; }
+.chip:hover { transform: scale(1.06); box-shadow: 0 0 14px -2px var(--rc); }
+.style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.style-card { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+.style-card svg { width: 100%; border-radius: 10px; background: radial-gradient(ellipse at 50% 60%, #22252f, #0a0b10 70%); }
+.seed-table { max-height: 520px; overflow: auto; }
+.shop-lock { max-width: 560px; margin: 60px auto; text-align: center; padding: 40px; }
+.shop-icon { font-size: 54px; filter: drop-shadow(0 0 20px rgba(255,176,32,.5)); }
+@media (max-width: 1100px) { .home-grid { grid-template-columns: 1fr; } .feed-col { position: static; } }
+@media (max-width: 700px) { .pack-modal { grid-template-columns: 1fr !important; } .pack-modal .pack-art { max-width: 200px; margin: 0 auto; } .rate-row { grid-template-columns: 90px 1fr 54px; } }
+
+/* liseret animé aux couleurs de la rareté sur le dos des cartes */
+@property --ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.opening .stack-card .face.back .liseret { position: absolute; inset: -3px; border-radius: 5.2%/3.8%; z-index: -1; pointer-events: none;
+  background: conic-gradient(from var(--ang), transparent 0 55%, var(--rg) 75%, #fff 80%, var(--rg) 85%, transparent 100%);
+  animation: lis 2.2s linear infinite; filter: drop-shadow(0 0 8px var(--rg)); }
+.opening .stack-card .face.back { isolation: isolate; }
+.opening .stack-card .face.back .liseret::after { content: ''; position: absolute; inset: 3px; border-radius: inherit; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--rg) 55%, transparent); }
+@keyframes lis { to { --ang: 360deg; } }
+.opening .stack-card.charging .face.back .liseret { animation-duration: .7s; inset: -6px; }

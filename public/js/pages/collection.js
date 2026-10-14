@@ -1,6 +1,9 @@
 // Collection : toutes les cartes possibles du jeu, avec progression du joueur.
-import { RARITIES, MODIFIERS } from '/shared/config.js';
-import { SKINS, SKIN_BY_ID, MODELS, MODEL_BY_KEY, PATTERNS, FINISHES } from '/shared/catalog.js';
+import { RARITIES, MODIFIERS, COLLECTIONS } from '/shared/config.js';
+import { STYLES } from '/shared/catalog.js';
+import { SKINS, SKIN_BY_ID, MODELS, MODEL_BY_KEY, FINISHES, COLLECTION_BY_KEY } from '/shared/catalog.js';
+import { styleLabel } from '../art/card.js';
+import { inspector } from '../inspect.js';
 import { api, post, store } from '../api.js';
 import { cardHTML } from '../art/card.js';
 import { tile, skinTitle, rarityPill, priceChart } from '../common.js';
@@ -13,7 +16,7 @@ export async function collectionPage({ view, query, stale }) {
   const col = me ? await api('/collection') : { owned: {}, discovered: [] };
   if (stale()) return;
   const owned = col.owned;
-  const state = { model: query.get('m') || '', r: '', q: '', own: '', sort: 'rarity', page: 0 };
+  const state = { model: query.get('m') || '', r: '', q: '', own: '', col: query.get('col') || '', st: '', sort: 'rarity', page: 0 };
 
   const countFor = (filter) => { const list = SKINS.filter(filter); return [list.filter((s) => owned[s.id]).length, list.length]; };
   const [oAll, tAll] = countFor(() => true);
@@ -27,6 +30,8 @@ export async function collectionPage({ view, query, stale }) {
     <div class="filters">
       <input class="input" placeholder="Rechercher un skin…" data-f="q">
       <select class="input" data-f="r"><option value="">Toutes raretés</option>${RARITIES.map((r, i) => `<option value="${i}">${r.fr}</option>`).join('')}</select>
+      <select class="input" data-f="col"><option value="">Toutes collections</option>${COLLECTIONS.map((c) => `<option value="${c.key}" ${state.col === c.key ? 'selected' : ''}>${esc(c.fr)}</option>`).join('')}</select>
+      <select class="input" data-f="st"><option value="">Tous styles</option>${Object.entries(STYLES).map(([k, x]) => `<option value="${k}">${esc(x.fr)}</option>`).join('')}</select>
       ${me ? '<select class="input" data-f="own"><option value="">Possédées & manquantes</option><option value="1">Possédées</option><option value="0">Manquantes</option></select>' : ''}
       <select class="input" data-f="sort"><option value="rarity">Rareté ↓</option><option value="rarity_asc">Rareté ↑</option><option value="name">Nom</option><option value="value">Valeur ↓</option></select>
       <span class="muted small" data-count></span>
@@ -36,7 +41,7 @@ export async function collectionPage({ view, query, stale }) {
     <div class="pager" data-pager></div>`;
 
   const draw = () => {
-    let list = SKINS.filter((s) => (!state.model || s.m === state.model) && (state.r === '' || s.r === Number(state.r))
+    let list = SKINS.filter((s) => (!state.model || s.m === state.model) && (state.r === '' || s.r === Number(state.r)) && (!state.col || s.col === state.col) && (!state.st || s.st === state.st)
       && (!state.q || skinTitle(s).toLowerCase().includes(state.q))
       && (state.own === '' || (state.own === '1' ? !!owned[s.id] : !owned[s.id])));
     const sorters = { rarity: (a, b) => b.r - a.r || b.base - a.base, rarity_asc: (a, b) => a.r - b.r || a.base - b.base, name: (a, b) => a.n.localeCompare(b.n), value: (a, b) => b.base - a.base };
@@ -81,12 +86,15 @@ export async function skinModal(id) {
     <div>${cardHTML(s, null)}</div>
     <div><div class="row">${rarityPill(s.r)}<span class="pill">${esc(model.clsFr)}</span></div>
       <h2 style="margin-top:10px">${esc(skinTitle(s))}</h2>
-      <dl class="kv"><dt>Motif</dt><dd>${esc(PATTERNS[s.p])}</dd><dt>Finition</dt><dd>${esc(FINISHES[s.f])}</dd>
+      <dl class="kv"><dt>Collection</dt><dd style="color:${COLLECTION_BY_KEY[s.col].theme[0]}">${esc(COLLECTION_BY_KEY[s.col].fr)}</dd><dt>Style</dt><dd>${esc(styleLabel(s))}</dd><dt>Finition</dt><dd>${esc(FINISHES[s.f])}</dd>
         <dt>Plage de float</dt><dd>${s.fmin.toFixed(2)} – ${s.fmax.toFixed(2)}</dd><dt>Valeur de base (Neuf)</dt><dd>${cr(s.base)}</dd>
         <dt>Holo possible</dt><dd>${s.r >= MODIFIERS.foil.minRarity ? 'Oui' : 'Non'}</dd><dt>En circulation</dt><dd data-copies>…</dd></dl>
+      <div style="margin-top:18px" data-insp></div>
       <h3 style="margin-top:18px">Historique des ventes</h3><div data-chart>…</div>
       <h3 style="margin-top:18px">En vente maintenant</h3><div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr))" data-list>…</div>
     </div></div>`, { wide: true });
+  const ins = inspector(s, { title: 'Inspection' });
+  m.el.querySelector('[data-insp]').innerHTML = ins.html; ins.bind(m.el.querySelector('[data-insp]'));
   const d = await api(`/skins/${id}/market`);
   m.el.querySelector('[data-copies]').textContent = `${d.copies} exemplaire(s)`;
   m.el.querySelector('[data-chart]').innerHTML = priceChart(d.sales);

@@ -1,6 +1,8 @@
-// Armaris – application monopage : en-tête, routeur, pages Accueil / Boosters / Connexion / Récompenses / Paramètres / Aide.
-import { PACKS, RARITIES, WEAR, ECONOMY, PITY, GRADING, CENTERING, MISPRINT, MODIFIERS, LEGAL, DISCORD, TRADE_UP, CURRENCY } from '/shared/config.js';
+// Mugigo – application monopage : en-tête, routeur, pages Accueil (+ boosters) / Connexion / Récompenses / Paramètres / Aide / Boutique.
+import { BRAND, SHOP, COLLECTIONS, RARITIES, WEAR, ECONOMY, PITY, GRADING, CENTERING, MISPRINT, MODIFIERS, LEGAL, DISCORD, TRADE_UP, CURRENCY } from '/shared/config.js';
 import { SKINS, SKIN_BY_ID, MODELS } from '/shared/catalog.js';
+import { PACKS, packFilter } from '/shared/packs.js';
+import { patternsPage } from './pages/patterns.js';
 import { api, post, store } from './api.js';
 import { esc, cr, ago, dur, toast, modal, initTilt, animateNumber, avatar, $, $$ } from './ui.js';
 import { packSVG } from './art/pack.js';
@@ -20,13 +22,14 @@ const every = (fn, ms) => { const t = setInterval(fn, ms); timers.add(t); return
 
 // ───────────────────────────── En-tête
 const NAV = [
-  ['', 'Accueil'], ['packs', 'Boosters'], ['collection', 'Collection'], ['inventory', 'Inventaire'],
-  ['market', 'Marché'], ['trades', 'Échanges', 'openTrades'], ['friends', 'Amis', 'friendRequests'], ['leaderboard', 'Classement'],
+  ['', 'Boosters'], ['collection', 'Collection'], ['inventory', 'Inventaire'], ['market', 'Marché'],
+  ['trades', 'Échanges', 'openTrades'], ['friends', 'Amis', 'friendRequests'], ['leaderboard', 'Classement'], ['patterns', 'Motifs'],
 ];
 function header(me) {
   const route = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
   $('#nav').innerHTML = NAV.map(([k, label, badge]) =>
-    `<a href="#/${k}" class="${route === k ? 'on' : ''}">${label}${badge && me?.[badge] ? `<span class="dot">${me[badge]}</span>` : ''}</a>`).join('');
+    `<a href="#/${k}" class="${route === k ? 'on' : ''}">${label}${badge && me?.[badge] ? `<span class="dot">${me[badge]}</span>` : ''}</a>`).join('')
+    + `<a href="#/shop" class="nav-locked ${route === 'shop' ? 'on' : ''}" title="Bientôt disponible">Boutique <span aria-hidden="true">🔒</span></a>`;
   const right = $('#top-right');
   if (!me) {
     right.innerHTML = `<a class="btn sm ghost" href="#/login">Connexion</a><a class="btn sm primary" href="#/register">Jouer gratuitement</a>`;
@@ -85,15 +88,23 @@ function ratesBar(p) {
   return `<div class="pack-rates">${p.rates.map((r, i) => (r ? `<i style="width:${Math.max(r, 0.6)}%;background:${RARITIES[i].color}" title="${RARITIES[i].fr} ${r}%"></i>` : '')).join('')}</div>`;
 }
 function packTile(p, me, i = 0) {
-  let price = `<span class="price">${p.price} <span class="cur">¢</span></span>`;
+  let price = `<span class="price">${p.price.toLocaleString('fr-FR')} <span class="cur">¢</span></span>`;
   if (p.free) price = `<span class="price free-timer" data-free-label>${me ? `${me.free.stock}/${me.free.max} disponibles` : 'Gratuit'}</span>`;
   else if (p.key === 'standard' && me?.welcomePacks) price += ` <span class="pill tag-new">${me.welcomePacks} offert${me.welcomePacks > 1 ? 's' : ''}</span>`;
-  return `<div class="pack-tile tile" style="--t1:${p.theme[0]};--i:${i}" data-pack="${p.key}">
+  return `<div class="pack-tile tile" style="--t1:${p.theme[0]};--t2:${p.theme[1]};--i:${i}" data-pack="${p.key}">
     <div class="pack-art">${packSVG(p)}</div>
-    <div><h3>${esc(p.fr)}</h3><div class="muted small">${esc(p.tag)} · ${p.cards} cartes</div></div>
+    <div><h3>${esc(p.fr)}</h3><div class="muted small">${esc(p.tag)}</div></div>
     ${ratesBar(p)}
     <div class="row between">${price}<button class="btn sm primary" data-open="${p.key}">Ouvrir</button></div>
   </div>`;
+}
+// position logarithmique (0,01 % → 0, 100 % → 100) pour que les petits taux restent visibles
+const logPos = (r) => Math.max(2, Math.min(100, ((Math.log10(Math.max(r, 0.01)) + 2) / 4) * 100));
+function rateSliders(p) {
+  return `<div class="rate-list">${p.rates.map((r, i) => (r ? `<div class="rate-row" style="--rc:${RARITIES[i].color};--rg:${RARITIES[i].glow}">
+      <span class="rate-name">${RARITIES[i].fr}</span>
+      <div class="slider-track"><i style="width:${logPos(r).toFixed(1)}%"></i><b style="left:${logPos(r).toFixed(1)}%"></b></div>
+      <span class="rate-val">${r < 0.1 ? r.toFixed(2) : r < 10 ? r.toFixed(1) : Math.round(r)} %</span></div>` : '')).join('')}</div>`;
 }
 function bindPacks(root) {
   root.addEventListener('click', (e) => {
@@ -116,23 +127,37 @@ function freeTicker() {
 
 function packModal(key) {
   const p = PACKS.find((x) => x.key === key);
-  const pool = SKINS.filter((s) => !p.classes || p.classes.includes(s.cls));
+  const pool = SKINS.filter(packFilter(p.filter));
   const me = store.me;
-  const m = modal(`<div class="grid" style="grid-template-columns:minmax(160px,240px) 1fr;gap:24px;align-items:start">
+  const atLeast = (r) => p.rates.slice(r).reduce((a, b) => a + b, 0) / 100;
+  const m = modal(`<div class="grid pack-modal" style="grid-template-columns:minmax(160px,240px) 1fr;gap:26px;align-items:start">
       <div class="pack-art" style="width:100%">${packSVG(p)}</div>
       <div>
-        <h2>${esc(p.fr)}</h2><p class="muted">${esc(p.tag)} · ${p.cards} cartes par booster · ${pool.length.toLocaleString('fr-FR')} skins possibles</p>
-        <table class="t"><thead><tr><th>Rareté</th><th>Taux / carte</th><th>Skins</th></tr></thead><tbody>
-        ${p.rates.map((r, i) => `<tr><td><span style="color:${RARITIES[i].color};font-weight:700">${RARITIES[i].fr}</span></td><td>${r ? `${r} %` : '—'}</td><td class="muted">${r ? pool.filter((s) => s.r === i).length : '—'}</td></tr>`).join('')}
-        </tbody></table>
-        ${p.free ? `<p class="muted small">Un colis toutes les ${ECONOMY.free.intervalMs / 60e3} min, jusqu’à ${ECONOMY.free.maxStock} en réserve.</p>`
-    : `<p class="muted small">Garanties : une carte <b>Ultra rare+</b> au plus tard tous les ${PITY.ultraAfter} boosters payants, <b>Légendaire+</b> tous les ${PITY.legendaryAfter}.
+        <h2 style="margin-bottom:4px">${esc(p.fr)}</h2><p class="muted" style="margin-top:0">${esc(p.tag)} · ${p.cards} cartes · <b class="glow-text" style="--gc:${p.theme[1]}">${pool.length.toLocaleString('fr-FR')} skins possibles</b></p>
+        <h3>Taux par carte</h3>${rateSliders(p)}
+        ${p.free ? `<p class="muted small">Un colis toutes les ${ECONOMY.free.intervalMs / 60e3} min, jusqu’à ${ECONOMY.free.maxStock} en réserve.</p>` : `
+        <h3 style="margin-top:18px">Simulateur</h3>
+        <label class="slider-field"><span>Si j’ouvre <b data-sim-n class="glow-text" style="--gc:#ffb020">10</b> boosters…</span>
+          <input type="range" class="range" min="1" max="100" value="10" data-sim style="--fill:9%"></label>
+        <div class="sim-grid" data-sim-out></div>
+        <p class="muted small">Garanties : <b style="color:${RARITIES[3].color}">Ultra rare+</b> au plus tard tous les ${PITY.ultraAfter} boosters payants, <b style="color:${RARITIES[4].color}">Légendaire+</b> tous les ${PITY.legendaryAfter}.
           ${me ? `<br>Votre compteur : ${me.pity.ultra}/${PITY.ultraAfter} · ${me.pity.legend}/${PITY.legendaryAfter}` : ''}</p>`}
         <div class="row" style="margin-top:16px">
           ${p.free ? `<button class="btn primary" data-n="1">Ouvrir 1</button>${me?.free.stock > 1 ? `<button class="btn" data-n="${me.free.stock}">Tout ouvrir (${me.free.stock})</button>` : ''}`
     : [1, 5, 10].map((n) => `<button class="btn ${n === 1 ? 'primary' : ''}" data-n="${n}">×${n} · ${(n * p.price).toLocaleString('fr-FR')} ¢</button>`).join('')}
         </div>
       </div></div>`, { wide: true });
+  const sim = m.el.querySelector('[data-sim]');
+  const upd = () => {
+    const n = Number(sim.value), cards = n * p.cards;
+    m.el.querySelector('[data-sim-n]').textContent = n;
+    sim.style.setProperty('--fill', `${((n - 1) / 99) * 100}%`);
+    m.el.querySelector('[data-sim-out]').innerHTML = [3, 4, 5, 6].filter((r) => atLeast(r) > 0).map((r) => {
+      const pr = 1 - (1 - atLeast(r)) ** cards;
+      return `<div class="sim-cell" style="--rc:${RARITIES[r].color}"><b>${(pr * 100).toFixed(pr > 0.995 ? 0 : 1)} %</b><span>${RARITIES[r].fr}${r < 6 ? '+' : ''}</span><div class="bar"><i style="width:${pr * 100}%;background:${RARITIES[r].color}"></i></div></div>`;
+    }).join('') + `<div class="sim-cell" style="--rc:#ff2b6a"><b>${((1 - (1 - MISPRINT.chance) ** cards) * 100).toFixed(2)} %</b><span>Carte erreur</span><div class="bar"><i style="width:${(1 - (1 - MISPRINT.chance) ** cards) * 100}%;background:#ff2b6a"></i></div></div>`;
+  };
+  if (sim) { sim.addEventListener('input', upd); upd(); }
   m.el.addEventListener('click', (e) => { const b = e.target.closest('[data-n]'); if (b) { m.close(); openPack(key, Number(b.dataset.n)); } });
 }
 
@@ -148,30 +173,35 @@ async function home({ token }) {
   const me = store.me;
   const [feed, stats] = await Promise.all([api('/feed'), api('/stats')]);
   if (token !== renderToken) return;
-  const showcase = [SKINS.find((s) => s.r === 4 && s.m === 'nightfang'), SKINS.find((s) => s.r === 6 && s.m === 'rhoden'), SKINS.find((s) => s.r === 5 && s.m === 'lumen')];
+  const showcase = [SKINS.find((s) => s.r === 5 && s.m === 'nightfang' && s.st === 'art') || SKINS.find((s) => s.r === 5 && s.m === 'nightfang'), SKINS.find((s) => s.r === 6 && s.m === 'rhoden'), SKINS.find((s) => s.r === 5 && s.m === 'lumen')];
+  const groups = [
+    ['base', 'Boosters', '부스터', 'Les grands classiques : tout le catalogue ou une famille d’armes.'],
+    ['collection', 'Collections', '컬렉션', 'Dix univers illustrés : chaque booster ne contient que les skins de sa collection.'],
+    ['model', 'Par arme', '무기', 'Ciblez votre modèle préféré.'],
+  ];
   view.innerHTML = `
-    <section class="hero">
+    <section class="hero hero-compact">
       <div>
-        <div class="pill" style="margin-bottom:14px">⚡ ${stats.skins.toLocaleString('fr-FR')} cartes à collectionner</div>
+        <div class="pill" style="margin-bottom:12px">⚡ <b class="glow-text" style="--gc:#ffb020">${stats.skins.toLocaleString('fr-FR')}</b> cartes · ${PACKS.length} boosters</div>
         <h1>Collectionnez l’<span class="grad-text">arsenal</span> le plus rare.</h1>
-        <p>Ouvrez des boosters, traquez les floats parfaits, faites grader vos cartes les mieux centrées et
-          chassez les <b>cartes erreur</b> (1 chance sur ${Math.round(1 / MISPRINT.chance).toLocaleString('fr-FR')}). Échangez avec vos amis et dominez le classement.</p>
-        <div class="row" style="margin-top:22px">
-          ${me ? `<button class="btn primary xl" data-quick-free>Ouvrir un colis gratuit (${me.free.stock})</button><a class="btn xl" href="#/packs">Tous les boosters</a>`
+        <p>Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les cartes les mieux centrées et les
+          <b style="color:#ff5a8a">cartes erreur</b> (1 sur ${Math.round(1 / MISPRINT.chance).toLocaleString('fr-FR')}). Échangez avec vos amis et dominez le classement.</p>
+        <div class="row" style="margin-top:18px">
+          ${me ? `<button class="btn primary xl" data-quick-free>Ouvrir un colis gratuit (${me.free.stock})</button>${me.daily.available ? `<button class="btn xl" data-daily>🎁 Récompense du jour +${me.daily.reward} ¢</button>` : ''}`
     : `<a class="btn primary xl" href="#/register">Commencer – ${ECONOMY.startBalance} ¢ + ${ECONOMY.welcomePacks} boosters offerts</a><a class="btn xl" href="#/collection">Voir la collection</a>`}
         </div>
-        <div class="stats"><div><b>${stats.players.toLocaleString('fr-FR')}</b>joueurs</div><div><b>${stats.cards.toLocaleString('fr-FR')}</b>cartes en circulation</div><div><b>${stats.listings.toLocaleString('fr-FR')}</b>annonces au marché</div></div>
+        <div class="stats"><div><b style="color:#5ff3ff">${stats.players.toLocaleString('fr-FR')}</b>joueurs</div><div><b style="color:#b266ff">${stats.cards.toLocaleString('fr-FR')}</b>cartes en circulation</div><div><b style="color:#4ade80">${stats.listings.toLocaleString('fr-FR')}</b>annonces au marché</div></div>
       </div>
-      <div class="hero-cards">${showcase.map((s, i) => cardHTML(s, { f: [0.012, 0.0004, 0.09][i], cx: 50, cy: 50, tr: null, foil: i === 1 ? 1 : 0, mp: null, g: null, serial: 'AR-VITRINE' })).join('')}</div>
+      <div class="hero-cards">${showcase.map((s, i) => cardHTML(s, { f: [0.012, 0.0004, 0.09][i], cx: 50, cy: 50, tr: null, foil: i === 1 ? 1 : 0, mp: null, g: null, pt: 7, serial: 'MG-VITRINE' })).join('')}</div>
     </section>
-    ${me && me.daily.available ? `<div class="panel row between" style="margin-top:20px;border-color:rgba(255,176,32,.4)"><div><b>Récompense quotidienne disponible !</b><div class="muted small">Série : jour ${me.daily.nextStreak} · +${me.daily.reward} ¢</div></div><button class="btn primary" data-daily>Réclamer</button></div>` : ''}
-    <div class="grid" style="grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:24px;margin-top:10px">
-      <div><div class="section-title"><h2>Boosters</h2><a class="muted small" href="#/packs">Tout voir →</a></div>
-        <div class="packs" data-packs>${[PACKS.find((p) => p.free), ...PACKS.filter((p) => !p.free).slice(0, 2)].map((p, i) => packTile(p, me, i)).join('')}</div></div>
-      <div><div class="section-title"><h2>Drops en direct</h2><span class="pill"><span class="online on"></span> live</span></div>
-        <div class="panel feed" data-feed>${feed.map(feedItem).join('') || '<div class="empty">Aucun drop pour l’instant</div>'}</div></div>
+    <div class="home-grid">
+      <div>${groups.map(([g, title, ko, sub]) => `
+        <div class="section-title"><div><h2>${title} <span class="ko">${ko}</span></h2><div class="muted small">${sub}</div></div></div>
+        <div class="packs" data-packs>${PACKS.filter((p) => p.group === g).sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0)).map((p, i) => packTile(p, me, i)).join('')}</div>`).join('')}</div>
+      <aside class="feed-col"><div class="section-title"><h2>Drops en direct</h2><span class="pill"><span class="online on"></span> live</span></div>
+        <div class="panel feed" data-feed>${feed.map(feedItem).join('') || '<div class="empty">Aucun drop pour l’instant</div>'}</div></aside>
     </div>`;
-  bindPacks($('[data-packs]', view));
+  view.querySelectorAll('[data-packs]').forEach(bindPacks);
   $('[data-quick-free]', view)?.addEventListener('click', () => openPack('free', 1));
   $('[data-daily]', view)?.addEventListener('click', claimDaily);
   let last = feed[0]?.at || 0;
@@ -193,12 +223,12 @@ async function claimDaily() {
   } catch (e) { toast(esc(e.message), 'error'); }
 }
 
-function packsPage() {
-  const me = store.me;
-  view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>Boosters</h1><p class="muted">Tous les taux sont publics. Chaque carte est tirée indépendamment, côté serveur.</p></div>
-    ${me ? `<div class="panel small"><b>Garanties</b><div class="muted">Ultra rare+ : ${me.pity.ultra}/${PITY.ultraAfter} · Légendaire+ : ${me.pity.legend}/${PITY.legendaryAfter}</div></div>` : ''}</div>
-    <div class="packs" data-packs>${PACKS.map((p, i) => packTile(p, me, i)).join('')}</div>`;
-  bindPacks($('[data-packs]', view));
+function shopPage() {
+  view.innerHTML = `<div class="shop-lock panel">
+    <div class="shop-icon">🔒</div>
+    <h1>Boutique <span class="ko">상점</span></h1>
+    <p class="muted">La boutique n’est pas encore ouverte. ${SHOP.enabled ? '' : 'Aucun achat n’est possible pour le moment : toutes les cartes s’obtiennent en jouant.'}</p>
+    <a class="btn primary" href="#/">Retour aux boosters</a></div>`;
 }
 
 function authPage(mode) {
@@ -219,8 +249,8 @@ function authPage(mode) {
     const body = Object.fromEntries(new FormData(e.target));
     try {
       store.set(await post(`/auth/${mode}`, body));
-      toast(mode === 'register' ? 'Bienvenue sur Armaris !' : 'Connecté', 'good');
-      location.hash = mode === 'register' ? '#/packs' : '#/';
+      toast(mode === 'register' ? 'Bienvenue sur Mugigo !' : 'Connecté', 'good');
+      location.hash = '#/';
     } catch (err) { toast(esc(err.message), 'error'); }
   };
 }
@@ -317,7 +347,7 @@ function helpPage() {
         <li>Connexion quotidienne : ${ECONOMY.dailyStreak.join(' → ')} ¢. Missions du jour et vérification Discord (+${DISCORD.verifyBonus} ¢).</li>
         <li>Vente au système : ${ECONOMY.sellToSystemRate * 100} % de la valeur. Marché entre joueurs : frais ${ECONOMY.marketFee * 100} %.</li>
         <li>Contrat : ${TRADE_UP.inputCount} cartes de même rareté → 1 carte de la rareté supérieure (${TRADE_UP.cost} ¢).</li>
-        <li>La valeur moyenne d’un booster vaut 81 à 91 % de son prix : le jackpot existe, l’argent facile non.</li></ul></div>
+        <li>La valeur moyenne d’un booster vaut environ 87 % de son prix (calcul automatique) : le jackpot existe, l’argent facile non.</li></ul></div>
       <div class="panel"><h2>Mentions</h2><p class="muted">${esc(LEGAL)}</p><p class="muted small">Les noms, modèles et visuels d’armes sont entièrement inventés et générés procéduralement.</p></div>
     </div>`;
 }
@@ -325,7 +355,9 @@ function helpPage() {
 // ───────────────────────────── Routeur
 const ROUTES = [
   [/^$/, home],
-  [/^packs$/, packsPage],
+  [/^packs$/, () => { location.hash = '#/'; }],
+  [/^patterns$/, patternsPage],
+  [/^shop$/, shopPage],
   [/^collection$/, collectionPage],
   [/^inventory$/, inventoryPage, true],
   [/^card\/([\w-]+)$/, cardPage],

@@ -1,7 +1,7 @@
 // Bots : font vivre le marché et le flux de drops dès le premier jour.
 // Ils ouvrent des boosters (sans payer) et mettent en vente au-dessus de la valeur de référence.
 // Ils n'achètent jamais aux joueurs → aucun argent créé ; chaque achat chez un bot est un puits.
-import { PACKS } from '../shared/config.js';
+import { PACKS } from '../shared/packs.js';
 import { one, all, run, tx, now } from './db.js';
 import { openPack, rand } from './cards.js';
 import { insertCard, valueOfRow } from './game.js';
