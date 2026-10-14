@@ -36,6 +36,11 @@ vérification simulée pour tester en local.
 Un interrupteur **Admin** dans l’en-tête (sans mot de passe) donne des Mu illimités (les dépenses ne débitent plus le solde)
 et rend les gradations instantanées. À couper avant l’ouverture au public : `ADMIN_TOGGLE = false` dans `shared/config.js`.
 
+### Langues
+Le jeu est en français et en anglais (bouton FR/EN dans l’en-tête, ou Paramètres). Le français sert de clé :
+`t('Texte')` dans le code, traductions dans `shared/lang/en-*.js`, champs `en`/`…En` dans les données.
+`node scripts/i18n-check.js` liste les textes sans traduction.
+
 ## Ce qu’il y a dedans
 
 | Fonction | Détails |

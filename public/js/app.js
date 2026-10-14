@@ -52,7 +52,7 @@ function header(me) {
       <a class="icon-btn" href="#/rewards" title="${t('Récompenses')}">🎁<span class="dot" data-daily hidden>!</span></a>
       <button class="icon-btn" data-notif title="${t('Notifications')}">🔔<span class="dot" data-unread hidden></span></button>
       ${langButton()}
-      <button class="admin-toggle" data-admin hidden title="${t('Mode admin de test : Mu illimités, gradation instantanée')}"><i></i>Admin</button>
+      <button class="admin-toggle" data-admin hidden title="${t('Mode admin de test : Mu illimités, gradation instantanée')}"><i></i><span>Admin</span></button>
       <a class="balance" href="#/rewards" title="${t('Solde')}"><span data-bal>0</span>${MU}</a>
       <button class="user-chip" data-menu>${avatar(me, 30)}<span class="name">${esc(me.username)}</span></button>`;
     right.querySelector('[data-notif]').onclick = showNotifications;

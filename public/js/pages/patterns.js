@@ -5,47 +5,48 @@ import { rareSeeds, describeSeed } from '/shared/patterns.js';
 import { weaponSVG } from '../art/card.js';
 import { inspector, TIER_COL } from '../inspect.js';
 import { esc, $ } from '../ui.js';
+import { t, L } from '/shared/i18n.js';
 
 const PB = Object.entries(STYLES).filter(([, s]) => s.patternBased).map(([k]) => k);
 
 export function patternsPage({ view, query }) {
   const st = { model: query.get('model') || 'rhoden', style: query.get('style') || 'fade' };
   const example = (style) => SKINS.find((s) => s.m === 'rhoden' && s.st === style && (style !== 'art' || s.art === 'dragon')) || SKINS.find((s) => s.m === 'rhoden' && s.st === style) || SKINS.find((s) => s.st === style);
-  view.innerHTML = `<h1>Fiche des <span class="grad-text">motifs</span></h1>
-    <p class="muted" style="max-width:760px">Chaque carte reçoit une <b class="glow-text" style="--gc:#ffb020">graine de motif</b> de 0 à ${PATTERN.seeds - 1}.
-      Elle ne compte que pour les styles <b>Fondu</b>, <b>Trempe</b> et <b>Marbrure</b> : elle change vraiment le rendu, et certaines graines sont rares et augmentent la valeur de la carte. Les autres styles ont un rendu fixe.</p>
-    <div class="section-title"><h2>Les styles</h2></div>
+  view.innerHTML = `<h1>${t('Fiche des <span class="grad-text">motifs</span>')}</h1>
+    <p class="muted" style="max-width:760px">${t('Chaque carte reçoit une <b class="glow-text" style="--gc:#ffb020">graine de motif</b> de 0 à {max}.', { max: PATTERN.seeds - 1 })}
+      ${t('Elle ne compte que pour les styles <b>Fondu</b>, <b>Trempe</b> et <b>Marbrure</b> : elle change vraiment le rendu, et certaines graines sont rares et augmentent la valeur de la carte. Les autres styles ont un rendu fixe.')}</p>
+    <div class="section-title"><h2>${t('Les styles')}</h2></div>
     <div class="style-grid">${Object.entries(STYLES).map(([k, s]) => {
     const sk = example(k);
     return `<div class="style-card"><svg viewBox="0 0 1000 360">${weaponSVG(sk, { f: 0.01, pt: 3, serial: 'x' }, { lite: true })}</svg>
-        <div><b>${esc(s.fr)}</b>${s.patternBased ? ' <span class="pill r" style="--rc:#ffd76a">graines rares</span>' : ''}<div class="muted small">${esc(s.desc)}</div></div></div>`;
+        <div><b>${esc(L(s))}</b>${s.patternBased ? ` <span class="pill r" style="--rc:#ffd76a">${t('graines rares')}</span>` : ''}<div class="muted small">${esc(L(s, 'desc'))}</div></div></div>`;
   }).join('')}</div>
-    <div class="section-title"><h2>Graines rares</h2></div>
+    <div class="section-title"><h2>${t('Graines rares')}</h2></div>
     <div class="grid" style="grid-template-columns:repeat(3,auto);gap:10px;margin-bottom:16px;justify-content:start">
-      ${Object.entries(PATTERN.tiers).map(([t, x]) => `<span class="pill r" style="--rc:${TIER_COL[t]}">${esc(x.fr)} · ×${x.mult} la valeur</span>`).join('')}
+      ${Object.entries(PATTERN.tiers).map(([k, x]) => `<span class="pill r" style="--rc:${TIER_COL[k]}">${esc(L(x))} · ${t('×{mult} la valeur', { mult: x.mult })}</span>`).join('')}
     </div>
     <div class="filters">
-      <select class="input" data-model>${MODELS.map((m) => `<option value="${m.key}" ${m.key === st.model ? 'selected' : ''}>${esc(m.name)} — ${esc(m.clsFr)}</option>`).join('')}</select>
-      <div class="tabs">${PB.map((k) => `<button data-style="${k}" class="${k === st.style ? 'on' : ''}">${esc(STYLES[k].fr)}</button>`).join('')}</div>
+      <select class="input" data-model>${MODELS.map((m) => `<option value="${m.key}" ${m.key === st.model ? 'selected' : ''}>${esc(m.name)} — ${esc(L(m, 'clsFr'))}</option>`).join('')}</select>
+      <div class="tabs">${PB.map((k) => `<button data-style="${k}" class="${k === st.style ? 'on' : ''}">${esc(L(STYLES[k]))}</button>`).join('')}</div>
     </div>
     <div class="grid" style="grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:20px;align-items:start">
       <div class="panel" data-insp></div>
-      <div class="panel"><h3>Classement des graines</h3><p class="muted small" data-explain></p><div data-seeds class="seed-table"></div></div>
+      <div class="panel"><h3>${t('Classement des graines')}</h3><p class="muted small" data-explain></p><div data-seeds class="seed-table"></div></div>
     </div>`;
   const draw = () => {
     const skin = SKINS.find((s) => s.m === st.model && s.st === st.style);
-    if (!skin) { $('[data-insp]', view).innerHTML = '<div class="empty">Ce modèle n’a pas encore de skin dans ce style.</div>'; $('[data-seeds]', view).innerHTML = ''; return; }
+    if (!skin) { $('[data-insp]', view).innerHTML = `<div class="empty">${t('Ce modèle n’a pas encore de skin dans ce style.')}</div>`; $('[data-seeds]', view).innerHTML = ''; return; }
     const top = rareSeeds(st.model, st.style);
-    const ins = inspector(skin, { pt: top[0].seed, title: `${MODEL_BY_KEY[skin.m].name} | ${skin.n}` });
+    const ins = inspector(skin, { pt: top[0].seed, title: `${MODEL_BY_KEY[skin.m].name} | ${L(skin, 'n')}` });
     $('[data-insp]', view).innerHTML = ins.html; ins.bind($('[data-insp]', view));
     $('[data-explain]', view).textContent = {
-      fade: 'Plus le pourcentage de fondu est haut, plus la dernière couleur recouvre l’arme. 100 % = fondu intégral.',
-      hardened: 'Part de bleu sur l’acier trempé. Au-delà de 90 %, on parle de « joyau bleu ».',
-      marble: 'Les meilleures graines n’affichent que deux couleurs : Braise & Givre (rouge et bleu), puis Nuit profonde et Aurore.',
+      fade: t('Plus le pourcentage de fondu est haut, plus la dernière couleur recouvre l’arme. 100 % = fondu intégral.'),
+      hardened: t('Part de bleu sur l’acier trempé. Au-delà de 90 %, on parle de « joyau bleu ».'),
+      marble: t('Les meilleures graines n’affichent que deux couleurs : Braise & Givre (rouge et bleu), puis Nuit profonde et Aurore.'),
     }[st.style];
-    $('[data-seeds]', view).innerHTML = `<table class="t"><thead><tr><th>Graine</th><th>Rendu</th><th>Rang</th></tr></thead><tbody>${top.map((x) => {
+    $('[data-seeds]', view).innerHTML = `<table class="t"><thead><tr><th>${t('Graine')}</th><th>${t('Rendu')}</th><th>${t('Rang')}</th></tr></thead><tbody>${top.map((x) => {
       const d = describeSeed(skin, x.seed);
-      return `<tr><td><button class="chip" data-seed="${x.seed}" style="--rc:${TIER_COL[x.tier]}">#${x.seed}</button></td><td>${esc(d.label)}</td><td><span style="color:${TIER_COL[x.tier]}" class="glow-text">${esc(d.tierFr)}</span></td></tr>`;
+      return `<tr><td><button class="chip" data-seed="${x.seed}" style="--rc:${TIER_COL[x.tier]}">#${x.seed}</button></td><td>${esc(d.label)}</td><td><span style="color:${TIER_COL[x.tier]}" class="glow-text">${esc(L(d, 'tierFr'))}</span></td></tr>`;
     }).join('')}</tbody></table>`;
   };
   view.addEventListener('change', (e) => { if (e.target.matches('[data-model]')) { st.model = e.target.value; draw(); } });

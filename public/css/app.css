@@ -512,3 +512,10 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .lang-btn b, .lang-btn span { padding: 5px 7px; border-radius: 99px; }
 .lang-btn b { background: rgba(255,255,255,.12); color: #fff; }
 .lang-btn:hover span { color: #fff; }
+/* en-tête chargé : on compacte l'interrupteur admin, le nom et les onglets sur écrans moyens */
+@media (max-width: 1500px) {
+  .admin-toggle { padding: 0 7px; } .admin-toggle span { display: none; }
+  .user-chip .name { display: none; }
+  .nav a { padding-left: 10px; padding-right: 10px; }
+}
+@media (max-width: 1360px) { .logo-word { display: none; } .nav a { padding-left: 8px; padding-right: 8px; } }
