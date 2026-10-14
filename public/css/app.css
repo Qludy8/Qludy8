@@ -486,14 +486,18 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .pity-row { display: grid; grid-template-columns: 150px 1fr 70px; gap: 10px; align-items: center; font-size: 13px; font-weight: 700; color: var(--rc); }
 .pity-row b { text-align: right; font-family: var(--display); }
 
-/* ouverture : symbole coréen du booster en fond (contour lumineux) + transitions de couleur douces */
+/* ouverture : transitions de couleur douces */
 @property --glow { syntax: '<color>'; inherits: true; initial-value: #ff4d2e; }
 .opening { transition: --glow 1.4s ease, background .8s; }
-.opening .bg-sym { position: absolute; left: 50%; top: 46%; translate: -50% -50%; z-index: 1; pointer-events: none; user-select: none;
-  font-family: var(--ko); font-weight: 900; font-size: min(78vh, 90vw); line-height: 1; color: transparent;
-  -webkit-text-stroke: 3px color-mix(in srgb, var(--glow) 80%, #fff);
-  text-shadow: 0 0 30px var(--glow), 0 0 80px color-mix(in srgb, var(--glow) 60%, transparent);
-  opacity: .22; animation: symPulse 5s ease-in-out infinite; }
-@keyframes symPulse { 50% { opacity: .32; transform: scale(1.02); } }
-.opening.done .bg-sym { opacity: .1; animation: none; }
 .opening .stack-card:not(.top) .face.back .liseret { display: none; }
+
+/* mode admin de test (interrupteur dans l'en-tête) */
+.admin-toggle { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 11px 0 7px; border-radius: 99px; cursor: pointer;
+  border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--muted); font: 800 12px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.admin-toggle[hidden] { display: none; }
+.admin-toggle i { width: 26px; height: 16px; border-radius: 99px; background: rgba(255,255,255,.12); position: relative; transition: background .25s; }
+.admin-toggle i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #c9cdd8; transition: transform .25s var(--ease), background .25s; }
+.admin-toggle.on { color: #ff7ae6; border-color: rgba(255, 122, 230, .5); box-shadow: 0 0 16px -4px #ff7ae6; }
+.admin-toggle.on i { background: rgba(255, 122, 230, .45); }
+.admin-toggle.on i::after { transform: translateX(10px); background: #fff; }
+.balance.infinite { color: #ff7ae6; text-shadow: 0 0 12px rgba(255, 122, 230, .6); }

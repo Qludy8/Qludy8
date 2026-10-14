@@ -1,7 +1,7 @@
 // Services de jeu : portefeuille, cartes, boosters, marché, amis, échanges, gradation, missions.
 // Toute mutation passe par tx() → atomique. Les routes HTTP (server/api.js) ne font qu'appeler ces fonctions.
 import {
-  ECONOMY, QUESTS, LEVELS, GRADING, TRADES, TRADE_UP, RARITIES, DISCORD,
+  ADMIN_TOGGLE, ECONOMY, QUESTS, LEVELS, GRADING, TRADES, TRADE_UP, RARITIES, DISCORD,
 } from '../shared/config.js';
 import { SKIN_BY_ID, SKINS, MODEL_BY_KEY } from '../shared/catalog.js';
 import { PACK_BY_KEY } from '../shared/packs.js';
@@ -18,13 +18,22 @@ const bad = (msg) => new HttpError(400, msg);
 // ───────────────────────────── Portefeuille
 export function credit(userId, amount, type, note = null) {
   amount = Math.round(amount);
-  const u = one('SELECT balance FROM users WHERE id = ?', userId);
-  const after = u.balance + amount;
+  const u = one('SELECT balance, admin_mode FROM users WHERE id = ?', userId);
+  // mode admin : les dépenses ne débitent pas le solde (Mu illimités)
+  const after = amount < 0 && isAdmin(u) ? u.balance : u.balance + amount;
   if (after < 0) throw bad('Solde insuffisant');
   run('UPDATE users SET balance = ? WHERE id = ?', after, userId);
   run('INSERT INTO transactions (user_id, type, amount, balance_after, note, at) VALUES (?,?,?,?,?,?)',
     userId, type, amount, after, note, now());
   return after;
+}
+export const isAdmin = (u) => ADMIN_TOGGLE && !!u?.admin_mode;
+export function setAdminMode(userId, on) {
+  if (!ADMIN_TOGGLE) throw new HttpError(403, 'Mode admin désactivé');
+  run('UPDATE users SET admin_mode = ? WHERE id = ?', on ? 1 : 0, userId);
+  // les gradations en cours deviennent prêtes tout de suite
+  if (on) run("UPDATE grading_orders SET ready_at = ? WHERE user_id = ? AND status = 'PENDING' AND ready_at > ?", now(), userId, now());
+  return !!on;
 }
 export function addXp(userId, xp) { run('UPDATE users SET xp = xp + ? WHERE id = ?', xp, userId); }
 export function levelOf(xp) {
@@ -431,7 +440,8 @@ export function createTrade(me, { toId, give = [], take = [], creditsFrom = 0, c
     if (open >= TRADES.maxOpenPerUser) throw bad('Trop d’échanges en attente');
     for (const id of give) ownedCard(me, id);
     for (const id of take) ownedCard(toId, id);
-    if (one('SELECT balance FROM users WHERE id = ?', me).balance < creditsFrom) throw bad('Solde insuffisant');
+    const u = one('SELECT balance, admin_mode FROM users WHERE id = ?', me);
+    if (!isAdmin(u) && u.balance < creditsFrom) throw bad('Solde insuffisant');
     const t = now();
     const res = run('INSERT INTO trades (from_id, to_id, credits_from, credits_to, message, created_at, updated_at) VALUES (?,?,?,?,?,?,?)',
       me, toId, creditsFrom, creditsTo, String(message).slice(0, 200), t, t);
@@ -505,7 +515,8 @@ export function submitGrading(me, ids, service) {
       fee += gradingFee(service, valueOfRow(r));
     }
     credit(me, -fee, 'GRADING', `${ids.length} carte(s) – ${svc.fr}`);
-    const res = run('INSERT INTO grading_orders (user_id, service, fee, ready_at, created_at) VALUES (?,?,?,?,?)', me, service, fee, now() + svc.delayMs, now());
+    const delay = isAdmin(one('SELECT admin_mode FROM users WHERE id = ?', me)) ? 0 : svc.delayMs;
+    const res = run('INSERT INTO grading_orders (user_id, service, fee, ready_at, created_at) VALUES (?,?,?,?,?)', me, service, fee, now() + delay, now());
     const oid = Number(res.lastInsertRowid);
     for (const id of ids) {
       run('INSERT INTO grading_items (order_id, card_id) VALUES (?,?)', oid, id);

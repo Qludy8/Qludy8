@@ -32,6 +32,10 @@ Une fois configurée, la vérification est **obligatoire** pour vendre sur le ma
 (+150 ¢ offerts). Sans configuration, ces fonctions restent ouvertes ; `DISCORD_DEV_MOCK=1` affiche un bouton de
 vérification simulée pour tester en local.
 
+### Mode admin de test
+Un interrupteur **Admin** dans l’en-tête (sans mot de passe) donne des Mu illimités (les dépenses ne débitent plus le solde)
+et rend les gradations instantanées. À couper avant l’ouverture au public : `ADMIN_TOGGLE = false` dans `shared/config.js`.
+
 ## Ce qu’il y a dedans
 
 | Fonction | Détails |

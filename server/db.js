@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 // Migrations légères (bases créées avant l'ajout d'une colonne)
 const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
 if (!cols('cards').includes('pattern')) db.exec('ALTER TABLE cards ADD COLUMN pattern INTEGER');
+if (!cols('users').includes('admin_mode')) db.exec('ALTER TABLE users ADD COLUMN admin_mode INTEGER NOT NULL DEFAULT 0');
 if (!cols('users').includes('pity_trans')) db.exec('ALTER TABLE users ADD COLUMN pity_trans INTEGER NOT NULL DEFAULT 0');
 
 // Transaction : rollback automatique si fn lève une erreur. Réentrant (savepoints).

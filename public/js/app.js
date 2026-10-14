@@ -39,12 +39,25 @@ function header(me) {
     right.innerHTML = `
       <a class="icon-btn" href="#/rewards" title="Récompenses">🎁<span class="dot" data-daily hidden>!</span></a>
       <button class="icon-btn" data-notif title="Notifications">🔔<span class="dot" data-unread hidden></span></button>
+      <button class="admin-toggle" data-admin hidden title="Mode admin de test : Mu illimités, gradation instantanée"><i></i>Admin</button>
       <a class="balance" href="#/rewards" title="Solde"><span data-bal>0</span><i class="mu" aria-label="Mu">${CURRENCY.symbol}</i></a>
       <button class="user-chip" data-menu>${avatar(me, 30)}<span class="name">${esc(me.username)}</span></button>`;
     right.querySelector('[data-notif]').onclick = showNotifications;
     right.querySelector('[data-menu]').onclick = userMenu;
+    right.querySelector('[data-admin]').onclick = async (e) => {
+      const btn = e.currentTarget; btn.disabled = true;
+      try {
+        store.set(await post('/admin/toggle', { on: !store.me.admin }));
+        toast(store.me.admin ? 'Mode admin activé : Mu illimités, gradation instantanée' : 'Mode admin désactivé', 'good');
+      } catch (err) { toast(err.message, 'error'); }
+      btn.disabled = false;
+    };
   }
-  animateNumber(right.querySelector('[data-bal]'), me.balance);
+  const adm = right.querySelector('[data-admin]');
+  adm.hidden = !me.adminToggle; adm.classList.toggle('on', !!me.admin); adm.setAttribute('aria-pressed', String(!!me.admin));
+  right.querySelector('.balance').classList.toggle('infinite', !!me.admin);
+  if (me.admin) right.querySelector('[data-bal]').textContent = '∞';
+  else animateNumber(right.querySelector('[data-bal]'), me.balance);
   const dd = right.querySelector('[data-daily]'); dd.hidden = !(me.daily.available || me.questsReady); dd.textContent = me.questsReady || '!';
   const un = right.querySelector('[data-unread]');
   un.hidden = !(me.unread + me.gradingReady); un.textContent = me.unread + me.gradingReady;

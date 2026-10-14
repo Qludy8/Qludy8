@@ -19,7 +19,6 @@ export function openSequence(pack, result, { onAgain } = {}) {
   el.className = 'opening';
   el.style.setProperty('--glow', pack.theme[0]);
   el.innerHTML = `
-    <div class="bg-sym" aria-hidden="true">${esc(pack.sym || '무')}</div>
     <div class="rays"></div><canvas class="fx"></canvas>
     <div class="flash-screen"></div><div class="shockwave"></div><div class="rarity-burst"></div>
     <div class="controls">

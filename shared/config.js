@@ -5,6 +5,9 @@ export const BRAND = { name: 'Mugigo', ko: '무기고', glyph: '무', tagline: '
 export const CURRENCY = { name: 'Mu', ko: '무', symbol: '무' };
 // Boutique (argent réel) : prévue plus tard. Tant que enabled = false, l'onglet est visible mais verrouillé.
 export const SHOP = { enabled: false };
+// Mode admin de test : interrupteur dans le menu joueur (sans mot de passe) → Mu illimités, gradation instantanée.
+// À désactiver (false) avant l'ouverture au public.
+export const ADMIN_TOGGLE = true;
 
 export const RARITIES = [
   { id: 0, key: 'common',       fr: 'Commun',       color: '#9aa3ad', glow: '#9aa3ad', base: [4, 10] },
@@ -106,7 +109,7 @@ export const BASE_PACKS = [
   { key: 'royal',     fr: 'Arsenal royal', ko: '왕실', sym: '왕', tag: '10 cartes, à partir de Rare', filter: {},
     cards: 10, rates: [0, 0, 52, 31, 12, 4, 1], theme: ['#e0b54a', '#c8102e'], evTarget: 0.82 },
   { key: 'free',      fr: 'Colis gratuit', ko: '선물', sym: '선', tag: 'Toutes les 10 minutes', filter: {}, free: true,
-    price: 0, cards: 3, rates: [80, 16, 3.6, 0.4, 0, 0, 0], theme: ['#9aa3ad', '#ffffff'] },
+    price: 0, cards: 3, rates: [78, 17.5, 3.6, 0.75, 0.12, 0.025, 0.005], theme: ['#9aa3ad', '#ffffff'] },
 ];
 // symbole des boosters « par arme » selon la famille
 export const CLASS_SYM = { pistol: '권', revolver: '탄', smg: '속', rifle: '총', dmr: '정', sniper: '저', shotgun: '산', lmg: '포', knife: '검' };

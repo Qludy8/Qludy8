@@ -1,6 +1,6 @@
 // Routes HTTP : fines, elles valident l'accès puis délèguent à server/game.js.
 import express from 'express';
-import { ECONOMY, PITY } from '../shared/config.js';
+import { ECONOMY, PITY, ADMIN_TOGGLE } from '../shared/config.js';
 import { one, all, run } from './db.js';
 import * as G from './game.js';
 import { createUser, createSession, destroySession, checkPassword, requireUser, rateLimit } from './auth.js';
@@ -13,6 +13,7 @@ function me(u) {
   u = one('SELECT * FROM users WHERE id = ?', u.id);
   return {
     id: u.id, username: u.username, email: u.email, balance: u.balance, avatar_hue: u.avatar_hue, bio: u.bio,
+    admin: G.isAdmin(u), adminToggle: ADMIN_TOGGLE,
     level: G.levelOf(u.xp), welcomePacks: u.welcome_packs, free,
     pity: { ultra: u.pity_ultra, legend: u.pity_legend, trans: u.pity_trans, ultraAfter: PITY.ultraAfter, legendaryAfter: PITY.legendaryAfter, transAfter: PITY.transcendentAfter },
     daily: G.dailyState(u), packs_opened: u.packs_opened, showcase: JSON.parse(u.showcase),
@@ -126,6 +127,7 @@ export function api() {
     res.json({ status: G.respondTrade(req.user.id, req.params.id, req.params.action) });
   });
 
+  r.post('/admin/toggle', (req, res) => { G.setAdminMode(req.user.id, !!req.body?.on); res.json(me(req.user)); });
   r.get('/grading', (req, res) => res.json(G.listGrading(req.user.id)));
   r.post('/grading/quote', (req, res) => res.json(G.gradingQuote(req.user.id, req.body?.ids, req.body?.service)));
   r.post('/grading', (req, res) => res.json(G.submitGrading(req.user.id, req.body?.ids, req.body?.service)));
