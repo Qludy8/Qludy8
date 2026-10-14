@@ -505,3 +505,10 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 /* résumé d'ouverture : les cartes hors écran ne sont pas rendues (ouvertures ×10) */
 
 .card-ph { aspect-ratio: 63 / 88; width: 100%; border-radius: 4.8%/3.4%; background: linear-gradient(160deg, #1b1d26, #0d0e13); }
+
+/* sélecteur de langue */
+.lang-btn { display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 4px; border-radius: 99px; cursor: pointer;
+  border: 1px solid var(--line); background: rgba(255,255,255,.04); font: 800 11px/1 var(--display); letter-spacing: .06em; color: var(--muted); }
+.lang-btn b, .lang-btn span { padding: 5px 7px; border-radius: 99px; }
+.lang-btn b { background: rgba(255,255,255,.12); color: #fff; }
+.lang-btn:hover span { color: #fff; }

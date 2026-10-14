@@ -1,4 +1,5 @@
 // Client HTTP minimal + état global du joueur connecté.
+import { tr } from '/shared/i18n.js';
 export async function api(path, { method = 'GET', body } = {}) {
   const res = await fetch(`/api${path}`, {
     method,
@@ -7,7 +8,7 @@ export async function api(path, { method = 'GET', body } = {}) {
     credentials: 'same-origin',
   });
   const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
-  if (!res.ok) throw new Error(data?.error || `Erreur ${res.status}`);
+  if (!res.ok) throw new Error(tr(data?.error) || tr(`Erreur ${res.status}`));
   return data;
 }
 export const post = (path, body = {}) => api(path, { method: 'POST', body });

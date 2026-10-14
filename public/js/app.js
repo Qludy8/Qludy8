@@ -4,6 +4,7 @@ import { SKINS, SKIN_BY_ID, MODELS } from '/shared/catalog.js';
 import { PACKS, packFilter } from '/shared/packs.js';
 import { patternsPage } from './pages/patterns.js';
 import { api, post, store } from './api.js';
+import { t, tr, L, fmt, getLang, LANGS, switchLang } from '/shared/i18n.js';
 import { esc, cr, ago, dur, toast, modal, initTilt, animateNumber, avatar, $, $$ } from './ui.js';
 import { packSVG } from './art/pack.js';
 import { cardHTML } from './art/card.js';
@@ -25,6 +26,12 @@ const NAV = [
   ['', 'Boosters'], ['collection', 'Collection'], ['inventory', 'Inventaire'], ['market', 'Marché'],
   ['trades', 'Échanges', 'openTrades'], ['friends', 'Amis', 'friendRequests'], ['leaderboard', 'Classement'], ['patterns', 'Motifs'],
 ];
+// sélecteur de langue : bascule FR ⇄ EN (la page se recharge dans la nouvelle langue)
+const langButton = () => {
+  const next = LANGS.find((l) => l.key !== getLang());
+  return `<button class="lang-btn" data-lang="${next.key}" title="${esc(next.label)}"><b>${LANGS.find((l) => l.key === getLang()).short}</b><span>${next.short}</span></button>`;
+};
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-lang]'); if (b) switchLang(b.dataset.lang); });
 function header(me) {
   const route = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
   $('#nav').innerHTML = NAV.map(([k, label, badge]) =>
@@ -32,13 +39,14 @@ function header(me) {
     + `<a href="#/shop" class="nav-locked ${route === 'shop' ? 'on' : ''}" title="Bientôt disponible">Boutique <span aria-hidden="true">🔒</span></a>`;
   const right = $('#top-right');
   if (!me) {
-    right.innerHTML = `<a class="btn sm ghost" href="#/login">Connexion</a><a class="btn sm primary" href="#/register">Jouer gratuitement</a>`;
+    right.innerHTML = `${langButton()}<a class="btn sm ghost" href="#/login">Connexion</a><a class="btn sm primary" href="#/register">Jouer gratuitement</a>`;
     return;
   }
   if (!right.querySelector('.balance')) {
     right.innerHTML = `
       <a class="icon-btn" href="#/rewards" title="Récompenses">🎁<span class="dot" data-daily hidden>!</span></a>
       <button class="icon-btn" data-notif title="Notifications">🔔<span class="dot" data-unread hidden></span></button>
+      ${langButton()}
       <button class="admin-toggle" data-admin hidden title="Mode admin de test : Mu illimités, gradation instantanée"><i></i>Admin</button>
       <a class="balance" href="#/rewards" title="Solde"><span data-bal>0</span><i class="mu" aria-label="Mu">${CURRENCY.symbol}</i></a>
       <button class="user-chip" data-menu>${avatar(me, 30)}<span class="name">${esc(me.username)}</span></button>`;
