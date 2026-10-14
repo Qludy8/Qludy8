@@ -1,7 +1,7 @@
 // Services de jeu : portefeuille, cartes, boosters, marché, amis, échanges, gradation, missions.
 // Toute mutation passe par tx() → atomique. Les routes HTTP (server/api.js) ne font qu'appeler ces fonctions.
 import {
-  ECONOMY, MISSIONS, LEVELS, GRADING, TRADES, TRADE_UP, RARITIES, DISCORD,
+  ECONOMY, QUESTS, LEVELS, GRADING, TRADES, TRADE_UP, RARITIES, DISCORD,
 } from '../shared/config.js';
 import { SKIN_BY_ID, SKINS, MODEL_BY_KEY } from '../shared/catalog.js';
 import { PACK_BY_KEY } from '../shared/packs.js';
@@ -86,25 +86,52 @@ function discover(userId, skinId) {
   return r.changes > 0;
 }
 
-// ───────────────────────────── Missions & connexion quotidienne
-export function bumpMission(userId, key, n = 1) {
-  run(`INSERT INTO missions (user_id, day, key, progress) VALUES (?,?,?,?)
-       ON CONFLICT(user_id, day, key) DO UPDATE SET progress = progress + excluded.progress`, userId, today(), key, n);
+// ───────────────────────────── Quêtes & connexion quotidienne
+const isoWeek = (d = new Date()) => {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return `${t.getUTCFullYear()}-W${String(Math.ceil(((t - y0) / 864e5 + 1) / 7)).padStart(2, '0')}`;
+};
+const periodOf = (group) => (group === 'daily' ? today() : group === 'weekly' ? isoWeek() : 'exploit');
+const QUEST_LIST = Object.entries(QUESTS).flatMap(([group, list]) => list.map((q) => ({ ...q, group })));
+const EV_ALIAS = { market_buy: ['market'], market_sell: ['market', 'market_sell'] };
+// Avance toutes les quêtes liées à un évènement
+export function bumpEvent(userId, ev, n = 1) {
+  if (!n) return;
+  const evs = new Set([ev, ...(EV_ALIAS[ev] || [])]);
+  for (const q of QUEST_LIST) {
+    if (!evs.has(q.ev)) continue;
+    run(`INSERT INTO missions (user_id, day, key, progress) VALUES (?,?,?,?)
+         ON CONFLICT(user_id, day, key) DO UPDATE SET progress = progress + excluded.progress`, userId, periodOf(q.group), q.key, n);
+  }
 }
-export function missionsOf(userId) {
-  const rows = Object.fromEntries(all('SELECT key, progress, claimed FROM missions WHERE user_id = ? AND day = ?', userId, today()).map((r) => [r.key, r]));
-  return MISSIONS.map((m) => ({ ...m, progress: Math.min(m.target, rows[m.key]?.progress ?? 0), claimed: !!rows[m.key]?.claimed }));
+export const bumpMission = bumpEvent;
+export function questsOf(userId) {
+  const out = {};
+  for (const [group, list] of Object.entries(QUESTS)) {
+    const rows = Object.fromEntries(all('SELECT key, progress, claimed FROM missions WHERE user_id = ? AND day = ?', userId, periodOf(group)).map((r) => [r.key, r]));
+    out[group] = list.map((q) => ({ ...q, progress: Math.min(q.target, rows[q.key]?.progress ?? 0), claimed: !!rows[q.key]?.claimed }));
+  }
+  return out;
+}
+export const missionsOf = questsOf;
+export function questsReady(userId) {
+  const q = questsOf(userId);
+  return Object.values(q).flat().filter((x) => !x.claimed && x.progress >= x.target).length;
 }
 export function claimMission(userId, key) {
   return tx(() => {
-    const m = MISSIONS.find((x) => x.key === key);
-    if (!m) throw bad('Mission inconnue');
-    const r = one('SELECT progress, claimed FROM missions WHERE user_id = ? AND day = ? AND key = ?', userId, today(), key);
-    if (!r || r.progress < m.target) throw bad('Mission non terminée');
+    const q = QUEST_LIST.find((x) => x.key === key);
+    if (!q) throw bad('Quête inconnue');
+    const period = periodOf(q.group);
+    const r = one('SELECT progress, claimed FROM missions WHERE user_id = ? AND day = ? AND key = ?', userId, period, key);
+    if (!r || r.progress < q.target) throw bad('Quête non terminée');
     if (r.claimed) throw bad('Déjà réclamée');
-    run('UPDATE missions SET claimed = 1 WHERE user_id = ? AND day = ? AND key = ?', userId, today(), key);
-    addXp(userId, ECONOMY.xp.mission);
-    return credit(userId, m.reward, 'MISSION', m.fr);
+    run('UPDATE missions SET claimed = 1 WHERE user_id = ? AND day = ? AND key = ?', userId, period, key);
+    addXp(userId, ECONOMY.xp.mission * (q.group === 'daily' ? 1 : q.group === 'weekly' ? 3 : 6));
+    if (q.packs) run('UPDATE users SET welcome_packs = welcome_packs + ? WHERE id = ?', q.packs, userId);
+    return credit(userId, q.reward, 'QUEST', q.fr);
   });
 }
 const yesterday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
@@ -120,6 +147,7 @@ export function claimDaily(userId) {
     const d = dailyState(u);
     if (!d.available) throw bad('Récompense déjà réclamée aujourd’hui');
     run('UPDATE users SET streak = ?, last_daily = ? WHERE id = ?', d.nextStreak, today(), userId);
+    bumpEvent(userId, 'daily');
     return { balance: credit(userId, d.reward, 'DAILY', `Jour ${d.nextStreak}`), reward: d.reward, streak: d.nextStreak };
   });
 }
@@ -158,7 +186,7 @@ export function openPacks(userId, key, count = 1) {
       if (toPay) credit(userId, -toPay, 'PACK', `${count - welcomeUsed} × ${pack.fr}`);
     }
     const packsOut = [];
-    let pity = { ultra: u.pity_ultra, legend: u.pity_legend };
+    let pity = { ultra: u.pity_ultra, legend: u.pity_legend, trans: u.pity_trans };
     let newSkins = 0;
     for (let i = 0; i < count; i++) {
       const res = openPack(pack, pity, !pack.free);
@@ -173,12 +201,15 @@ export function openPacks(userId, key, count = 1) {
       });
       packsOut.push({ cards, pityTriggered: res.pityTriggered });
     }
-    run('UPDATE users SET pity_ultra = ?, pity_legend = ?, packs_opened = packs_opened + ? WHERE id = ?', pity.ultra, pity.legend, count, userId);
+    run('UPDATE users SET pity_ultra = ?, pity_legend = ?, pity_trans = ?, packs_opened = packs_opened + ? WHERE id = ?', pity.ultra, pity.legend, pity.trans, count, userId);
     addXp(userId, ECONOMY.xp.pack * count);
-    if (!pack.free) bumpMission(userId, 'open5', count);
-    if (newSkins) bumpMission(userId, 'new3', newSkins);
-    u = one('SELECT balance, welcome_packs, pity_ultra, pity_legend FROM users WHERE id = ?', userId);
-    return { packs: packsOut, balance: u.balance, welcomePacks: u.welcome_packs, pity: { ultra: u.pity_ultra, legend: u.pity_legend }, welcomeUsed };
+    bumpEvent(userId, pack.free ? 'open_free' : 'open', count);
+    bumpEvent(userId, 'new', newSkins);
+    const all5 = packsOut.flatMap((p) => p.cards);
+    for (const r of [3, 4, 5, 6]) bumpEvent(userId, `drop${r}`, all5.filter((c) => c.r >= r).length);
+    bumpEvent(userId, 'misprint', all5.filter((c) => c.mp).length);
+    u = one('SELECT balance, welcome_packs, pity_ultra, pity_legend, pity_trans FROM users WHERE id = ?', userId);
+    return { packs: packsOut, balance: u.balance, welcomePacks: u.welcome_packs, pity: { ultra: u.pity_ultra, legend: u.pity_legend, trans: u.pity_trans }, welcomeUsed };
   });
 }
 
@@ -241,6 +272,7 @@ export function tradeUp(userId, ids) {
     const id = insertCard(userId, c, 'TRADE_UP');
     discover(userId, c.s);
     addXp(userId, 20);
+    bumpEvent(userId, 'tradeup');
     if (r + 1 >= 3) run('INSERT INTO feed (user_id, card_id, at) VALUES (?,?,?)', userId, id, now());
     return cardOut(one('SELECT * FROM cards WHERE id = ?', id));
   });
@@ -286,9 +318,9 @@ export function buyListing(userId, listingId) {
     const card = one('SELECT * FROM cards WHERE id = ?', l.card_id);
     run('INSERT INTO sales (skin_id, price, at) VALUES (?,?,?)', card.skin_id, l.price, now());
     addXp(userId, ECONOMY.xp.sale); addXp(l.seller_id, ECONOMY.xp.sale);
-    bumpMission(userId, 'market1'); bumpMission(l.seller_id, 'market1');
+    bumpEvent(userId, 'market_buy'); bumpEvent(l.seller_id, 'market_sell');
     const buyer = one('SELECT username FROM users WHERE id = ?', userId);
-    notify(l.seller_id, `${buyer.username} a acheté ${skinName(card.skin_id)} pour ${l.price} ¢ (vous recevez ${l.price - fee} ¢)`, `#/card/${card.id}`);
+    notify(l.seller_id, `${buyer.username} a acheté ${skinName(card.skin_id)} pour ${l.price} Mu (vous recevez ${l.price - fee} Mu)`, `#/card/${card.id}`);
     return cardOut(card);
   });
 }
@@ -349,7 +381,7 @@ export function requestFriend(me, username) {
     if (st === 'FRIENDS') throw bad('Déjà amis');
     if (st === 'SENT') throw bad('Demande déjà envoyée');
     const [a, b] = pair(me, o.id);
-    if (st === 'RECEIVED') { run("UPDATE friends SET status = 'ACCEPTED' WHERE a = ? AND b = ?", a, b); return 'FRIENDS'; }
+    if (st === 'RECEIVED') { run("UPDATE friends SET status = 'ACCEPTED' WHERE a = ? AND b = ?", a, b); bumpEvent(me, 'friend'); bumpEvent(o.id, 'friend'); return 'FRIENDS'; }
     run('INSERT INTO friends (a, b, requester, created_at) VALUES (?,?,?,?)', a, b, me, now());
     const meName = one('SELECT username FROM users WHERE id = ?', me).username;
     notify(o.id, `${meName} vous a envoyé une demande d’ami`, '#/friends');
@@ -364,6 +396,7 @@ export function respondFriend(me, otherId, accept) {
   if (accept) {
     if (f.status !== 'PENDING' || f.requester === me) throw bad('Rien à accepter');
     run("UPDATE friends SET status = 'ACCEPTED' WHERE a = ? AND b = ?", a, b);
+    bumpEvent(me, 'friend'); bumpEvent(otherId, 'friend');
     const meName = one('SELECT username FROM users WHERE id = ?', me).username;
     notify(otherId, `${meName} a accepté votre demande d’ami`, '#/friends');
   } else {
@@ -448,6 +481,7 @@ export function respondTrade(me, id, action) {
     if (t.credits_from) { credit(t.from_id, -t.credits_from, 'TRADE', `Échange #${t.id}`); credit(t.to_id, t.credits_from, 'TRADE', `Échange #${t.id}`); }
     if (t.credits_to) { credit(t.to_id, -t.credits_to, 'TRADE', `Échange #${t.id}`); credit(t.from_id, t.credits_to, 'TRADE', `Échange #${t.id}`); }
     run("UPDATE trades SET status = 'DONE', updated_at = ? WHERE id = ?", now(), t.id);
+    bumpEvent(t.from_id, 'trade'); bumpEvent(t.to_id, 'trade');
     for (const i of items) {
       const [from, to] = i.side === 'from' ? [t.from_id, t.to_id] : [t.to_id, t.from_id];
       transferCard(i.card_id, from, to, 'TRADE');
@@ -517,6 +551,7 @@ export function revealGrading(me, orderId) {
       out.push({ ...cardOut(one('SELECT * FROM cards WHERE id = ?', r.id)), before });
     }
     run("UPDATE grading_orders SET status = 'DONE' WHERE id = ?", o.id);
+    bumpEvent(me, 'grade', out.length); bumpEvent(me, 'grade9', out.filter((c) => c.g >= 9).length);
     addXp(me, ECONOMY.xp.grade * out.length);
     return out;
   });

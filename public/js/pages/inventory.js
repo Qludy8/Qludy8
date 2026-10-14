@@ -120,7 +120,7 @@ export async function inventoryPage(ctx) {
       if (kind === 'showcase') { await post('/showcase', { ids: chosen.map((c) => c.id) }); toast('Vitrine mise à jour', 'good'); return; }
       if (kind === 'grade') return gradeModal(chosen.filter((c) => c.status === 'OWNED'));
       if (kind === 'tradeup') {
-        if (!(await confirmBox(`Échanger ces ${TRADE_UP.inputCount} cartes ${RARITIES[chosen[0].r].fr} contre 1 carte <b>${RARITIES[chosen[0].r + 1].fr}</b> (coût ${TRADE_UP.cost} ¢) ? Le float obtenu dépend de la moyenne des floats.`, 'Signer le contrat'))) return;
+        if (!(await confirmBox(`Échanger ces ${TRADE_UP.inputCount} cartes ${RARITIES[chosen[0].r].fr} contre 1 carte <b>${RARITIES[chosen[0].r + 1].fr}</b> (coût ${TRADE_UP.cost} <i class="mu" aria-label="Mu">무</i>) ? Le float obtenu dépend de la moyenne des floats.`, 'Signer le contrat'))) return;
         const c = await post('/trade-up', { ids });
         sound.play('rare', c.r);
         const m = modal(`<h2 style="text-align:center">Contrat rempli !</h2><div style="max-width:280px;margin:0 auto">${cardOf(c)}</div><div class="row end" style="margin-top:14px"><a class="btn primary" href="#/card/${c.id}">Voir la carte</a></div>`);
@@ -137,7 +137,7 @@ export function gradeModal(chosen) {
   const ids = chosen.map((c) => c.id);
   let service = 'standard';
   const m = modal(`<h2>Envoyer en gradation</h2><p class="muted">${ids.length} carte(s). Les cartes sont indisponibles pendant la gradation. La note peut faire <b>monter ou baisser</b> la valeur.</p>
-    <div class="grid" style="gap:10px">${Object.entries(GRADING.services).map(([k, s]) => `<label class="check" style="justify-content:space-between"><span><input type="radio" name="svc" value="${k}" ${k === service ? 'checked' : ''}> ${s.fr}</span><span class="muted">${s.delayMs >= 3600e3 ? `${s.delayMs / 3600e3} h` : `${s.delayMs / 60e3} min`} · ${s.baseFee} ¢/carte</span></label>`).join('')}</div>
+    <div class="grid" style="gap:10px">${Object.entries(GRADING.services).map(([k, s]) => `<label class="check" style="justify-content:space-between"><span><input type="radio" name="svc" value="${k}" ${k === service ? 'checked' : ''}> ${s.fr}</span><span class="muted">${s.delayMs >= 3600e3 ? `${s.delayMs / 3600e3} h` : `${s.delayMs / 60e3} min`} · ${s.baseFee} <i class="mu" aria-label="Mu">무</i>/carte</span></label>`).join('')}</div>
     <p style="margin-top:14px">Total : <b data-fee>…</b></p>
     <div class="row end"><button class="btn primary" data-go>Envoyer</button></div>`);
   const quote = async () => { try { const q = await post('/grading/quote', { ids, service }); m.el.querySelector('[data-fee]').innerHTML = cr(q.fee); } catch (e) { m.el.querySelector('[data-fee]').textContent = e.message; } };

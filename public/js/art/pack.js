@@ -1,26 +1,11 @@
-// Illustrations des boosters (SVG 400 × 620) : emballage alu, fond illustré (motif du booster ou œuvre de la
-// collection), arme vedette peinte avec un skin du contenu, logo 무 Mugigo.
+// Illustrations des boosters (SVG 400 × 620) : emballage thermo-soudé aux couleurs du booster, fond illustré
+// (motif du booster ou œuvre de la collection) et grand symbole coréen lumineux propre à chaque booster.
 import { SKINS, MODEL_BY_KEY, COLLECTION_BY_KEY } from '/shared/catalog.js';
-import { packFilter } from '/shared/packs.js';
 import { BRAND } from '/shared/config.js';
-import { WEAPON_BOX } from './weapons.js';
-import { weaponSVG } from './card.js';
 import { skinTexture } from './skins.js';
 import { esc } from '../ui.js';
 
 let n = 0;
-const showcase = new Map();
-function heroSkin(pack) {
-  if (!showcase.has(pack.key)) {
-    const ok = packFilter(pack.filter);
-    let pool = SKINS.filter((s) => ok(s) && (!pack.hero || s.m === pack.hero));
-    if (!pool.length) pool = SKINS.filter(ok);
-    const best = [...pool].sort((a, b) => (b.st === 'art') - (a.st === 'art') || b.r - a.r || a.id.localeCompare(b.id))[0];
-    showcase.set(pack.key, best);
-  }
-  return showcase.get(pack.key);
-}
-
 function motif(key, id, t2) {
   switch (key) {
     case 'standard':
@@ -45,55 +30,48 @@ function motif(key, id, t2) {
 export function packSVG(pack) {
   const id = `pk${++n}`;
   const [t1, t2] = pack.theme;
-  const crimp = (y, flip) => { let d = `M0 ${y}`; for (let x = 0; x <= 400; x += 10) d += ` L${x} ${y + (x % 20 ? (flip ? -8 : 8) : 0)}`; return d; };
+  // bords thermo-soudés : ondulation douce (plus de dents de scie)
+  const wave = (y, amp) => { let d = `M0 ${y}`; for (let x = 0; x < 400; x += 20) d += ` Q${x + 10} ${y + amp} ${x + 20} ${y}`; return d; };
+  const waveBack = (y, amp) => { let d = ''; for (let x = 400; x > 0; x -= 20) d += ` Q${x - 10} ${y + amp} ${x - 20} ${y}`; return d; };
   let bg = motif(pack.key, id, t2);
   if (pack.group === 'collection') {
-    // l'œuvre de la collection sert de fond
     const art = skinTexture({ ...SKINS.find((s) => s.col === pack.collection), st: 'art', art: COLLECTION_BY_KEY[pack.collection].arts[0], r: 4 }, 7, `${id}a`);
-    bg = `<defs>${art.defs}</defs><g transform="translate(-661 0) scale(1.722)">${art.body}</g><rect width="400" height="620" fill="#000" opacity=".35"/>`;
+    bg = `<defs>${art.defs}</defs><g transform="translate(-661 0) scale(1.722)" opacity=".55">${art.body}</g><rect width="400" height="620" fill="#000" opacity=".35"/>`;
   }
-  let hero = '';
-  if (!pack.free) {
-    const s = heroSkin(pack);
-    const b = WEAPON_BOX[s.m];
-    const knife = MODEL_BY_KEY[s.m].cls === 'knife';
-    const k = (knife ? 400 : 360) / b.w;
-    hero = `<g transform="translate(200 300) rotate(${knife ? -32 : -24}) scale(${k.toFixed(4)}) translate(${-(b.x + b.w / 2)} ${-(b.y + b.h / 2)})" filter="url(#${id}sh)">${weaponSVG(s, null, { lite: true })}</g>`;
-  } else {
-    hero = `<g transform="translate(200 300)">
-      <path d="M-110 -40 L0 -90 L110 -40 L110 80 L0 130 L-110 80 Z" fill="#1b1d24" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M-110 -40 L0 10 L110 -40 M0 10 V130" fill="none" stroke="#fff" stroke-width="4"/>
-      <path d="M-55 -65 L55 -15 M-20 -80 L90 -30" stroke="${t2}" stroke-width="16" stroke-opacity=".8"/>
-      <text y="80" text-anchor="middle" font-size="70" fill="#fff" fill-opacity=".9" font-family="Jua, sans-serif">${BRAND.glyph}</text></g>`;
-  }
+  const sym = pack.sym || BRAND.glyph;
   const name = pack.fr.toUpperCase();
   return `<svg viewBox="0 0 400 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(pack.fr)}">
     <defs>
-      <linearGradient id="${id}bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t1}"/><stop offset=".55" stop-color="color-mix(in srgb, ${t1} 40%, #0b0c12)"/><stop offset="1" stop-color="#0b0c12"/></linearGradient>
-      <linearGradient id="${id}fo" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9aa0aa"/><stop offset=".3" stop-color="#f4f6fa"/><stop offset=".6" stop-color="#b9bec8"/><stop offset="1" stop-color="#eef0f4"/></linearGradient>
-      <radialGradient id="${id}glow" cx=".5" cy=".48" r=".5"><stop offset="0" stop-color="${t2}" stop-opacity=".65"/><stop offset="1" stop-color="${t2}" stop-opacity="0"/></radialGradient>
-      <filter id="${id}sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#000" flood-opacity=".7"/></filter>
-      <clipPath id="${id}c"><path d="${crimp(14, false)} L400 606 L0 606 Z"/></clipPath>
+      <linearGradient id="${id}bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t1}"/><stop offset=".5" stop-color="color-mix(in srgb, ${t1} 40%, #0b0c12)"/><stop offset="1" stop-color="#0b0c12"/></linearGradient>
+      <linearGradient id="${id}seal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="color-mix(in srgb, ${t1} 70%, #000)"/><stop offset=".35" stop-color="${t2}"/><stop offset=".6" stop-color="${t1}"/><stop offset="1" stop-color="color-mix(in srgb, ${t2} 70%, #000)"/></linearGradient>
+      <pattern id="${id}rib" patternUnits="userSpaceOnUse" width="400" height="5"><rect width="400" height="2" fill="#fff" opacity=".18"/></pattern>
+      <radialGradient id="${id}glow" cx=".5" cy=".46" r=".5"><stop offset="0" stop-color="${t2}" stop-opacity=".55"/><stop offset="1" stop-color="${t2}" stop-opacity="0"/></radialGradient>
+      <linearGradient id="${id}sy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="${t2}" stop-opacity=".05"/></linearGradient>
+      <filter id="${id}ng" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <clipPath id="${id}c"><rect width="400" height="620" rx="14"/></clipPath>
     </defs>
     <g clip-path="url(#${id}c)">
       <rect width="400" height="620" fill="url(#${id}bg)"/>
       ${bg}
-      <circle cx="200" cy="300" r="190" fill="url(#${id}glow)"/>
-      ${hero}
-      <rect y="462" width="400" height="160" fill="#000" fill-opacity=".55"/>
-      <rect y="462" width="400" height="3" fill="${t2}" opacity=".8"/>
-      <text x="200" y="514" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="${name.length > 15 ? 30 : name.length > 11 ? 36 : 42}" fill="#fff">${esc(name)}</text>
-      ${pack.ko ? `<text x="200" y="540" text-anchor="middle" font-family="Jua, sans-serif" font-size="18" fill="${t2}" letter-spacing="6">${esc(pack.ko)}</text>` : ''}
-      <text x="200" y="${pack.ko ? 564 : 546}" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="700" font-size="15" fill="#fff" fill-opacity=".75">${esc(pack.tag)}</text>
-      <text x="200" y="590" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="14" fill="${t2}" letter-spacing="4">${pack.cards} CARTES</text>
-      <rect x="0" y="0" width="12" height="620" fill="#fff" fill-opacity=".08"/><rect x="388" y="0" width="12" height="620" fill="#000" fill-opacity=".2"/>
+      <circle cx="200" cy="270" r="200" fill="url(#${id}glow)"/>
+      <text x="200" y="352" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="230" fill="url(#${id}sy)" stroke="${t2}" stroke-width="4" filter="url(#${id}ng)">${esc(sym)}</text>
+      <text x="200" y="352" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="230" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="1.4">${esc(sym)}</text>
+      <rect y="452" width="400" height="168" fill="#000" fill-opacity=".5"/>
+      <rect y="452" width="400" height="2" fill="${t2}" opacity=".9"/>
+      <text x="200" y="504" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="${name.length > 15 ? 30 : name.length > 11 ? 36 : 42}" fill="#fff">${esc(name)}</text>
+      ${pack.ko ? `<text x="200" y="532" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="700" font-size="19" fill="${t2}" letter-spacing="3">${esc(pack.ko)}</text>` : ''}
+      <text x="200" y="${pack.ko ? 556 : 538}" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="700" font-size="15" fill="#fff" fill-opacity=".75">${esc(pack.tag)}</text>
+      <text x="200" y="${pack.ko ? 578 : 562}" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="14" fill="${t2}" letter-spacing="4">${pack.cards} CARTES</text>
+      <rect x="0" y="0" width="10" height="620" fill="#fff" fill-opacity=".08"/><rect x="390" y="0" width="10" height="620" fill="#000" fill-opacity=".2"/>
     </g>
     <g class="pack-top">
-      <path d="${crimp(0, false)} L400 0 L400 74 L0 74 Z" fill="url(#${id}fo)"/>
-      <path d="M0 64 H400" stroke="#000" stroke-opacity=".25" stroke-dasharray="6 6" stroke-width="2"/>
-      <circle cx="134" cy="38" r="17" fill="#14151b"/><text x="134" y="47" text-anchor="middle" font-family="Jua, sans-serif" font-size="24" fill="${t1}">${BRAND.glyph}</text>
-      <text x="160" y="47" font-family="Baloo 2, sans-serif" font-weight="800" font-size="24" letter-spacing="6" fill="#14151b">${BRAND.name.toUpperCase()}</text>
+      <path d="M14 0 H386 Q400 0 400 14 V66 ${waveBack(66, 7)} V14 Q0 0 14 0 Z" fill="url(#${id}seal)"/>
+      <path d="M0 6 H400 V62 H0 Z" fill="url(#${id}rib)"/>
+      <path d="${wave(66, 6)}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="2"/>
+      <circle cx="132" cy="34" r="17" fill="#0b0c12" fill-opacity=".85"/><text x="132" y="41" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="19" fill="${t2}">${BRAND.glyph}</text>
+      <text x="158" y="42" font-family="Baloo 2, sans-serif" font-weight="800" font-size="23" letter-spacing="6" fill="#0b0c12" fill-opacity=".85">${BRAND.name.toUpperCase()}</text>
     </g>
-    <path d="${crimp(606, true)} L400 620 L0 620 Z" fill="url(#${id}fo)"/>
+    <path d="${wave(594, -7)} V606 Q400 620 386 620 H14 Q0 620 0 606 Z" fill="url(#${id}seal)"/>
+    <path d="M0 598 H400 V616 H0 Z" fill="url(#${id}rib)"/>
   </svg>`;
 }

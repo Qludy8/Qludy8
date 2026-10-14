@@ -1,7 +1,7 @@
 # Mugigo (무기고) — cartes d’armes à collectionner
 
 Jeu web de cartes à collectionner (dans l’esprit de kyara.games) dont les cartes sont des **armes imaginaires** :
-**31 boosters illustrés** (généraux, par collection, par arme), **4 500 skins** procéduraux sur 15 armes inventées (dont 5 formes de couteaux), usure par **float** (0 → 1, paliers IM / PM / EP / US / RV), **graines de motif** avec graines rares, **centrage** des cartes,
+**36 boosters** (dont des boosters de 7 et 10 cartes, par collection, par arme), chacun avec son symbole coréen, **5 100 skins** procéduraux sur 17 armes inventées aux silhouettes réalistes (dont 7 formes de couteaux), monnaie **Mu (무)**, quêtes quotidiennes / hebdomadaires / exploits, usure par **float** (0 → 1, paliers IM / PM / EP / US / RV), **graines de motif** avec graines rares, **centrage** des cartes,
 **cartes erreur** ultra-rares, **gradation** façon PSA, marché entre joueurs, **amis & échanges**, collection complète,
 classements, missions et vérification de compte par **Discord**.
 
@@ -46,7 +46,7 @@ vérification simulée pour tester en local.
 | Centrage | Bordures gauche/droite et haut/bas réellement décalées sur la carte (ex. 58/42) → ×0,85 à ×1,12 sur la valeur |
 | Carte erreur | 1/2 000 : deux cartes à moitié sur la même feuille, ×40 |
 | Gradation | Économique / Standard / Express ; 4 sous-notes (centrage, coins, bords, surface), note 1–10, slab avec certificat, bonus de faible population, slab cassable |
-| Boosters | 6 boosters payants + colis gratuit toutes les 10 min, taux publics, garanties Ultra rare+ (15) et Légendaire+ (90), ×1/×5/×10 |
+| Boosters | 35 boosters payants + colis gratuit toutes les 10 min (réserve de 10), taux publics, garanties Ultra rare+ (15), Légendaire+ (90) et Transcendant (150 boosters premium) |
 | Ouverture | Déchirure (clic ou glisser), cartes empilées, suspense lumineux avant le retournement des cartes rares, rayons, onde de choc, particules, tremblement, sons |
 | Social | Amis (demandes), échanges cartes + crédits (atomiques, invalidés si une carte bouge), profils publics avec vitrine |
 | Économie | Marché (frais 5 %), vente au système (55 %), contrats 10 → 1, connexion quotidienne, missions, niveaux |

@@ -2,7 +2,7 @@
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-export const cr = (n) => `${Math.round(n).toLocaleString('fr-FR')} <span class="cur">¢</span>`;
+export const cr = (n) => `${Math.round(n).toLocaleString('fr-FR')} <i class="mu" aria-label="Mu">무</i>`;
 export const ago = (t) => {
   const s = Math.max(1, Math.round((Date.now() - t) / 1000));
   if (s < 60) return `il y a ${s} s`;

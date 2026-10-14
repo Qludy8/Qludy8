@@ -42,12 +42,12 @@ export async function tradesPage({ view, stale }) {
   const list = await api('/trades');
   if (stale()) return;
   const me = store.me;
-  view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>Échanges</h1><p class="muted">Proposez des cartes et des crédits à vos amis. L’échange est exécuté instantanément et atomiquement quand il est accepté.</p></div><a class="btn primary" href="#/friends">Nouvel échange</a></div>
+  view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>Échanges</h1><p class="muted">Proposez des cartes et des Mu à vos amis. L’échange est exécuté instantanément et atomiquement quand il est accepté.</p></div><a class="btn primary" href="#/friends">Nouvel échange</a></div>
     <div class="panel" style="overflow:auto">${list.length ? `<table class="t"><thead><tr><th>#</th><th>Avec</th><th>Vous donnez</th><th>Vous recevez</th><th>Statut</th><th></th></tr></thead><tbody>
       ${list.map((t) => {
     const out = t.from_id === me.id;
-    const give = out ? `${t.n_give} carte(s)${t.credits_from ? ` + ${t.credits_from} ¢` : ''}` : `${t.n_take} carte(s)${t.credits_to ? ` + ${t.credits_to} ¢` : ''}`;
-    const get = out ? `${t.n_take} carte(s)${t.credits_to ? ` + ${t.credits_to} ¢` : ''}` : `${t.n_give} carte(s)${t.credits_from ? ` + ${t.credits_from} ¢` : ''}`;
+    const give = out ? `${t.n_give} carte(s)${t.credits_from ? ` + ${t.credits_from} <i class="mu" aria-label="Mu">무</i>` : ''}` : `${t.n_take} carte(s)${t.credits_to ? ` + ${t.credits_to} <i class="mu" aria-label="Mu">무</i>` : ''}`;
+    const get = out ? `${t.n_take} carte(s)${t.credits_to ? ` + ${t.credits_to} <i class="mu" aria-label="Mu">무</i>` : ''}` : `${t.n_give} carte(s)${t.credits_from ? ` + ${t.credits_from} <i class="mu" aria-label="Mu">무</i>` : ''}`;
     const [lab, col] = STATUS_FR[t.status];
     return `<tr><td class="muted">${t.id}</td><td><b>${esc(out ? t.to_name : t.from_name)}</b> <span class="muted small">${out ? '(envoyé)' : '(reçu)'}</span></td><td>${give}</td><td>${get}</td>
           <td><span class="pill" style="color:${col}">${lab}</span></td><td><a class="btn sm" href="#/trades/${t.id}">Ouvrir</a></td></tr>`;
@@ -87,9 +87,9 @@ export async function newTradePage({ view, params, stale }) {
   view.innerHTML = `<h1>Proposer un échange à ${esc(username)}</h1>
     <div class="trade-cols">
       <div class="panel"><div class="row between"><h3 style="margin:0">Vous donnez</h3><button class="btn sm" data-pick="give">Choisir</button></div>
-        <div class="cards" data-side="give" style="margin:12px 0"></div><label class="field">Crédits offerts<input class="input" type="number" min="0" value="0" data-cfrom></label></div>
+        <div class="cards" data-side="give" style="margin:12px 0"></div><label class="field">Mu offerts<input class="input" type="number" min="0" value="0" data-cfrom></label></div>
       <div class="panel"><div class="row between"><h3 style="margin:0">Vous demandez</h3><button class="btn sm" data-pick="take">Choisir</button></div>
-        <div class="cards" data-side="take" style="margin:12px 0"></div><label class="field">Crédits demandés<input class="input" type="number" min="0" value="0" data-cto></label></div>
+        <div class="cards" data-side="take" style="margin:12px 0"></div><label class="field">Mu demandés<input class="input" type="number" min="0" value="0" data-cto></label></div>
     </div>
     <div class="panel" style="margin-top:18px"><label class="field">Message (facultatif)<input class="input" maxlength="200" data-msg></label>
       <div class="row between" style="margin-top:14px"><span class="muted small" data-sum></span><button class="btn primary xl" data-send>Envoyer la proposition</button></div></div>`;

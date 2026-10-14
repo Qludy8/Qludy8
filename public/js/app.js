@@ -1,5 +1,5 @@
 // Mugigo – application monopage : en-tête, routeur, pages Accueil (+ boosters) / Connexion / Récompenses / Paramètres / Aide / Boutique.
-import { BRAND, SHOP, COLLECTIONS, RARITIES, WEAR, ECONOMY, PITY, GRADING, CENTERING, MISPRINT, MODIFIERS, LEGAL, DISCORD, TRADE_UP, CURRENCY } from '/shared/config.js';
+import { BRAND, SHOP, COLLECTIONS, QUEST_DIFF, RARITIES, WEAR, ECONOMY, PITY, GRADING, CENTERING, MISPRINT, MODIFIERS, LEGAL, DISCORD, TRADE_UP, CURRENCY } from '/shared/config.js';
 import { SKINS, SKIN_BY_ID, MODELS } from '/shared/catalog.js';
 import { PACKS, packFilter } from '/shared/packs.js';
 import { patternsPage } from './pages/patterns.js';
@@ -39,13 +39,13 @@ function header(me) {
     right.innerHTML = `
       <a class="icon-btn" href="#/rewards" title="Récompenses">🎁<span class="dot" data-daily hidden>!</span></a>
       <button class="icon-btn" data-notif title="Notifications">🔔<span class="dot" data-unread hidden></span></button>
-      <a class="balance" href="#/rewards" title="Solde"><span data-bal>0</span><span class="cur">${CURRENCY.symbol}</span></a>
+      <a class="balance" href="#/rewards" title="Solde"><span data-bal>0</span><i class="mu" aria-label="Mu">${CURRENCY.symbol}</i></a>
       <button class="user-chip" data-menu>${avatar(me, 30)}<span class="name">${esc(me.username)}</span></button>`;
     right.querySelector('[data-notif]').onclick = showNotifications;
     right.querySelector('[data-menu]').onclick = userMenu;
   }
   animateNumber(right.querySelector('[data-bal]'), me.balance);
-  right.querySelector('[data-daily]').hidden = !me.daily.available;
+  const dd = right.querySelector('[data-daily]'); dd.hidden = !(me.daily.available || me.questsReady); dd.textContent = me.questsReady || '!';
   const un = right.querySelector('[data-unread]');
   un.hidden = !(me.unread + me.gradingReady); un.textContent = me.unread + me.gradingReady;
 }
@@ -88,7 +88,7 @@ function ratesBar(p) {
   return `<div class="pack-rates">${p.rates.map((r, i) => (r ? `<i style="width:${Math.max(r, 0.6)}%;background:${RARITIES[i].color}" title="${RARITIES[i].fr} ${r}%"></i>` : '')).join('')}</div>`;
 }
 function packTile(p, me, i = 0) {
-  let price = `<span class="price">${p.price.toLocaleString('fr-FR')} <span class="cur">¢</span></span>`;
+  let price = `<span class="price">${p.price.toLocaleString('fr-FR')} <i class="mu" aria-label="Mu">무</i></span>`;
   if (p.free) price = `<span class="price free-timer" data-free-label>${me ? `${me.free.stock}/${me.free.max} disponibles` : 'Gratuit'}</span>`;
   else if (p.key === 'standard' && me?.welcomePacks) price += ` <span class="pill tag-new">${me.welcomePacks} offert${me.welcomePacks > 1 ? 's' : ''}</span>`;
   return `<div class="pack-tile tile" style="--t1:${p.theme[0]};--t2:${p.theme[1]};--i:${i}" data-pack="${p.key}">
@@ -98,13 +98,24 @@ function packTile(p, me, i = 0) {
     <div class="row between">${price}<button class="btn sm primary" data-open="${p.key}">Ouvrir</button></div>
   </div>`;
 }
-// position logarithmique (0,01 % → 0, 100 % → 100) pour que les petits taux restent visibles
-const logPos = (r) => Math.max(2, Math.min(100, ((Math.log10(Math.max(r, 0.01)) + 2) / 4) * 100));
+// Arrondi à 2 décimales dont la somme fait exactement 100 (méthode du plus fort reste)
+function pct100(rates) {
+  const raw = rates.map((r) => r * 100), fl = raw.map(Math.floor);
+  let left = 10000 - fl.reduce((a, b) => a + b, 0);
+  raw.map((x, i) => [x - fl[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0 && rates[i] > 0) { fl[i]++; left--; } });
+  return fl.map((x) => x / 100);
+}
+// Curseurs proportionnels : chaque remplissage = son pourcentage ; mis bout à bout ils forment exactement une barre
 function rateSliders(p) {
-  return `<div class="rate-list">${p.rates.map((r, i) => (r ? `<div class="rate-row" style="--rc:${RARITIES[i].color};--rg:${RARITIES[i].glow}">
+  const shown = pct100(p.rates);
+  let acc = 0;
+  const stacked = p.rates.map((r, i) => { const seg = r ? `<i style="left:${acc}%;width:${r}%;background:${RARITIES[i].color};--rg:${RARITIES[i].glow}" title="${RARITIES[i].fr} ${shown[i]} %"></i>` : ''; acc += r; return seg; }).join('');
+  return `<div class="rate-stack">${stacked}</div>
+    <div class="rate-list">${p.rates.map((r, i) => (r ? `<div class="rate-row" style="--rc:${RARITIES[i].color};--rg:${RARITIES[i].glow}">
       <span class="rate-name">${RARITIES[i].fr}</span>
-      <div class="slider-track"><i style="width:${logPos(r).toFixed(1)}%"></i><b style="left:${logPos(r).toFixed(1)}%"></b></div>
-      <span class="rate-val">${r < 0.1 ? r.toFixed(2) : r < 10 ? r.toFixed(1) : Math.round(r)} %</span></div>` : '')).join('')}</div>`;
+      <div class="slider-track"><i style="width:${r}%"></i><b style="left:${r}%"></b></div>
+      <span class="rate-val">${shown[i].toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %</span></div>` : '')).join('')}
+      <div class="rate-row rate-total"><span class="rate-name">Total</span><div></div><span class="rate-val">${shown.reduce((a, b) => a + b, 0).toFixed(2).replace('.', ',')} %</span></div></div>`;
 }
 function bindPacks(root) {
   root.addEventListener('click', (e) => {
@@ -140,11 +151,12 @@ function packModal(key) {
         <label class="slider-field"><span>Si j’ouvre <b data-sim-n class="glow-text" style="--gc:#ffb020">10</b> boosters…</span>
           <input type="range" class="range" min="1" max="100" value="10" data-sim style="--fill:9%"></label>
         <div class="sim-grid" data-sim-out></div>
-        <p class="muted small">Garanties : <b style="color:${RARITIES[3].color}">Ultra rare+</b> au plus tard tous les ${PITY.ultraAfter} boosters payants, <b style="color:${RARITIES[4].color}">Légendaire+</b> tous les ${PITY.legendaryAfter}.
-          ${me ? `<br>Votre compteur : ${me.pity.ultra}/${PITY.ultraAfter} · ${me.pity.legend}/${PITY.legendaryAfter}` : ''}</p>`}
+        <div class="pity-box">${[[3, me?.pity.ultra, PITY.ultraAfter, 'Ultra rare+'], [4, me?.pity.legend, PITY.legendaryAfter, 'Légendaire+'], ...(p.rates[6] >= PITY.transcendentMinRate ? [[6, me?.pity.trans, PITY.transcendentAfter, 'Transcendant']] : [])].map(([r, cur, max, lab]) => `
+          <div class="pity-row" style="--rc:${RARITIES[r].color};--rg:${RARITIES[r].glow}"><span>${lab} garanti</span><div class="slider-track"><i style="width:${me ? Math.min(100, (cur / max) * 100) : 0}%"></i></div><b>${me ? cur : 0}/${max}</b></div>`).join('')}
+          <p class="muted small" style="margin:6px 0 0">Compteurs de boosters payants consécutifs sans cette rareté (le compteur Transcendant ne progresse qu’avec les boosters premium : taux Transcendant ≥ ${String(PITY.transcendentMinRate).replace('.', ',')} % par carte).</p></div>`}
         <div class="row" style="margin-top:16px">
           ${p.free ? `<button class="btn primary" data-n="1">Ouvrir 1</button>${me?.free.stock > 1 ? `<button class="btn" data-n="${me.free.stock}">Tout ouvrir (${me.free.stock})</button>` : ''}`
-    : [1, 5, 10].map((n) => `<button class="btn ${n === 1 ? 'primary' : ''}" data-n="${n}">×${n} · ${(n * p.price).toLocaleString('fr-FR')} ¢</button>`).join('')}
+    : [1, 5, 10].map((n) => `<button class="btn ${n === 1 ? 'primary' : ''}" data-n="${n}">×${n} · ${(n * p.price).toLocaleString('fr-FR')} <i class="mu" aria-label="Mu">무</i></button>`).join('')}
         </div>
       </div></div>`, { wide: true });
   const sim = m.el.querySelector('[data-sim]');
@@ -187,8 +199,8 @@ async function home({ token }) {
         <p>Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les cartes les mieux centrées et les
           <b style="color:#ff5a8a">cartes erreur</b> (1 sur ${Math.round(1 / MISPRINT.chance).toLocaleString('fr-FR')}). Échangez avec vos amis et dominez le classement.</p>
         <div class="row" style="margin-top:18px">
-          ${me ? `<button class="btn primary xl" data-quick-free>Ouvrir un colis gratuit (${me.free.stock})</button>${me.daily.available ? `<button class="btn xl" data-daily>🎁 Récompense du jour +${me.daily.reward} ¢</button>` : ''}`
-    : `<a class="btn primary xl" href="#/register">Commencer – ${ECONOMY.startBalance} ¢ + ${ECONOMY.welcomePacks} boosters offerts</a><a class="btn xl" href="#/collection">Voir la collection</a>`}
+          ${me ? `<button class="btn primary xl" data-quick-free>Ouvrir un colis gratuit (${me.free.stock})</button>${me.daily.available ? `<button class="btn xl" data-daily>🎁 Récompense du jour +${me.daily.reward} <i class="mu" aria-label="Mu">무</i></button>` : ''}`
+    : `<a class="btn primary xl" href="#/register">Commencer – ${ECONOMY.startBalance} <i class="mu" aria-label="Mu">무</i> + ${ECONOMY.welcomePacks} boosters offerts</a><a class="btn xl" href="#/collection">Voir la collection</a>`}
         </div>
         <div class="stats"><div><b style="color:#5ff3ff">${stats.players.toLocaleString('fr-FR')}</b>joueurs</div><div><b style="color:#b266ff">${stats.cards.toLocaleString('fr-FR')}</b>cartes en circulation</div><div><b style="color:#4ade80">${stats.listings.toLocaleString('fr-FR')}</b>annonces au marché</div></div>
       </div>
@@ -240,8 +252,8 @@ function authPage(mode) {
          <label class="field">E-mail (facultatif)<input class="input" name="email" type="email" autocomplete="email"></label>`
     : '<label class="field">Pseudo ou e-mail<input class="input" name="login" required autocomplete="username"></label>'}
       <label class="field">Mot de passe<input class="input" name="password" type="password" required minlength="${mode === 'register' ? 8 : 1}" autocomplete="${mode === 'register' ? 'new-password' : 'current-password'}"></label>
-      <button class="btn primary xl">${mode === 'register' ? `Créer mon compte · ${ECONOMY.startBalance} ¢ offerts` : 'Se connecter'}</button>
-      ${mode === 'register' ? `<p class="muted small">Vous recevez ${ECONOMY.startBalance} ¢, ${ECONOMY.welcomePacks} Caisses Standard et 2 colis gratuits. Liez Discord ensuite pour débloquer le marché et les échanges (+${DISCORD.verifyBonus} ¢).</p>` : ''}
+      <button class="btn primary xl">${mode === 'register' ? `Créer mon compte · ${ECONOMY.startBalance} <i class="mu" aria-label="Mu">무</i> offerts` : 'Se connecter'}</button>
+      ${mode === 'register' ? `<p class="muted small">Vous recevez ${ECONOMY.startBalance} <i class="mu" aria-label="Mu">무</i>, ${ECONOMY.welcomePacks} Caisses Standard et 2 colis gratuits. Liez Discord ensuite pour débloquer le marché et les échanges (+${DISCORD.verifyBonus} <i class="mu" aria-label="Mu">무</i>).</p>` : ''}
     </form></div>`;
   $$('[data-m]', view).forEach((b) => { b.onclick = () => { location.hash = `#/${b.dataset.m}`; }; });
   $('form', view).onsubmit = async (e) => {
@@ -270,15 +282,21 @@ async function rewardsPage({ token }) {
     return `<div class="${done && !nxt ? 'done' : ''} ${nxt ? 'next' : ''}">J${i + 1}<b>${v}</b></div>`;
   }).join('')}</div>
         <div class="row between" style="margin-top:16px"><span class="muted small">La série repart à zéro si vous manquez un jour.</span>
-          <button class="btn primary" data-daily ${d.available ? '' : 'disabled'}>${d.available ? `Réclamer +${d.reward} ¢` : 'Revenez demain'}</button></div>
+          <button class="btn primary" data-daily ${d.available ? '' : 'disabled'}>${d.available ? `Réclamer +${d.reward} <i class="mu" aria-label="Mu">무</i>` : 'Revenez demain'}</button></div>
       </div>
-      <div class="panel"><h2>Missions du jour</h2><div class="grid" style="gap:10px">
-        ${missions.map((m) => `<div class="mission"><div class="row between"><b>${esc(m.fr)}</b><span class="cur">+${m.reward} ¢</span></div>
-          <div class="bar"><i style="width:${(m.progress / m.target) * 100}%"></i></div>
-          <div class="row between small"><span class="muted">${m.progress}/${m.target}</span>
-          ${m.claimed ? '<span class="pos">✓ Réclamée</span>' : `<button class="btn sm ${m.progress >= m.target ? 'primary' : ''}" data-claim="${m.key}" ${m.progress >= m.target ? '' : 'disabled'}>Réclamer</button>`}</div></div>`).join('')}
-      </div></div>
+      <div class="panel"><h2>Comment gagner des Mu ?</h2><ul class="muted" style="line-height:1.9;padding-left:18px;margin:0">
+        <li>Colis gratuit toutes les ${ECONOMY.free.intervalMs / 60e3} min (réserve de ${ECONOMY.free.maxStock})</li>
+        <li>Connexion quotidienne et quêtes ci-dessous (certaines offrent des Caisses Mugigo)</li>
+        <li>Vente au marché, vente au système, contrats et cartes rares</li></ul></div>
     </div>
+    ${[['daily', 'Quêtes du jour', 'Réinitialisées chaque jour'], ['weekly', 'Quêtes de la semaine', 'Réinitialisées chaque lundi'], ['long', 'Exploits', 'Une seule fois, pour les plus acharnés']].map(([g, title, sub]) => `
+    <div class="section-title"><div><h2>${title}</h2><div class="muted small">${sub}</div></div></div>
+    <div class="quest-grid">${missions[g].map((m) => { const D = QUEST_DIFF[m.diff]; const done = m.progress >= m.target; return `<div class="mission ${done && !m.claimed ? 'ready' : ''} ${m.claimed ? 'claimed' : ''}" style="--qc:${D.color}">
+      <div class="row between"><span class="pill r" style="--rc:${D.color}">${D.fr}</span><span class="reward">+${m.reward.toLocaleString('fr-FR')} <i class="mu" aria-label="Mu">무</i>${m.packs ? ` · ${m.packs} caisse${m.packs > 1 ? 's' : ''}` : ''}</span></div>
+      <b>${esc(m.fr)}</b>
+      <div class="bar"><i style="width:${(m.progress / m.target) * 100}%;background:${D.color}"></i></div>
+      <div class="row between small"><span class="muted">${m.progress.toLocaleString('fr-FR')} / ${m.target.toLocaleString('fr-FR')}</span>
+      ${m.claimed ? '<span class="pos">✓ Réclamée</span>' : `<button class="btn sm ${done ? 'primary' : ''}" data-claim="${m.key}" ${done ? '' : 'disabled'}>Réclamer</button>`}</div></div>`; }).join('')}</div>`).join('')}
     <div class="section-title"><h2>Historique des transactions</h2></div>
     <div class="panel" style="overflow:auto"><table class="t"><thead><tr><th>Date</th><th>Type</th><th>Détail</th><th style="text-align:right">Montant</th><th style="text-align:right">Solde</th></tr></thead>
       <tbody>${txs.map((t) => `<tr><td class="muted small">${new Date(t.at).toLocaleString('fr-FR')}</td><td>${esc(t.type)}</td><td class="muted">${esc(t.note || '')}</td>
@@ -286,7 +304,7 @@ async function rewardsPage({ token }) {
   $('[data-daily]', view).onclick = claimDaily;
   view.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-claim]'); if (!b) return;
-    try { await post(`/missions/${b.dataset.claim}/claim`); sound.play('coin'); toast('Mission réclamée !', 'good'); await store.refresh(); route(); } catch (err) { toast(esc(err.message), 'error'); }
+    try { await post(`/missions/${b.dataset.claim}/claim`); sound.play('coin'); toast('Quête réclamée !', 'good'); await store.refresh(); route(); } catch (err) { toast(esc(err.message), 'error'); }
   });
 }
 
@@ -299,8 +317,8 @@ function settingsPage({ query }) {
     <div class="panel"><h2>Vérification Discord</h2>
       <p class="muted">Lier un compte Discord (âgé d’au moins ${DISCORD.minAccountAgeDays} jours) prouve que vous êtes une vraie personne : cela protège le marché et les échanges contre les multi-comptes. Un compte Discord ne peut être lié qu’à un seul joueur.</p>
       ${dc.verified ? `<div class="pill" style="color:#8b9cff">✔ Vérifié : ${esc(dc.name || '')}</div>`
-    : dc.mode === 'oauth' ? `<a class="btn discord xl" href="/api/discord/start">Vérifier avec Discord · +${DISCORD.verifyBonus} ¢</a>`
-      : dc.mode === 'mock' ? `<button class="btn discord xl" data-mock>Vérification simulée (mode dev) · +${DISCORD.verifyBonus} ¢</button>`
+    : dc.mode === 'oauth' ? `<a class="btn discord xl" href="/api/discord/start">Vérifier avec Discord · +${DISCORD.verifyBonus} <i class="mu" aria-label="Mu">무</i></a>`
+      : dc.mode === 'mock' ? `<button class="btn discord xl" data-mock>Vérification simulée (mode dev) · +${DISCORD.verifyBonus} <i class="mu" aria-label="Mu">무</i></button>`
         : '<div class="pill">Discord n’est pas configuré sur ce serveur : les fonctions sociales sont ouvertes à tous.</div>'}
       <p class="muted small" style="margin-top:14px">Nécessaire pour : vendre sur le marché, envoyer des demandes d’ami et faire des échanges.</p>
     </div>
@@ -328,7 +346,7 @@ function helpPage() {
   view.innerHTML = `<h1>Aide, règles & transparence</h1>
     <div class="grid cols-2">
       <div class="panel"><h2>Raretés</h2><table class="t"><thead><tr><th>Rareté</th><th>Valeur de base</th><th>Moyenne</th><th>Skins</th></tr></thead><tbody>
-        ${RARITIES.map((r, i) => `<tr><td style="color:${r.color};font-weight:700">${r.fr}</td><td>${r.base[0].toLocaleString('fr-FR')} – ${r.base[1].toLocaleString('fr-FR')} ¢</td><td>${avg(i).toLocaleString('fr-FR')} ¢</td><td>${SKINS.filter((s) => s.r === i).length}</td></tr>`).join('')}
+        ${RARITIES.map((r, i) => `<tr><td style="color:${r.color};font-weight:700">${r.fr}</td><td>${r.base[0].toLocaleString('fr-FR')} – ${r.base[1].toLocaleString('fr-FR')} <i class="mu" aria-label="Mu">무</i></td><td>${avg(i).toLocaleString('fr-FR')} <i class="mu" aria-label="Mu">무</i></td><td>${SKINS.filter((s) => s.r === i).length}</td></tr>`).join('')}
       </tbody></table><p class="muted small">${SKINS.length.toLocaleString('fr-FR')} skins répartis sur ${MODELS.length} modèles d’armes imaginaires.</p></div>
       <div class="panel"><h2>Usure (float)</h2><p class="muted">Chaque carte reçoit un float entre 0 et 1 (6 décimales), fixé à jamais. Plus il est bas, plus la carte est propre : la peinture de l’arme s’écaille et la carte se raye, se plie et se tache à mesure que le float monte.</p>
         <table class="t"><thead><tr><th>État</th><th>Float</th><th>Valeur</th><th>Probabilité</th></tr></thead><tbody>
@@ -340,13 +358,13 @@ function helpPage() {
         <b>Carte erreur</b> : 1 chance sur ${Math.round(1 / MISPRINT.chance).toLocaleString('fr-FR')} — deux cartes apparaissent à moitié sur la même feuille. Valeur ×${MISPRINT.valueMult}.</p></div>
       <div class="panel"><h2>Gradation</h2><p class="muted">Envoyez jusqu’à ${GRADING.maxPerOrder} cartes. Quatre sous-notes (centrage, coins, bords, surface) donnent une note finale de 1 à 10, plafonnée à la plus basse sous-note + 1 et par l’état d’usure.</p>
         <table class="t"><thead><tr><th>Note</th><th>Libellé</th><th>Valeur</th></tr></thead><tbody>${GRADING.valueMult.map(([g, m]) => `<tr><td>${g}+</td><td>${GRADING.labels.find(([x]) => g >= x)[1]}</td><td class="${m >= 1 ? 'pos' : 'neg'}">×${m}</td></tr>`).join('')}</tbody></table>
-        <p class="muted small">Services : ${Object.values(GRADING.services).map((s) => `${s.fr} ${s.baseFee} ¢`).join(' · ')} (+${GRADING.valueFeeRate * 100} % de la valeur, max ${GRADING.maxValueFee} ¢). Population faible = bonus : ${GRADING.popBonus.map(([p, m]) => `≤${p} → ×${m}`).join(', ')}.</p></div>
+        <p class="muted small">Services : ${Object.values(GRADING.services).map((s) => `${s.fr} ${s.baseFee} <i class="mu" aria-label="Mu">무</i>`).join(' · ')} (+${GRADING.valueFeeRate * 100} % de la valeur, max ${GRADING.maxValueFee} <i class="mu" aria-label="Mu">무</i>). Population faible = bonus : ${GRADING.popBonus.map(([p, m]) => `≤${p} → ×${m}`).join(', ')}.</p></div>
       <div class="panel"><h2>Économie</h2><ul class="muted" style="line-height:1.8;padding-left:18px">
-        <li>Départ : ${ECONOMY.startBalance} ¢ + ${ECONOMY.welcomePacks} Caisses Standard.</li>
+        <li>Départ : ${ECONOMY.startBalance} <i class="mu" aria-label="Mu">무</i> + ${ECONOMY.welcomePacks} Caisses Standard.</li>
         <li>Colis gratuit toutes les ${ECONOMY.free.intervalMs / 60e3} min (réserve max ${ECONOMY.free.maxStock}).</li>
-        <li>Connexion quotidienne : ${ECONOMY.dailyStreak.join(' → ')} ¢. Missions du jour et vérification Discord (+${DISCORD.verifyBonus} ¢).</li>
+        <li>Connexion quotidienne : ${ECONOMY.dailyStreak.join(' → ')} <i class="mu" aria-label="Mu">무</i>. Missions du jour et vérification Discord (+${DISCORD.verifyBonus} <i class="mu" aria-label="Mu">무</i>).</li>
         <li>Vente au système : ${ECONOMY.sellToSystemRate * 100} % de la valeur. Marché entre joueurs : frais ${ECONOMY.marketFee * 100} %.</li>
-        <li>Contrat : ${TRADE_UP.inputCount} cartes de même rareté → 1 carte de la rareté supérieure (${TRADE_UP.cost} ¢).</li>
+        <li>Contrat : ${TRADE_UP.inputCount} cartes de même rareté → 1 carte de la rareté supérieure (${TRADE_UP.cost} <i class="mu" aria-label="Mu">무</i>).</li>
         <li>La valeur moyenne d’un booster vaut environ 87 % de son prix (calcul automatique) : le jackpot existe, l’argent facile non.</li></ul></div>
       <div class="panel"><h2>Mentions</h2><p class="muted">${esc(LEGAL)}</p><p class="muted small">Les noms, modèles et visuels d’armes sont entièrement inventés et générés procéduralement.</p></div>
     </div>`;

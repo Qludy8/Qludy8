@@ -19,6 +19,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
   el.className = 'opening';
   el.style.setProperty('--glow', pack.theme[0]);
   el.innerHTML = `
+    <div class="bg-sym" aria-hidden="true">${esc(pack.sym || '무')}</div>
     <div class="rays"></div><canvas class="fx"></canvas>
     <div class="flash-screen"></div><div class="shockwave"></div><div class="rarity-burst"></div>
     <div class="controls">
@@ -69,7 +70,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     fl.style.background = `radial-gradient(circle at 50% 45%, ${bc}, transparent 70%)`;
     fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
     el.style.setProperty('--glow', bc);
-    setTimeout(() => el.style.setProperty('--glow', pack.theme[0]), 900);
+    setTimeout(() => el.style.setProperty('--glow', pack.theme[0]), 700);
     await sleep(450);
     packEl.classList.add('gone');
     stack.forEach((s, i) => {
@@ -80,6 +81,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
       }, 120 + (stack.length - i) * 40);
     });
     await sleep(500 + stack.length * 40);
+    stack[0]?.classList.add('top');
     hint.textContent = `Cliquez sur la carte · ${stack.length} restante${stack.length > 1 ? 's' : ''}`;
   }
 
@@ -102,7 +104,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
       $('.tray', el).append(mini);
       idx++;
       el.classList.remove('rays-on');
-      el.style.setProperty('--glow', pack.theme[0]);
+      stack[idx]?.classList.add('top');
       hint.textContent = idx < stack.length ? `Cliquez sur la carte · ${stack.length - idx} restante${stack.length - idx > 1 ? 's' : ''}` : '';
       await sleep(260);
       if (idx >= stack.length) summary();
@@ -124,6 +126,8 @@ export function openSequence(pack, result, { onAgain } = {}) {
       s.classList.remove('charging', 'lvl2', 'shake');
     }
     s.classList.add('flipped', 'revealed');
+    // la lueur de fond prend (et garde) la couleur de la dernière carte révélée
+    el.style.setProperty('--glow', c.mp ? '#ff2b6a' : R.glow);
     sound.play('flip', c.r);
     if (quick) return;
     const [x, y] = center();
@@ -182,7 +186,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
         <div class="row">
           ${lows.length ? `<button class="btn" data-sell-low>Vendre ${lows.length} commune${lows.length > 1 ? 's' : ''} · +${cr(lowGain)}</button>` : ''}
           <button class="btn ghost" data-close2>Tout garder</button>
-          ${onAgain ? `<button class="btn primary" data-again>Rouvrir ${pack.free ? '' : `· ${pack.price} ¢`}</button>` : ''}
+          ${onAgain ? `<button class="btn primary" data-again>Rouvrir ${pack.free ? '' : `· ${pack.price} <i class="mu" aria-label="Mu">무</i>`}</button>` : ''}
         </div>
       </div>
       <div class="summary-grid">${sorted.map((c, i) => `<div class="tile" style="--i:${i}">${cardOf(c)}

@@ -2,7 +2,7 @@
 // Jeu 100 % fictif : aucune monnaie réelle, aucun paiement.
 
 export const BRAND = { name: 'Mugigo', ko: '무기고', glyph: '무', tagline: 'L’arsenal à collectionner' };
-export const CURRENCY = { name: 'Crédits', symbol: '¢' };
+export const CURRENCY = { name: 'Mu', ko: '무', symbol: '무' };
 // Boutique (argent réel) : prévue plus tard. Tant que enabled = false, l'onglet est visible mais verrouillé.
 export const SHOP = { enabled: false };
 
@@ -37,16 +37,16 @@ export const PATTERN = { seeds: 1000, tiers: { 1: { fr: 'Graine légendaire', mu
 
 // ───── Collections (thèmes de skins)
 export const COLLECTIONS = [
-  { key: 'dragon',  fr: 'Dynastie du Dragon', theme: ['#e0b54a', '#c8102e'], arts: ['dragon', 'filigree'] },
-  { key: 'abysses', fr: 'Abysses',            theme: ['#0ea5e9', '#1e3a8a'], arts: ['koi', 'wave'] },
-  { key: 'neon',    fr: 'Nuit Néon',          theme: ['#ff2bd6', '#2bfff0'], arts: ['city', 'circuit'] },
-  { key: 'desert',  fr: 'Désert d’Ocre',      theme: ['#d6a35c', '#7a4a1e'], arts: ['scorpion', 'dunes'] },
-  { key: 'forge',   fr: 'Forge Ancienne',     theme: ['#ff8a3d', '#4a4f5a'], arts: ['runes', 'filigree'] },
-  { key: 'sakura',  fr: 'Jardin Sakura',      theme: ['#ff9ec7', '#5b2a3a'], arts: ['sakura', 'crane'] },
-  { key: 'cosmos',  fr: 'Cosmos',             theme: ['#8b5cf6', '#0b1030'], arts: ['galaxy', 'planet'] },
-  { key: 'arctique', fr: 'Arctique',          theme: ['#bfe9ff', '#2b4a6b'], arts: ['frost', 'wolf'] },
-  { key: 'jungle',  fr: 'Jungle',             theme: ['#4ade80', '#14532d'], arts: ['tiger', 'serpent'] },
-  { key: 'phenix',  fr: 'Phénix',             theme: ['#ff5a1f', '#ffd36b'], arts: ['phoenix', 'flames'] },
+  { key: 'dragon', sym: '용',  fr: 'Dynastie du Dragon', theme: ['#e0b54a', '#c8102e'], arts: ['dragon', 'filigree'] },
+  { key: 'abysses', sym: '해', fr: 'Abysses',            theme: ['#0ea5e9', '#1e3a8a'], arts: ['koi', 'wave'] },
+  { key: 'neon', sym: '빛',    fr: 'Nuit Néon',          theme: ['#ff2bd6', '#2bfff0'], arts: ['city', 'circuit'] },
+  { key: 'desert', sym: '사',  fr: 'Désert d’Ocre',      theme: ['#d6a35c', '#7a4a1e'], arts: ['scorpion', 'dunes'] },
+  { key: 'forge', sym: '철',   fr: 'Forge Ancienne',     theme: ['#ff8a3d', '#4a4f5a'], arts: ['runes', 'filigree'] },
+  { key: 'sakura', sym: '꽃',  fr: 'Jardin Sakura',      theme: ['#ff9ec7', '#5b2a3a'], arts: ['sakura', 'crane'] },
+  { key: 'cosmos', sym: '별',  fr: 'Cosmos',             theme: ['#8b5cf6', '#0b1030'], arts: ['galaxy', 'planet'] },
+  { key: 'arctique', sym: '얼', fr: 'Arctique',          theme: ['#bfe9ff', '#2b4a6b'], arts: ['frost', 'wolf'] },
+  { key: 'jungle', sym: '숲',  fr: 'Jungle',             theme: ['#4ade80', '#14532d'], arts: ['tiger', 'serpent'] },
+  { key: 'phenix', sym: '불',  fr: 'Phénix',             theme: ['#ff5a1f', '#ffd36b'], arts: ['phoenix', 'flames'] },
 ];
 
 export const MODIFIERS = {
@@ -89,24 +89,35 @@ export const GRADING = {
 // `npm run calibrate` vérifie le résultat par simulation.
 export const PACK_EV_TARGET = 0.87;
 export const BASE_PACKS = [
-  { key: 'standard',  fr: 'Caisse Mugigo', ko: '무기고', tag: 'Tous modèles', filter: {},
-    cards: 5, rates: [62, 25, 9.5, 3, 0.4, 0.09, 0.01], theme: ['#ff4d2e', '#ffb020'], hero: 'rhoden' },
-  { key: 'sidearm',   fr: 'Arme de poing', ko: '권총', tag: 'Pistolets & revolvers', filter: { classes: ['pistol', 'revolver'] },
-    cards: 5, rates: [64, 24, 8.5, 2.8, 0.55, 0.13, 0.02], theme: ['#3b9cff', '#5ff3ff'], hero: 'quasar' },
-  { key: 'assault',   fr: 'Rafale', ko: '연사', tag: 'PM, fusils, pompes, mitrailleuses', filter: { classes: ['smg', 'rifle', 'shotgun', 'lmg'] },
-    cards: 5, rates: [55, 27, 12, 4.5, 1.1, 0.35, 0.05], theme: ['#4ade80', '#d9ff66'], hero: 'bastion' },
-  { key: 'precision', fr: 'Ligne de mire', ko: '저격', tag: 'Fusils de précision', filter: { classes: ['sniper', 'dmr'] },
-    cards: 5, rates: [0, 52, 30, 13, 3.8, 1, 0.2], theme: ['#b266ff', '#ff7ae6'], hero: 'longshade' },
-  { key: 'blades',    fr: 'Éclat d’acier', ko: '칼날', tag: 'Couteaux', filter: { classes: ['knife'] },
-    cards: 5, rates: [0, 0, 62, 26, 9, 2.6, 0.4], theme: ['#ff3d5a', '#ffb020'], hero: 'nightfang' },
-  { key: 'free',      fr: 'Colis gratuit', ko: '선물', tag: 'Toutes les 10 minutes', filter: {}, free: true,
+  { key: 'standard',  fr: 'Caisse Mugigo', ko: '무기고', sym: '무', tag: 'Tous modèles', filter: {},
+    cards: 5, rates: [62, 25, 9.5, 3, 0.4, 0.09, 0.01], theme: ['#ff4d2e', '#ffb020'] },
+  { key: 'sidearm',   fr: 'Arme de poing', ko: '권총', sym: '권', tag: 'Pistolets & revolvers', filter: { classes: ['pistol', 'revolver'] },
+    cards: 5, rates: [64, 24, 8.5, 2.8, 0.55, 0.13, 0.02], theme: ['#3b9cff', '#5ff3ff'] },
+  { key: 'assault',   fr: 'Rafale', ko: '연사', sym: '연', tag: 'PM, fusils, pompes, mitrailleuses', filter: { classes: ['smg', 'rifle', 'shotgun', 'lmg'] },
+    cards: 5, rates: [55, 27, 12, 4.5, 1.1, 0.35, 0.05], theme: ['#4ade80', '#d9ff66'] },
+  { key: 'precision', fr: 'Ligne de mire', ko: '저격', sym: '저', tag: 'Fusils de précision', filter: { classes: ['sniper', 'dmr'] },
+    cards: 5, rates: [0, 52, 30, 13, 3.8, 1, 0.2], theme: ['#b266ff', '#ff7ae6'] },
+  { key: 'blades',    fr: 'Éclat d’acier', ko: '칼날', sym: '검', tag: 'Couteaux', filter: { classes: ['knife'] },
+    cards: 5, rates: [0, 0, 62, 26, 9, 2.6, 0.4], theme: ['#ff3d5a', '#ffb020'] },
+  { key: 'mega',      fr: 'Caisse Mugigo XL', ko: '대형', sym: '대', tag: '10 cartes, tous modèles', filter: {},
+    cards: 10, rates: [60, 26, 10, 3.3, 0.55, 0.13, 0.02], theme: ['#ff7a1f', '#ffd36b'], evTarget: 0.9 },
+  { key: 'elite',     fr: 'Coffre d’élite', ko: '정예', sym: '정', tag: '7 cartes, à partir de Peu commun', filter: {},
+    cards: 7, rates: [0, 34, 38, 19, 6.5, 2, 0.5], theme: ['#2bd9ff', '#8b5cff'], evTarget: 0.85 },
+  { key: 'royal',     fr: 'Arsenal royal', ko: '왕실', sym: '왕', tag: '10 cartes, à partir de Rare', filter: {},
+    cards: 10, rates: [0, 0, 52, 31, 12, 4, 1], theme: ['#e0b54a', '#c8102e'], evTarget: 0.82 },
+  { key: 'free',      fr: 'Colis gratuit', ko: '선물', sym: '선', tag: 'Toutes les 10 minutes', filter: {}, free: true,
     price: 0, cards: 3, rates: [80, 16, 3.6, 0.4, 0, 0, 0], theme: ['#9aa3ad', '#ffffff'] },
 ];
+// symbole des boosters « par arme » selon la famille
+export const CLASS_SYM = { pistol: '권', revolver: '탄', smg: '속', rifle: '총', dmr: '정', sniper: '저', shotgun: '산', lmg: '포', knife: '검' };
 // Boosters générés : un par collection et un par modèle d'arme (taux renormalisés selon le contenu réel)
 export const COLLECTION_PACK_RATES = [58, 26, 10.5, 4, 1.1, 0.33, 0.07];
 export const MODEL_PACK_RATES = [60, 25, 10, 3.8, 0.9, 0.25, 0.05];
 
-export const PITY = { ultraAfter: 15, legendaryAfter: 90 };   // packs payants sans Ultra+ / Légendaire+
+// boosters payants consécutifs sans Ultra+ / Légendaire+ / Transcendant.
+// Le compteur Transcendant ne progresse qu'avec les boosters « premium » (taux Transcendant ≥ transcendentMinRate % par carte),
+// sinon la garantie offrirait trop de valeur aux boosters bon marché.
+export const PITY = { ultraAfter: 15, legendaryAfter: 90, transcendentAfter: 150, transcendentMinRate: 0.2 };
 
 // ───── Économie
 export const ECONOMY = {
@@ -116,16 +127,45 @@ export const ECONOMY = {
   marketFee: 0.05,
   priceCapMult: 20, priceFloorMult: 0.15,
   maxListings: 40,
-  free: { intervalMs: 10 * 60e3, maxStock: 6 },
+  free: { intervalMs: 10 * 60e3, maxStock: 10 },
   dailyStreak: [40, 50, 60, 75, 90, 120, 200],
   xp: { pack: 10, sale: 5, grade: 15, mission: 20 },
 };
 
-export const MISSIONS = [
-  { key: 'open5',   fr: 'Ouvrir 5 boosters',               target: 5, reward: 60 },
-  { key: 'new3',    fr: 'Découvrir 3 nouveaux skins',      target: 3, reward: 50 },
-  { key: 'market1', fr: 'Acheter ou vendre sur le marché', target: 1, reward: 40 },
-];
+// ───── Quêtes : quotidiennes (minuit UTC), hebdomadaires (lundi), exploits (une seule fois)
+// ev = évènement suivi ; diff = difficulté affichée ; reward en Mu, packs = Caisses Mugigo offertes
+export const QUEST_DIFF = { facile: { fr: 'Facile', color: '#4ade80' }, moyen: { fr: 'Moyen', color: '#3b9cff' }, difficile: { fr: 'Difficile', color: '#b266ff' }, extreme: { fr: 'Extrême', color: '#ffb020' } };
+export const QUESTS = {
+  daily: [
+    { key: 'd_open3', ev: 'open', fr: 'Ouvrir 3 boosters', target: 3, reward: 60, diff: 'facile' },
+    { key: 'd_free2', ev: 'open_free', fr: 'Ouvrir 2 colis gratuits', target: 2, reward: 30, diff: 'facile' },
+    { key: 'd_new3', ev: 'new', fr: 'Découvrir 3 nouveaux skins', target: 3, reward: 50, diff: 'facile' },
+    { key: 'd_market', ev: 'market', fr: 'Acheter ou vendre sur le marché', target: 1, reward: 50, diff: 'moyen' },
+    { key: 'd_ultra', ev: 'drop3', fr: 'Obtenir une carte Ultra rare ou mieux', target: 1, reward: 90, diff: 'moyen' },
+    { key: 'd_open10', ev: 'open', fr: 'Ouvrir 10 boosters', target: 10, reward: 220, diff: 'difficile' },
+  ],
+  weekly: [
+    { key: 'w_daily5', ev: 'daily', fr: 'Se connecter 5 jours', target: 5, reward: 300, diff: 'facile' },
+    { key: 'w_new40', ev: 'new', fr: 'Découvrir 40 nouveaux skins', target: 40, reward: 400, diff: 'moyen' },
+    { key: 'w_grade3', ev: 'grade', fr: 'Faire grader 3 cartes', target: 3, reward: 300, diff: 'moyen' },
+    { key: 'w_trade3', ev: 'trade', fr: 'Réaliser 3 échanges avec des amis', target: 3, reward: 300, diff: 'moyen' },
+    { key: 'w_tradeup2', ev: 'tradeup', fr: 'Signer 2 contrats', target: 2, reward: 250, diff: 'moyen' },
+    { key: 'w_open40', ev: 'open', fr: 'Ouvrir 40 boosters', target: 40, reward: 600, packs: 2, diff: 'difficile' },
+    { key: 'w_legend', ev: 'drop4', fr: 'Obtenir une carte Légendaire ou mieux', target: 1, reward: 700, diff: 'difficile' },
+  ],
+  long: [
+    { key: 'l_open250', ev: 'open', fr: 'Ouvrir 250 boosters', target: 250, reward: 2500, packs: 5, diff: 'difficile' },
+    { key: 'l_new500', ev: 'new', fr: 'Découvrir 500 skins', target: 500, reward: 3000, diff: 'difficile' },
+    { key: 'l_sell50', ev: 'market_sell', fr: 'Vendre 50 cartes sur le marché', target: 50, reward: 1500, diff: 'difficile' },
+    { key: 'l_friends10', ev: 'friend', fr: 'Avoir 10 amis', target: 10, reward: 800, diff: 'moyen' },
+    { key: 'l_grade9', ev: 'grade9', fr: 'Obtenir une note de 9 ou plus', target: 1, reward: 1200, diff: 'difficile' },
+    { key: 'l_mythic', ev: 'drop5', fr: 'Obtenir une carte Mythique', target: 1, reward: 1500, diff: 'difficile' },
+    { key: 'l_misprint', ev: 'misprint', fr: 'Trouver une carte erreur', target: 1, reward: 5000, diff: 'extreme' },
+    { key: 'l_transc', ev: 'drop6', fr: 'Obtenir une carte Transcendante', target: 1, reward: 10000, packs: 10, diff: 'extreme' },
+  ],
+};
+// compatibilité : anciennes missions du jour
+export const MISSIONS = QUESTS.daily;
 
 export const LEVELS = [0, 100, 250, 500, 900, 1500, 2400, 3800, 6000, 9500, 15000]; // XP par niveau
 

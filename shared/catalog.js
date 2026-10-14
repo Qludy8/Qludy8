@@ -3,21 +3,23 @@
 import { RARITIES, SKINS_PER_MODEL, CATALOG_QUOTA, KNIFE_QUOTA, COLLECTIONS } from './config.js';
 
 export const MODELS = [
-  { key: 'vyrex9',    name: 'Vyrex-9',      cls: 'pistol',   clsFr: 'Pistolet compact',        glyph: 'V9' },
-  { key: 'quasar',    name: 'Quasar .50',   cls: 'pistol',   clsFr: 'Pistolet lourd',          glyph: 'Q50' },
-  { key: 'orrin6',    name: 'Orrin Six',    cls: 'revolver', clsFr: 'Revolver',                glyph: 'O6' },
-  { key: 'zephra',    name: 'Zephra S4',    cls: 'smg',      clsFr: 'Pistolet-mitrailleur',    glyph: 'S4' },
-  { key: 'rhoden',    name: 'Rhoden R7',    cls: 'rifle',    clsFr: 'Fusil d’assaut',          glyph: 'R7' },
-  { key: 'taluk',     name: 'Taluk A3',     cls: 'rifle',    clsFr: 'Fusil bullpup',           glyph: 'A3' },
-  { key: 'lumen',     name: 'Lumen DM-2',   cls: 'dmr',      clsFr: 'Fusil de tireur d’élite', glyph: 'DM' },
-  { key: 'longshade', name: 'Longshade L9', cls: 'sniper',   clsFr: 'Fusil de précision',      glyph: 'L9' },
-  { key: 'gorgon',    name: 'Gorgon-12',    cls: 'shotgun',  clsFr: 'Fusil à pompe',           glyph: 'G12' },
-  { key: 'bastion',   name: 'Bastion H2',   cls: 'lmg',      clsFr: 'Mitrailleuse légère',     glyph: 'H2' },
-  { key: 'nightfang', name: 'Nightfang',    cls: 'knife',    clsFr: 'Lame griffe',             glyph: 'NF' },
-  { key: 'marrow',    name: 'Marrow',       cls: 'knife',    clsFr: 'Lame-baïonnette',         glyph: 'MW' },
-  { key: 'halcyon',   name: 'Halcyon',      cls: 'knife',    clsFr: 'Couteau balancier',       glyph: 'HC' },
-  { key: 'ridgeback', name: 'Ridgeback',    cls: 'knife',    clsFr: 'Couteau de chasse',       glyph: 'RB' },
-  { key: 'tern',      name: 'Tern',         cls: 'knife',    clsFr: 'Couteau pliant',          glyph: 'TN' },
+  { key: 'vyrex9', sym: '비',    name: 'Vyrex-9',      cls: 'pistol',   clsFr: 'Pistolet compact',        glyph: 'V9' },
+  { key: 'quasar', sym: '퀘',    name: 'Quasar .50',   cls: 'pistol',   clsFr: 'Pistolet lourd',          glyph: 'Q50' },
+  { key: 'orrin6', sym: '륜',    name: 'Orrin Six',    cls: 'revolver', clsFr: 'Revolver',                glyph: 'O6' },
+  { key: 'zephra', sym: '제',    name: 'Zephra S4',    cls: 'smg',      clsFr: 'Pistolet-mitrailleur',    glyph: 'S4' },
+  { key: 'rhoden', sym: '로',    name: 'Rhoden R7',    cls: 'rifle',    clsFr: 'Fusil d’assaut',          glyph: 'R7' },
+  { key: 'taluk', sym: '탈',     name: 'Taluk A3',     cls: 'rifle',    clsFr: 'Fusil bullpup',           glyph: 'A3' },
+  { key: 'lumen', sym: '루',     name: 'Lumen DM-2',   cls: 'dmr',      clsFr: 'Fusil de tireur d’élite', glyph: 'DM' },
+  { key: 'longshade', sym: '롱', name: 'Longshade L9', cls: 'sniper',   clsFr: 'Fusil de précision',      glyph: 'L9' },
+  { key: 'gorgon', sym: '고',    name: 'Gorgon-12',    cls: 'shotgun',  clsFr: 'Fusil à pompe',           glyph: 'G12' },
+  { key: 'bastion', sym: '바',   name: 'Bastion H2',   cls: 'lmg',      clsFr: 'Mitrailleuse légère',     glyph: 'H2' },
+  { key: 'nightfang', sym: '밤', name: 'Nightfang',    cls: 'knife',    clsFr: 'Lame griffe',             glyph: 'NF' },
+  { key: 'marrow', sym: '골',    name: 'Marrow',       cls: 'knife',    clsFr: 'Lame-baïonnette',         glyph: 'MW' },
+  { key: 'halcyon', sym: '나',   name: 'Halcyon',      cls: 'knife',    clsFr: 'Couteau balancier',       glyph: 'HC' },
+  { key: 'ridgeback', sym: '등', name: 'Ridgeback',    cls: 'knife',    clsFr: 'Couteau de chasse',       glyph: 'RB' },
+  { key: 'tern', sym: '갈',      name: 'Tern',         cls: 'knife',    clsFr: 'Couteau pliant',          glyph: 'TN' },
+  { key: 'hookjaw', sym: '구',   name: 'Hookjaw',      cls: 'knife',    clsFr: 'Lame à crochet',          glyph: 'HJ' },
+  { key: 'vespera', sym: '침',   name: 'Vespera',      cls: 'knife',    clsFr: 'Stylet',                  glyph: 'VS' },
 ];
 export const MODEL_BY_KEY = Object.fromEntries(MODELS.map((m) => [m.key, m]));
 export const COLLECTION_BY_KEY = Object.fromEntries(COLLECTIONS.map((c) => [c.key, c]));

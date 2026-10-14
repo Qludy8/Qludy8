@@ -88,35 +88,64 @@ function fade(skin, id, pt) {
       <linearGradient id="${id}fs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/></linearGradient>`,
   body: `<rect width="${W}" height="${H}" fill="url(#${id}f)"/><rect width="${W}" height="${H}" fill="url(#${id}fs)"/>` };
 }
+// table de couleurs pour feComponentTransfer (interpolation linéaire entre les entrées)
+const hex = (h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16) / 255);
+const tables = (cols) => [0, 1, 2].map((ch) => cols.map((c) => hex(c)[ch].toFixed(3)).join(' '));
+const ctf = (cols) => { const [r, g, b] = tables(cols); return `<feComponentTransfer><feFuncR type="table" tableValues="${r}"/><feFuncG type="table" tableValues="${g}"/><feFuncB type="table" tableValues="${b}"/></feComponentTransfer>`; };
+
+// Trempe : acier chauffé → bleus, violets, bronzes et ors mêlés ; la graine fixe la part de bleu
+const HARD_BLUE = ['#0b1f55', '#173a8f', '#2756c9', '#4c7fe0', '#7fa8f2', '#5a3fa8', '#7b4f9e'];
+const HARD_GOLD = ['#5a3a14', '#8a5a2a', '#b07a2e', '#d9a441', '#f0d27a', '#c9952f', '#9aa3ad', '#e6c46a'];
 function hardened(skin, id, pt) {
   const d = describeSeed(skin, pt);
   const blue = d ? d.value / 100 : 0.4;
-  const [m1, m2] = METALS[skin.v % METALS.length];
-  const t = (0.6 - blue * 0.24).toFixed(3);
-  return { defs: `<filter id="${id}h" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".008 .02" numOctaves="4" seed="${pt}"/>
-      <feColorMatrix values="0 0 0 0 .12  0 0 0 0 .3  0 0 0 0 .85  9 0 0 0 ${(-9 * t).toFixed(2)}"/></filter>
-    <filter id="${id}h2" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".02 .05" numOctaves="3" seed="${pt + 7}"/>
-      <feColorMatrix values="0 0 0 0 .42  0 0 0 0 .2  0 0 0 0 .62  7 0 0 0 -4.3"/></filter>
-    <linearGradient id="${id}m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${m1}"/><stop offset="1" stop-color="${m2}"/></linearGradient>`,
-  body: `<rect width="${W}" height="${H}" fill="url(#${id}m)"/><rect width="${W}" height="${H}" filter="url(#${id}h2)" opacity=".7"/><rect width="${W}" height="${H}" filter="url(#${id}h)"/>` };
+  const n = 14, kb = Math.max(1, Math.round(blue * n));
+  const cols = [];
+  for (let i = 0; i < n; i++) cols.push(i < kb ? HARD_BLUE[(i * 3 + skin.v) % HARD_BLUE.length] : HARD_GOLD[(i * 5 + skin.v) % HARD_GOLD.length]);
+  // l'ordre est mélangé par la graine pour varier les transitions de couleurs
+  const r = rng(pt * 7 + 13);
+  for (let i = cols.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); if (Math.abs(i - j) < 4) [cols[i], cols[j]] = [cols[j], cols[i]]; }
+  return { defs: `<filter id="${id}h" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".0055 .016" numOctaves="5" seed="${pt}"/>
+      <feColorMatrix values="2.2 0 0 0 -.6  2.2 0 0 0 -.6  2.2 0 0 0 -.6  0 0 0 0 1"/>${ctf(cols)}</filter>
+    <filter id="${id}hs" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".002 .09" numOctaves="3" seed="${pt + 3}"/>
+      <feColorMatrix values="0 0 0 0 1  0 0 0 0 .95  0 0 0 0 .85  2.5 0 0 0 -1.15"/></filter>
+    <filter id="${id}hd" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".035 .06" numOctaves="2" seed="${pt + 9}"/>
+      <feColorMatrix values="0 0 0 0 .05  0 0 0 0 .03  0 0 0 0 .08  3 0 0 0 -1.45"/></filter>`,
+  body: `<rect width="${W}" height="${H}" filter="url(#${id}h)"/><rect width="${W}" height="${H}" filter="url(#${id}hd)" style="mix-blend-mode:multiply"/><rect width="${W}" height="${H}" filter="url(#${id}hs)" opacity=".35" style="mix-blend-mode:overlay"/>` };
 }
+
+// Marbrure : veines fines + 6 couleurs ; certaines graines n'ont que deux couleurs
+const MARBLE6 = [
+  ['#1a0505', '#e01b2b', '#ff7a1f', '#ffd23f', '#3b6bff', '#120d2e'], ['#0b0b1a', '#ff6ad5', '#b266ff', '#5b2bd1', '#2dd4bf', '#ffffff'],
+  ['#1a0b05', '#ffb020', '#ff3d5a', '#ffe9a8', '#8a1f3a', '#ff7a1f'], ['#081020', '#5ff3ff', '#b266ff', '#ffffff', '#2a4bd1', '#0f8fb5'],
+];
 function marble(skin, id, pt) {
   const d = describeSeed(skin, pt);
-  let cols = MARBLES[skin.v % MARBLES.length];
-  if (d?.tier === 1) cols = ['#ff2a2a', '#ff2a2a', '#2a5bff', '#2a5bff'];
-  else if (d?.tier === 2) cols = ['#1a0b3a', '#5b2bd1', '#0b1a4a', '#2a6bff'];
-  else if (d?.tier === 3) cols = ['#2dd4bf', '#a855f7', '#22c55e', '#0b1020'];
-  const rgb = cols.map((h) => { const n = parseInt(h.slice(1).padEnd(6, h.slice(1)), 16); const x = h.length === 4 ? h.slice(1).split('').map((q) => parseInt(q + q, 16)) : [(n >> 16) & 255, (n >> 8) & 255, n & 255]; return x.map((v) => (v / 255).toFixed(3)); });
-  const tv = (ch) => [rgb[3][ch], rgb[0][ch], rgb[1][ch], rgb[2][ch], rgb[0][ch]].join(' ');
-  return { defs: `<filter id="${id}mb" x="0" y="0" width="100%" height="100%"><feTurbulence type="turbulence" baseFrequency=".004 .012" numOctaves="4" seed="${pt}"/>
-      <feColorMatrix type="matrix" values="2.4 0 0 0 -.25  2.4 0 0 0 -.25  2.4 0 0 0 -.25  0 0 0 0 1"/>
-      <feComponentTransfer><feFuncR type="table" tableValues="${tv(0)}"/><feFuncG type="table" tableValues="${tv(1)}"/><feFuncB type="table" tableValues="${tv(2)}"/></feComponentTransfer></filter>`,
-  body: `<rect width="${W}" height="${H}" filter="url(#${id}mb)"/>` };
+  let cols = MARBLE6[skin.v % MARBLE6.length];
+  if (d?.tier === 1) cols = ['#2a0303', '#e0151f', '#ff3b3b', '#1d3fd6', '#3b6bff', '#0a0f3a'];
+  else if (d?.tier === 2) cols = ['#05030f', '#1a0b3a', '#5b2bd1', '#0b1a4a', '#2a6bff', '#7b4dff'];
+  else if (d?.tier === 3) cols = ['#04140f', '#2dd4bf', '#22c55e', '#a855f7', '#0b1020', '#6ee7b7'];
+  const r = rng(pt + 101);
+  const seq = Array.from({ length: 10 }, () => cols[Math.floor(r() * cols.length)]);
+  return { defs: `<filter id="${id}mb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="turbulence" baseFrequency=".0045 .013" numOctaves="4" seed="${pt}"/>
+      <feColorMatrix values="2.4 0 0 0 -.15  2.4 0 0 0 -.15  2.4 0 0 0 -.15  0 0 0 0 1"/>${ctf(seq)}</filter>
+    <filter id="${id}mv" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".01 .025" numOctaves="4" seed="${pt + 5}"/>
+      <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1 0 0 0 0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0 0 0 0 .85 0 0 0 0 0"/></feComponentTransfer></filter>
+    <filter id="${id}mk" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".02 .05" numOctaves="3" seed="${pt + 8}"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0 0 0 .7 0 0 0 0"/></feComponentTransfer></filter>`,
+  body: `<rect width="${W}" height="${H}" filter="url(#${id}mb)"/><rect width="${W}" height="${H}" filter="url(#${id}mk)" opacity=".7"/><rect width="${W}" height="${H}" filter="url(#${id}mv)" opacity=".55"/>` };
 }
+
+// Acier damassé : strates d'acier (clair, sombre, bleuté) ondulées à deux échelles + teinte du skin
 function damascus(skin, c, id, pt) {
-  return { defs: `<pattern id="${id}dp" patternUnits="userSpaceOnUse" width="14" height="14" patternTransform="rotate(${(pt % 40) - 20})"><rect width="14" height="14" fill="#5d636d"/><rect width="14" height="5" fill="#c9ced6"/><rect y="7" width="14" height="2" fill="#2a2e35"/></pattern>
-    <filter id="${id}dd" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .03" numOctaves="3" seed="${pt}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="60"/></filter>`,
-  body: `<g filter="url(#${id}dd)"><rect x="-40" y="-40" width="${W + 80}" height="${H + 80}" fill="url(#${id}dp)"/></g><rect width="${W}" height="${H}" fill="${c.c1}" opacity=".28" style="mix-blend-mode:color"/>` };
+  return { defs: `<pattern id="${id}dp" patternUnits="userSpaceOnUse" width="16" height="16" patternTransform="rotate(${(pt % 40) - 20})">
+      <rect width="16" height="16" fill="#4d535c"/><rect width="16" height="4" fill="#d3d8df"/><rect y="5" width="16" height="2" fill="#23272e"/><rect y="9" width="16" height="3" fill="#8f97a2"/><rect y="13" width="16" height="1.5" fill="#6b7fa0"/></pattern>
+    <filter id="${id}dd" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".011 .028" numOctaves="4" seed="${pt}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="70"/></filter>
+    <filter id="${id}de" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".04 .07" numOctaves="2" seed="${pt + 2}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="18"/></filter>`,
+  body: `<g filter="url(#${id}dd)"><g filter="url(#${id}de)"><rect x="-50" y="-50" width="${W + 100}" height="${H + 100}" fill="url(#${id}dp)"/></g></g>
+    <rect width="${W}" height="${H}" fill="${c.c1}" opacity=".3" style="mix-blend-mode:color"/>
+    <rect width="${W}" height="${H}" fill="url(#${id}dp)" opacity=".06"/>` };
 }
 
 // ───────────────────────────── Illustrations
@@ -366,6 +395,14 @@ export function skinTexture(skin, pt, id) {
     case 'damascus': t = damascus(skin, c, id, seed); break;
     case 'art': t = (ART[skin.art] || ART.filigree)(c, rng(skin.seed), id); break;
     default: t = solid(c, r, id);
+  }
+  // grain de peinture + variations de teinte (rend les aplats moins « plastiques »)
+  if (['solid', 'twotone', 'camo', 'geo', 'art'].includes(skin.st)) {
+    t.defs += `<filter id="${id}pg" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .03" numOctaves="3" seed="${seed % 97}"/>
+      <feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  1.6 0 0 0 -.55"/></filter>
+      <filter id="${id}pf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="7"/>
+      <feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 -1.3 .95"/></filter>`;
+    t.body += `<rect width="${W}" height="${H}" filter="url(#${id}pg)" opacity=".35" style="mix-blend-mode:overlay"/><rect width="${W}" height="${H}" filter="url(#${id}pf)" opacity=".14" style="mix-blend-mode:overlay"/>`;
   }
   // ornements dorés sur les plus hautes raretés
   if (skin.r >= 5 && skin.st !== 'filigree') t.body += `<g opacity=".55">${filigreeLayer(rng(skin.seed + 1), '#e8c15a', skin.r >= 6 ? 10 : 5)}</g>`;

@@ -18,7 +18,8 @@
   --spring: cubic-bezier(.34, 1.56, .64, 1);
   --font: 'Nunito', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   --display: 'Baloo 2', 'Nunito', system-ui, sans-serif;
-  --ko: 'Jua', 'Baloo 2', sans-serif;
+  --ko: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --kodisp: 'Jua', 'Noto Sans KR', sans-serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -60,10 +61,10 @@ h3 { font-size: 17px; }
   border-bottom: 1px solid var(--line);
 }
 .logo { display: flex; align-items: center; gap: 10px; }
-.logo-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-family: var(--ko); font-size: 26px; line-height: 1; color: #1a0a00;
+.logo-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-family: var(--kodisp); font-size: 26px; line-height: 1; color: #1a0a00;
   background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 0 18px rgba(255, 120, 46, .55), inset 0 1px 0 rgba(255,255,255,.4); padding-top: 3px; }
 .logo-word { font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: .14em; line-height: .95; }
-.logo-word small { display: block; font-family: var(--ko); font-size: 11px; letter-spacing: .5em; color: var(--accent2); font-weight: 400; }
+.logo-word small { display: block; font-family: var(--ko); font-size: 12px; letter-spacing: .18em; color: var(--accent2); font-weight: 700; margin-top: 2px; }
 .nav { display: flex; gap: 2px; position: relative; overflow-x: auto; scrollbar-width: none; }
 .nav a {
   position: relative; padding: 9px 13px; border-radius: 10px; color: var(--muted); font-weight: 600; font-size: 14px; white-space: nowrap;
@@ -180,8 +181,8 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .card-svg .t-glyph { font-size: 200px; font-weight: 800; }
 .card-svg .t-badge { font-size: 16px; font-weight: 800; letter-spacing: .5px; }
 .card-svg .t-back { font-size: 46px; font-weight: 800; letter-spacing: 16px; }
-.card-svg .t-backsub { font-size: 26px; font-family: var(--ko); letter-spacing: 10px; }
-.card-svg .t-glyphko { font-size: 120px; font-family: var(--ko); }
+.card-svg .t-backsub { font-size: 28px; font-family: var(--ko); font-weight: 700; letter-spacing: 4px; }
+.card-svg .t-glyphko { font-size: 120px; font-family: var(--kodisp); }
 
 /* tuile carte (inventaire, marché…) */
 .cards { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
@@ -398,7 +399,7 @@ table.t tr:hover td { background: rgba(255,255,255,.025); }
 }
 
 /* ───────── Ajouts Mugigo : lueurs, curseurs, inspection, fiche des motifs, boutique */
-.ko { font-family: var(--ko); font-weight: 400; font-size: .7em; color: var(--accent2); letter-spacing: .1em; margin-left: 6px; text-shadow: 0 0 12px rgba(255,176,32,.45); }
+.ko { font-family: var(--ko); font-weight: 700; font-size: .72em; color: var(--accent2); letter-spacing: .04em; margin-left: 6px; text-shadow: 0 0 12px rgba(255,176,32,.45); }
 .glow-text { color: var(--gc, var(--accent2)); text-shadow: 0 0 10px color-mix(in srgb, var(--gc, var(--accent2)) 60%, transparent); }
 h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .section-title h2 { background: linear-gradient(90deg, #fff, #ffd9b0); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -425,7 +426,7 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .slider-field b { font-family: var(--display); font-size: 18px; text-shadow: 0 0 10px currentColor; }
 .range-scale { display: flex; height: 4px; border-radius: 2px; overflow: hidden; opacity: .8; }
 .rate-list { display: grid; gap: 10px; }
-.rate-row { display: grid; grid-template-columns: 110px 1fr 64px; gap: 12px; align-items: center; }
+.rate-row { display: grid; grid-template-columns: 110px 1fr 84px; gap: 12px; align-items: center; }
 .rate-name { color: var(--rc); font-weight: 800; text-shadow: 0 0 10px color-mix(in srgb, var(--rg) 55%, transparent); }
 .rate-val { text-align: right; font-family: var(--display); font-weight: 800; color: var(--rc); }
 .slider-track { position: relative; height: 8px; border-radius: 6px; background: rgba(255,255,255,.08); }
@@ -462,3 +463,37 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .opening .stack-card .face.back .liseret::after { content: ''; position: absolute; inset: 3px; border-radius: inherit; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--rg) 55%, transparent); }
 @keyframes lis { to { --ang: 360deg; } }
 .opening .stack-card.charging .face.back .liseret { animation-duration: .7s; inset: -6px; }
+
+/* monnaie Mu (무) */
+.mu { display: inline-grid; place-items: center; width: 1.85em; height: 1.85em; border-radius: 50%; vertical-align: .05em; margin-left: .2em;
+  font-family: var(--ko); font-style: normal; font-weight: 900; font-size: .62em; line-height: 1; color: #3a2400;
+  background: radial-gradient(circle at 35% 30%, #fff3c2, #f2c14e 45%, #b8821f 100%); box-shadow: inset 0 0 0 1.5px rgba(122, 78, 10, .55), 0 0 8px rgba(255, 190, 60, .45); }
+.mu::before { content: none; }
+.balance .mu { font-size: .66em; }
+
+.quest-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.mission { transition: border-color .3s, box-shadow .3s; }
+.mission .reward { font-family: var(--display); font-weight: 800; color: #ffd76a; text-shadow: 0 0 10px rgba(255,200,80,.4); }
+.mission.ready { border-color: var(--qc); box-shadow: 0 0 22px -8px var(--qc); }
+.mission.claimed { opacity: .55; }
+
+.rate-stack { position: relative; height: 12px; border-radius: 7px; background: rgba(255,255,255,.08); overflow: hidden; margin: 6px 0 16px; box-shadow: 0 0 16px -6px rgba(255,255,255,.3); }
+.rate-stack i { position: absolute; top: 0; bottom: 0; box-shadow: 0 0 10px var(--rg); }
+.rate-total { border-top: 1px solid var(--line); padding-top: 8px; }
+.rate-total .rate-name, .rate-total .rate-val { color: var(--text); text-shadow: none; }
+
+.pity-box { display: grid; gap: 8px; margin: 10px 0 4px; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid var(--line); }
+.pity-row { display: grid; grid-template-columns: 150px 1fr 70px; gap: 10px; align-items: center; font-size: 13px; font-weight: 700; color: var(--rc); }
+.pity-row b { text-align: right; font-family: var(--display); }
+
+/* ouverture : symbole coréen du booster en fond (contour lumineux) + transitions de couleur douces */
+@property --glow { syntax: '<color>'; inherits: true; initial-value: #ff4d2e; }
+.opening { transition: --glow 1.4s ease, background .8s; }
+.opening .bg-sym { position: absolute; left: 50%; top: 46%; translate: -50% -50%; z-index: 1; pointer-events: none; user-select: none;
+  font-family: var(--ko); font-weight: 900; font-size: min(78vh, 90vw); line-height: 1; color: transparent;
+  -webkit-text-stroke: 3px color-mix(in srgb, var(--glow) 80%, #fff);
+  text-shadow: 0 0 30px var(--glow), 0 0 80px color-mix(in srgb, var(--glow) 60%, transparent);
+  opacity: .22; animation: symPulse 5s ease-in-out infinite; }
+@keyframes symPulse { 50% { opacity: .32; transform: scale(1.02); } }
+.opening.done .bg-sym { opacity: .1; animation: none; }
+.opening .stack-card:not(.top) .face.back .liseret { display: none; }

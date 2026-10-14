@@ -103,3 +103,15 @@ test('invariant du portefeuille : solde = somme des transactions', () => {
     assert.equal(u.balance, s, `utilisateur ${u.id}`);
   }
 });
+
+test('quêtes : progression et réclamation', () => {
+  const c = createUser({ username: 'carol', password: 'password123' });
+  G.openPacks(c, 'standard', 3);
+  const q = G.questsOf(c);
+  assert.equal(q.daily.find((x) => x.key === 'd_open3').progress, 3);
+  const before = bal(c);
+  G.claimMission(c, 'd_open3');
+  assert.equal(bal(c), before + 60);
+  assert.throws(() => G.claimMission(c, 'd_open3'), /Déjà/);
+  assert.throws(() => G.claimMission(c, 'd_open10'), /non terminée/);
+});

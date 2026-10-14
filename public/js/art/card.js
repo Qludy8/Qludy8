@@ -37,7 +37,7 @@ export function weaponSVG(skin, card = null, opts = {}) {
   const float = card?.f ?? null;
   const pt = card?.pt ?? (skin.seed % 1000);
   const of = (k) => parts.filter((p) => p.k === k);
-  const all = parts.filter((p) => !['line', 'hi', 'wire', 'tex', 'hole'].includes(p.k)).map((p) => p.d).join(' ');
+  const all = parts.filter((p) => !['line', 'hi', 'wire', 'tex', 'hole', 'shade'].includes(p.k)).map((p) => p.d).join(' ');
   const paint = of('paint');
   const tex = skinTexture(skin, pt, `${id}t`);
   const r = rng(hash(String(card?.serial || skin.id)));
@@ -64,35 +64,51 @@ export function weaponSVG(skin, card = null, opts = {}) {
     wearOver += `<path d="${sc}" stroke="#f4f1ea" stroke-opacity="${F(0.2 + float * 0.35)}" stroke-width="1.6" fill="none"/>`;
   }
 
-  const mat = (k, fill, extra = '') => of(k).map((p) => `<path d="${p.d}" fill="${fill}" fill-rule="evenodd" stroke="#050608" stroke-width="2.2" stroke-linejoin="round" ${extra}/><path d="${p.d}" fill="url(#${id}sh)" fill-rule="evenodd"/>`).join('');
-  const glow = skin.r >= 5 ? `<path d="${all}" fill="none" stroke="${RARITIES[skin.r].glow}" stroke-width="10" opacity=".25" filter="url(#${id}gl)"/>` : '';
+  // rendu « réaliste » : pas de contour épais, dégradés à reflet spéculaire, biseau intérieur, grain, ombre douce
+  let ci = 0;
+  const clipDefs = [];
+  const edge = (d) => { const c = `${id}c${ci++}`; clipDefs.push(`<clipPath id="${c}"><path d="${d}" fill-rule="evenodd" clip-rule="evenodd"/></clipPath>`); return `<g clip-path="url(#${c})"><path d="${d}" fill="none" stroke="url(#${id}eg)" stroke-width="5"/></g>`; };
+  const mat = (k, fill) => of(k).map((p) => `<path d="${p.d}" fill="${fill}" fill-rule="evenodd" stroke="#000" stroke-opacity=".6" stroke-width="1.2" stroke-linejoin="round"/>${opts.lite ? '' : edge(p.d)}`).join('');
+  const glow = skin.r >= 5 && !opts.lite ? `<path d="${all}" fill="none" stroke="${RARITIES[skin.r].glow}" stroke-width="10" opacity=".22" filter="url(#${id}gl)"/>` : '';
+  const grad = (gid, stops) => `<linearGradient id="${id}${gid}" x1="0" y1="0" x2="0" y2="1">${stops.map(([o, c, a = 1]) => `<stop offset="${o}" stop-color="${c}" stop-opacity="${a}"/>`).join('')}</linearGradient>`;
+  const body = `
+    ${mat('rubber', `url(#${id}ru)`)}${mat('poly', `url(#${id}po)`)}${mat('wood', `url(#${id}wo)`)}${mat('brass', `url(#${id}br)`)}${mat('metal', `url(#${id}me)`)}
+    ${of('wire').map((p) => `<path d="${p.d}" fill="none" stroke="#050608" stroke-width="13" stroke-linecap="round"/><path d="${p.d}" fill="none" stroke="url(#${id}me)" stroke-width="10" stroke-linecap="round"/>`).join('')}
+    ${paint.map((p) => `<path d="${p.d}" fill="url(#${id}bare)" fill-rule="evenodd"/>`).join('')}
+    <g clip-path="url(#${id}pc)"><g ${chipMask}><g transform="${texFit(skin.m)}">${tex.body}</g>${wearOver}</g></g>
+    ${paint.map((p) => `<path d="${p.d}" fill="url(#${id}sh)" fill-rule="evenodd" stroke="#000" stroke-opacity=".65" stroke-width="1.3" stroke-linejoin="round"/>${opts.lite ? '' : edge(p.d)}`).join('')}
+    ${of('tex').map((p) => `<path d="${p.d}" fill="url(#${id}ck)"/>`).join('')}
+    ${of('hole').map((p) => `<path d="${p.d}" fill="url(#${id}ho)" stroke="#000" stroke-opacity=".8" stroke-width="1"/>`).join('')}
+    ${of('shade').map((p) => `<path d="${p.d}" fill="#000" opacity=".45"/><path d="${p.d}" fill="none" stroke="#fff" stroke-opacity=".12" transform="translate(0 1.5)"/>`).join('')}
+    ${mat('metal2', `url(#${id}me)`)}${mat('steel', `url(#${id}st)`)}${mat('glass', `url(#${id}gs)`)}
+    ${of('line').map((p) => `<path d="${p.d}" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="1.6"/><path d="${p.d}" fill="none" stroke="#fff" stroke-opacity=".1" stroke-width="1" transform="translate(0 1.4)"/>`).join('')}
+    ${of('hi').map((p) => `<path d="${p.d}" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="1.6" stroke-linecap="round"/>`).join('')}`;
 
   return `<g class="weapon">
     <defs>${tex.defs}${wearDefs}
-      <linearGradient id="${id}sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".34"/><stop offset=".28" stop-color="#fff" stop-opacity=".05"/><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".42"/></linearGradient>
-      <linearGradient id="${id}me" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d737d"/><stop offset=".45" stop-color="#2d3138"/><stop offset="1" stop-color="#121418"/></linearGradient>
-      <linearGradient id="${id}po" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3d45"/><stop offset="1" stop-color="#15171b"/></linearGradient>
-      <linearGradient id="${id}st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f7fb"/><stop offset=".5" stop-color="#a7afba"/><stop offset="1" stop-color="#59616d"/></linearGradient>
-      <linearGradient id="${id}br" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe7a3"/><stop offset=".5" stop-color="#c0902f"/><stop offset="1" stop-color="#6b4a12"/></linearGradient>
-      <pattern id="${id}wo" patternUnits="userSpaceOnUse" width="120" height="16"><rect width="120" height="16" fill="#6e3b1c"/><path d="M0 4 Q30 1 60 5 T120 3 M0 11 Q40 8 70 12 T120 10" stroke="#3e1d0a" stroke-width="2" fill="none"/></pattern>
-      <radialGradient id="${id}gs" cx=".3" cy=".3" r=".9"><stop offset="0" stop-color="#d9fbff"/><stop offset=".4" stop-color="#3a8fb0"/><stop offset="1" stop-color="#05121c"/></radialGradient>
-      <pattern id="${id}dots" patternUnits="userSpaceOnUse" width="7" height="7"><circle cx="2" cy="2" r="1.1" fill="#000" opacity=".55"/><circle cx="5.5" cy="5.5" r="1.1" fill="#fff" opacity=".07"/></pattern>
-      <linearGradient id="${id}bare" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3c8d0"/><stop offset="1" stop-color="#6c727c"/></linearGradient>
+      ${grad('sh', [[0, '#fff', 0.42], [0.1, '#fff', 0.14], [0.26, '#fff', 0], [0.6, '#000', 0], [1, '#000', 0.48]])}
+      ${grad('eg', [[0, '#fff', 0.5], [0.25, '#fff', 0.08], [0.7, '#fff', 0], [1, '#000', 0.4]])}
+      ${grad('me', [[0, '#3a3f47'], [0.07, '#a3aab5'], [0.16, '#5c636e'], [0.5, '#2b2f36'], [0.85, '#16181c'], [1, '#08090b']])}
+      ${grad('po', [[0, '#4a4e57'], [0.08, '#5f636d'], [0.2, '#2f3239'], [0.75, '#1a1c21'], [1, '#0c0d10']])}
+      ${grad('ru', [[0, '#3a3c41'], [0.15, '#45484e'], [0.4, '#26282c'], [1, '#101113']])}
+      ${grad('st', [[0, '#ffffff'], [0.14, '#e6eaef'], [0.42, '#98a1ad'], [0.62, '#cfd5dc'], [0.85, '#7a828e'], [1, '#4b525c']])}
+      ${grad('br', [[0, '#fff3c2'], [0.18, '#e6bb5f'], [0.5, '#b07c22'], [0.8, '#7c5512'], [1, '#4d330a']])}
+      ${grad('ho', [[0, '#000'], [1, '#1c1e23']])}
+      ${grad('bare', [[0, '#e3e7ec'], [0.15, '#b9bfc8'], [0.6, '#7c838d'], [1, '#4a5058']])}
+      <pattern id="${id}wo" patternUnits="userSpaceOnUse" width="160" height="22"><rect width="160" height="22" fill="#5e3016"/><path d="M0 5 Q40 1 80 6 T160 4 M0 12 Q50 8 90 13 T160 11 M0 18 Q30 16 70 19 T160 17" stroke="#3a1a08" stroke-width="1.6" fill="none"/><path d="M0 9 Q60 6 110 10 T160 8" stroke="#8a4f26" stroke-width="1" fill="none" opacity=".6"/></pattern>
+      <pattern id="${id}ck" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)"><rect width="7" height="7" fill="#000" opacity=".22"/><path d="M0 0 H7 M0 0 V7" stroke="#fff" stroke-opacity=".09" stroke-width="1"/></pattern>
+      <radialGradient id="${id}gs" cx=".3" cy=".3" r=".9"><stop offset="0" stop-color="#e6fdff"/><stop offset=".3" stop-color="#5fb7d6"/><stop offset=".7" stop-color="#123447"/><stop offset="1" stop-color="#02080d"/></radialGradient>
       <clipPath id="${id}pc">${paint.map((p) => `<path d="${p.d}" fill-rule="evenodd" clip-rule="evenodd"/>`).join('')}</clipPath>
-      ${skin.r >= 5 ? `<filter id="${id}gl" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>` : ''}
+      <clipPath id="${id}all"><path d="${all}"/></clipPath>
+      ${opts.lite ? '' : `<filter id="${id}sb" x="-10%" y="-20%" width="120%" height="150%"><feGaussianBlur stdDeviation="7"/></filter>
+      <filter id="${id}gr" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 -1.4 1"/></filter>`}
+      ${skin.r >= 5 && !opts.lite ? `<filter id="${id}gl" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>` : ''}
     </defs>
     ${glow}
-    <path d="${all}" fill="#000" opacity=".4" transform="translate(10 16)" fill-rule="evenodd"/>
-    ${mat('poly', `url(#${id}po)`)}${mat('wood', `url(#${id}wo)`)}${mat('brass', `url(#${id}br)`)}${mat('metal', `url(#${id}me)`)}
-    ${of('wire').map((p) => `<path d="${p.d}" fill="none" stroke="#050608" stroke-width="15" stroke-linecap="round"/><path d="${p.d}" fill="none" stroke="#2d3138" stroke-width="10" stroke-linecap="round"/>`).join('')}
-    ${paint.map((p) => `<path d="${p.d}" fill="url(#${id}bare)" fill-rule="evenodd"/>`).join('')}
-    <g clip-path="url(#${id}pc)"><g ${chipMask}><g transform="${texFit(skin.m)}">${tex.body}</g>${wearOver}</g></g>
-    ${paint.map((p) => `<path d="${p.d}" fill="url(#${id}sh)" fill-rule="evenodd" stroke="#050608" stroke-width="2.4" stroke-linejoin="round"/>`).join('')}
-    ${of('tex').map((p) => `<path d="${p.d}" fill="url(#${id}dots)"/>`).join('')}
-    ${of('hole').map((p) => `<path d="${p.d}" fill="#07080a" stroke="#000" stroke-width="1.5"/>`).join('')}
-    ${mat('metal2', `url(#${id}me)`)}${mat('steel', `url(#${id}st)`)}${mat('glass', `url(#${id}gs)`)}
-    ${of('line').map((p) => `<path d="${p.d}" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="2"/><path d="${p.d}" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="1" transform="translate(0 1.5)"/>`).join('')}
-    ${of('hi').map((p) => `<path d="${p.d}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2" stroke-linecap="round"/>`).join('')}
+    <path d="${all}" fill="#000" opacity="${opts.lite ? 0.3 : 0.6}" transform="translate(6 14)" fill-rule="evenodd" ${opts.lite ? '' : `filter="url(#${id}sb)"`}/>
+    ${body}
+    ${opts.lite ? '' : `<rect width="1000" height="360" clip-path="url(#${id}all)" filter="url(#${id}gr)" opacity=".1" style="mix-blend-mode:overlay"/>`}
+    <defs>${clipDefs.join('')}</defs>
   </g>`;
 }
 

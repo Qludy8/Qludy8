@@ -14,12 +14,13 @@ function me(u) {
   return {
     id: u.id, username: u.username, email: u.email, balance: u.balance, avatar_hue: u.avatar_hue, bio: u.bio,
     level: G.levelOf(u.xp), welcomePacks: u.welcome_packs, free,
-    pity: { ultra: u.pity_ultra, legend: u.pity_legend, ultraAfter: PITY.ultraAfter, legendaryAfter: PITY.legendaryAfter },
+    pity: { ultra: u.pity_ultra, legend: u.pity_legend, trans: u.pity_trans, ultraAfter: PITY.ultraAfter, legendaryAfter: PITY.legendaryAfter, transAfter: PITY.transcendentAfter },
     daily: G.dailyState(u), packs_opened: u.packs_opened, showcase: JSON.parse(u.showcase),
     discord: { mode: discordMode(), verified: !!u.discord_verified_at, name: u.discord_name },
     unread: one('SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND read = 0', u.id).n,
     openTrades: one("SELECT COUNT(*) n FROM trades WHERE to_id = ? AND status = 'OPEN'", u.id).n,
     friendRequests: one("SELECT COUNT(*) n FROM friends WHERE (a = ? OR b = ?) AND status = 'PENDING' AND requester != ?", u.id, u.id, u.id).n,
+    questsReady: G.questsReady(u.id),
     gradingReady: one("SELECT COUNT(*) n FROM grading_orders WHERE user_id = ? AND status = 'PENDING' AND ready_at <= ?", u.id, Date.now()).n,
   };
 }

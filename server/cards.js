@@ -78,26 +78,31 @@ export function rollCard(rarity, filter) {
 }
 
 /**
- * Ouvre un booster. pity = { ultra, legend } (packs consécutifs sans Ultra+ / Légendaire+).
+ * Ouvre un booster. pity = { ultra, legend, trans } : boosters payants consécutifs sans Ultra+ / Légendaire+ / Transcendant.
+ * Le compteur Transcendant n'avance que sur les boosters premium (taux Transcendant ≥ PITY.transcendentMinRate).
  * Retourne { cards, pity, pityTriggered }.
  */
-export function openPack(pack, pity = { ultra: 0, legend: 0 }, usePity = true) {
+export function openPack(pack, pity = { ultra: 0, legend: 0, trans: 0 }, usePity = true) {
   const rarities = [];
   for (let i = 0; i < pack.cards; i++) rarities.push(rollRarity(pack.rates));
   let pityTriggered = null;
+  const can = (r) => pack.rates.some((x, i) => i >= r && x > 0);
+  const p = { ultra: pity.ultra || 0, legend: pity.legend || 0, trans: pity.trans || 0 };
   if (usePity) {
     const best = Math.max(...rarities);
-    const can = (r) => pack.rates.some((x, i) => i >= r && x > 0);
-    if (best < 4 && pity.legend + 1 >= PITY.legendaryAfter && can(4)) {
+    const transEligible = pack.rates[6] >= PITY.transcendentMinRate;
+    if (best < 6 && transEligible && p.trans + 1 >= PITY.transcendentAfter) {
+      rarities[rarities.length - 1] = 6; pityTriggered = 6;
+    } else if (best < 4 && p.legend + 1 >= PITY.legendaryAfter && can(4)) {
       rarities[rarities.length - 1] = rollRarity(pack.rates, 4); pityTriggered = 4;
-    } else if (best < 3 && pity.ultra + 1 >= PITY.ultraAfter && can(3)) {
+    } else if (best < 3 && p.ultra + 1 >= PITY.ultraAfter && can(3)) {
       rarities[rarities.length - 1] = rollRarity(pack.rates, 3); pityTriggered = 3;
     }
   }
   const best = Math.max(...rarities);
   const next = usePity
-    ? { ultra: best >= 3 ? 0 : pity.ultra + 1, legend: best >= 4 ? 0 : pity.legend + 1 }
-    : pity;
+    ? { ultra: best >= 3 ? 0 : p.ultra + 1, legend: best >= 4 ? 0 : p.legend + 1, trans: best >= 6 ? 0 : pack.rates[6] >= PITY.transcendentMinRate ? p.trans + 1 : p.trans }
+    : p;
   const cards = rarities.map((r) => rollCard(r, pack.filter));
   return { cards, pity: next, pityTriggered };
 }

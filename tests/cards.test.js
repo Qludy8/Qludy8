@@ -55,3 +55,12 @@ test('gradation : plafonds par usure et règle « plus basse sous-note + 1 »', 
     assert.ok(grade >= 1 && grade <= 10 && (grade * 2) % 1 === 0);
   }
 });
+
+test('garantie Transcendant sur les boosters premium uniquement', () => {
+  const royal = PACKS.find((x) => x.key === 'royal'), std = PACKS.find((x) => x.key === 'standard');
+  const r = openPack(royal, { ultra: 0, legend: 0, trans: PITY.transcendentAfter - 1 });
+  assert.ok(r.cards.some((c) => SKIN_BY_ID.get(c.s).r === 6));
+  assert.equal(r.pity.trans, 0);
+  const s = openPack(std, { ultra: 0, legend: 0, trans: 10 });
+  assert.equal(s.pity.trans, 10, 'un booster bon marché ne fait pas avancer le compteur');
+});
