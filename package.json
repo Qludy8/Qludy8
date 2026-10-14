@@ -1,0 +1,15 @@
+{
+  "name": "armaris",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Armaris – jeu de cartes à collectionner d'armes fictives (100 % fictif, aucune monnaie réelle)",
+  "engines": { "node": ">=22.9" },
+  "scripts": {
+    "start": "node --experimental-sqlite --no-warnings --env-file-if-exists=.env server/index.js",
+    "dev": "node --experimental-sqlite --no-warnings --env-file-if-exists=.env --watch server/index.js",
+    "test": "node --experimental-sqlite --no-warnings --test tests/*.test.js",
+    "calibrate": "node scripts/calibrate.js"
+  },
+  "dependencies": { "express": "^4.21.0" }
+}
