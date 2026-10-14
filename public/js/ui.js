@@ -1,19 +1,20 @@
 // Petits utilitaires d'interface : échappement, toasts, modales, tilt 3D, formatage.
+import { t, fmt } from '/shared/i18n.js';
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-export const cr = (n) => `${Math.round(n).toLocaleString('fr-FR')} <i class="mu" aria-label="Mu">무</i>`;
-export const ago = (t) => {
-  const s = Math.max(1, Math.round((Date.now() - t) / 1000));
-  if (s < 60) return `il y a ${s} s`;
-  if (s < 3600) return `il y a ${Math.round(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.round(s / 3600)} h`;
-  return `il y a ${Math.round(s / 86400)} j`;
+export const cr = (n) => `${fmt(Math.round(n))} <i class="mu" aria-label="Mu">무</i>`;
+export const ago = (ts) => {
+  const s = Math.max(1, Math.round((Date.now() - ts) / 1000));
+  if (s < 60) return t('il y a {n} s', { n: s });
+  if (s < 3600) return t('il y a {n} min', { n: Math.round(s / 60) });
+  if (s < 86400) return t('il y a {n} h', { n: Math.round(s / 3600) });
+  return t('il y a {n} j', { n: Math.round(s / 86400) });
 };
 export const dur = (ms) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
-  return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`;
+  return h ? t('{h} h {m}', { h, m: String(m).padStart(2, '0') }) : `${m}:${String(x).padStart(2, '0')}`;
 };
 export const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -29,7 +30,7 @@ export function toast(msg, kind = 'info') {
 export function modal(html, { wide = false, onClose } = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'modal-wrap';
-  wrap.innerHTML = `<div class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true"><button class="modal-x" aria-label="Fermer">✕</button>${html}</div>`;
+  wrap.innerHTML = `<div class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true"><button class="modal-x" aria-label="${t('Fermer')}">✕</button>${html}</div>`;
   document.body.append(wrap);
   requestAnimationFrame(() => wrap.classList.add('in'));
   const close = () => {
@@ -44,10 +45,10 @@ export function modal(html, { wide = false, onClose } = {}) {
   return { el: wrap.querySelector('.modal'), close };
 }
 
-export function confirmBox(text, okLabel = 'Confirmer') {
+export function confirmBox(text, okLabel = t('Confirmer')) {
   return new Promise((resolve) => {
     let done = false;
-    const m = modal(`<p class="confirm-text">${text}</p><div class="row end"><button class="btn ghost" data-no>Annuler</button><button class="btn primary" data-ok>${okLabel}</button></div>`,
+    const m = modal(`<p class="confirm-text">${text}</p><div class="row end"><button class="btn ghost" data-no>${t('Annuler')}</button><button class="btn primary" data-ok>${okLabel}</button></div>`,
       { onClose: () => { if (!done) resolve(false); } });
     m.el.querySelector('[data-ok]').onclick = () => { done = true; resolve(true); m.close(); };
     m.el.querySelector('[data-no]').onclick = () => { done = true; resolve(false); m.close(); };
@@ -79,11 +80,11 @@ export function initTilt() {
 export function animateNumber(el, to, ms = 700) {
   const from = Number(el.dataset.v || 0);
   el.dataset.v = to;
-  if (reducedMotion() || from === to) { el.textContent = Math.round(to).toLocaleString('fr-FR'); return; }
+  if (reducedMotion() || from === to) { el.textContent = fmt(Math.round(to)); return; }
   const t0 = performance.now();
   const step = (t) => {
     const k = Math.min(1, (t - t0) / ms), e = 1 - (1 - k) ** 3;
-    el.textContent = Math.round(from + (to - from) * e).toLocaleString('fr-FR');
+    el.textContent = fmt(Math.round(from + (to - from) * e));
     if (k < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);

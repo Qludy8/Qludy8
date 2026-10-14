@@ -7,7 +7,9 @@ import { packSVG } from './art/pack.js';
 import { Particles, sound, haptic } from './fx.js';
 import { esc, cr, toast, $, reducedMotion } from './ui.js';
 import { post, store } from './api.js';
+import { t, L } from '/shared/i18n.js';
 
+const left = (n) => (n > 1 ? t('Cliquez sur la carte · {n} restantes', { n }) : t('Cliquez sur la carte · {n} restante', { n }));
 const sleep = (ms) => new Promise((r) => setTimeout(r, reducedMotion() ? Math.min(ms, 60) : ms));
 export const cardOf = (c, opts = {}) => cardHTML(SKIN_BY_ID.get(c.s), c, { ...opts, misprintSkin: c.mp ? SKIN_BY_ID.get(c.mp) : null });
 
@@ -22,12 +24,12 @@ export function openSequence(pack, result, { onAgain } = {}) {
     <div class="rays"></div><canvas class="fx"></canvas>
     <div class="flash-screen"></div><div class="shockwave"></div><div class="rarity-burst"></div>
     <div class="controls">
-      <button class="btn sm ghost" data-sound title="Son">${sound.on ? '🔊' : '🔇'}</button>
-      <button class="btn sm" data-all>Tout révéler</button>
-      <button class="btn sm ghost" data-close aria-label="Fermer">✕</button>
+      <button class="btn sm ghost" data-sound title="${t('Son')}">${sound.on ? '🔊' : '🔇'}</button>
+      <button class="btn sm" data-all>${t('Tout révéler')}</button>
+      <button class="btn sm ghost" data-close aria-label="${t('Fermer')}">✕</button>
     </div>
     <div class="stage">
-      <div class="pack-big">${packSVG(pack)}<div class="tear-hint">CLIQUEZ OU GLISSEZ POUR DÉCHIRER</div></div>
+      <div class="pack-big">${packSVG(pack)}<div class="tear-hint">${t('CLIQUEZ OU GLISSEZ POUR DÉCHIRER')}</div></div>
       ${order.map((c, i) => `<div class="stack-card" data-i="${i}" style="--rg:${RARITIES[c.r].glow};z-index:${order.length - i};opacity:0;transform:translateY(30%) scale(.85)">
         <div class="flip"><div class="face back"></div><div class="face front"></div></div>
       </div>`).join('')}
@@ -95,7 +97,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     shown.forEach((s, i) => setTimeout(() => stackPos(s, i), 120 + (shown.length - i) * 40));
     await sleep(500 + shown.length * 40);
     stack[0]?.classList.add('top');
-    hint.textContent = `Cliquez sur la carte · ${stack.length} restante${stack.length > 1 ? 's' : ''}`;
+    hint.textContent = left(stack.length);
   }
 
   async function next() {
@@ -120,7 +122,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
       prep();
       el.classList.remove('rays-on');
       stack[idx]?.classList.add('top');
-      hint.textContent = idx < stack.length ? `Cliquez sur la carte · ${stack.length - idx} restante${stack.length - idx > 1 ? 's' : ''}` : '';
+      hint.textContent = idx < stack.length ? left(stack.length - idx) : '';
       await sleep(260);
       if (idx >= stack.length) summary();
     }
@@ -150,7 +152,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
       sound.play('rare', c.r); haptic(c.r >= 5 ? [60, 40, 120] : 50);
       const burst = $('.rarity-burst', el);
       burst.style.setProperty('--rg', c.mp ? '#ff2b6a' : R.glow);
-      burst.textContent = c.mp ? 'CARTE ERREUR !' : `${R.fr.toUpperCase()} !`;
+      burst.textContent = c.mp ? t('CARTE ERREUR !') : t('{r} !', { r: L(R).toUpperCase() });
       burst.classList.remove('go'); void burst.offsetWidth; burst.classList.add('go');
       const wave = $('.shockwave', el);
       wave.style.setProperty('--rg', R.glow); wave.classList.remove('go'); void wave.offsetWidth; wave.classList.add('go');
@@ -166,9 +168,9 @@ export function openSequence(pack, result, { onAgain } = {}) {
     }
     const skin = SKIN_BY_ID.get(c.s);
     const w = wearOf(c.f);
-    info.innerHTML = `<div class="big" style="color:${R.color}">${esc(MODEL_BY_KEY[skin.m].name)} | ${esc(skin.n)}</div>
-      <div class="muted small">${esc(R.fr)} · ${w.key} ${fmtFloat(c.f)}${c.foil ? ' · Holo' : ''}${c.tr != null ? ' · Traqueur' : ''}</div>
-      <div style="margin-top:6px">${c.isNew ? '<span class="pill tag-new">NOUVEAU</span> ' : ''}<span class="pill">${cr(c.value)}</span></div>`;
+    info.innerHTML = `<div class="big" style="color:${R.color}">${esc(MODEL_BY_KEY[skin.m].name)} | ${esc(L(skin, 'n'))}</div>
+      <div class="muted small">${esc(L(R))} · ${w.key} ${fmtFloat(c.f)}${c.foil ? ` · ${t('Holo')}` : ''}${c.tr != null ? ` · ${t('Traqueur')}` : ''}</div>
+      <div style="margin-top:6px">${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span> ` : ''}<span class="pill">${cr(c.value)}</span></div>`;
   }
 
   async function revealAll() {
@@ -195,17 +197,17 @@ export function openSequence(pack, result, { onAgain } = {}) {
     const sorted = [...cards].sort((a, b) => b.value - a.value);
     sum.innerHTML = `
       <div class="summary-head">
-        <div><div class="muted small">${result.packs.length} × ${esc(pack.fr)}${result.welcomeUsed ? ` (${result.welcomeUsed} offert${result.welcomeUsed > 1 ? 's' : ''})` : ''}</div>
-          <div class="total">Valeur totale : ${cr(total)}</div>
-          ${result.packs.some((p) => p.pityTriggered != null) ? '<div class="pill" style="margin-top:6px">✨ Garantie déclenchée</div>' : ''}</div>
+        <div><div class="muted small">${result.packs.length} × ${esc(L(pack))}${result.welcomeUsed ? ` ${result.welcomeUsed > 1 ? t('({n} offerts)', { n: result.welcomeUsed }) : t('({n} offert)', { n: result.welcomeUsed })}` : ''}</div>
+          <div class="total">${t('Valeur totale :')} ${cr(total)}</div>
+          ${result.packs.some((p) => p.pityTriggered != null) ? `<div class="pill" style="margin-top:6px">✨ ${t('Garantie déclenchée')}</div>` : ''}</div>
         <div class="row">
-          ${lows.length ? `<button class="btn" data-sell-low>Vendre ${lows.length} commune${lows.length > 1 ? 's' : ''} · +${cr(lowGain)}</button>` : ''}
-          <button class="btn ghost" data-close2>Tout garder</button>
-          ${onAgain ? `<button class="btn primary" data-again>Rouvrir ${pack.free ? '' : `· ${pack.price} <i class="mu" aria-label="Mu">무</i>`}</button>` : ''}
+          ${lows.length ? `<button class="btn" data-sell-low>${lows.length > 1 ? t('Vendre {n} communes', { n: lows.length }) : t('Vendre {n} commune', { n: lows.length })} · +${cr(lowGain)}</button>` : ''}
+          <button class="btn ghost" data-close2>${t('Tout garder')}</button>
+          ${onAgain ? `<button class="btn primary" data-again>${t('Rouvrir')} ${pack.free ? '' : `· ${pack.price} <i class="mu" aria-label="Mu">무</i>`}</button>` : ''}
         </div>
       </div>
       <div class="summary-grid">${sorted.map((c, i) => `<div class="tile" style="--i:${Math.min(i, 12)}">${i < EAGER ? cardOf(c) : `<div class="card-ph" data-ph="${i}"></div>`}
-        <div class="meta"><span class="pill r" style="--rc:${RARITIES[c.r].color}">${RARITIES[c.r].fr}</span>${c.isNew ? '<span class="pill tag-new">NOUVEAU</span>' : ''}<b>${cr(c.value)}</b></div></div>`).join('')}</div>`;
+        <div class="meta"><span class="pill r" style="--rc:${RARITIES[c.r].color}">${L(RARITIES[c.r])}</span>${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span>` : ''}<b>${cr(c.value)}</b></div></div>`).join('')}</div>`;
     // les cartes suivantes sont dessinées quand elles approchent de l'écran
     const io = new IntersectionObserver((entries) => entries.forEach((e) => {
       if (!e.isIntersecting) return;
@@ -219,7 +221,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
       e.target.disabled = true;
       try {
         const r = await post('/cards/sell', { ids: lows.map((c) => c.id) });
-        sound.play('coin'); toast(`+${cr(r.total)} crédités`, 'good');
+        sound.play('coin'); toast(`+${cr(r.total)} ${t('crédités')}`, 'good');
         e.target.remove(); store.refresh();
       } catch (err) { toast(esc(err.message), 'error'); e.target.disabled = false; }
     });

@@ -6,6 +6,7 @@ import { wearOf, gradeLabel } from '/shared/rules.js';
 import { WEAPON_ART, WEAPON_BOX, PAINT_BOX } from './weapons.js';
 import { skinTexture, rng } from './skins.js';
 import { esc } from '../ui.js';
+import { t, L as loc } from '/shared/i18n.js';
 
 let uidN = 0;
 const uid = () => `a${(++uidN).toString(36)}`;
@@ -15,10 +16,10 @@ const F = (x) => Math.round(x * 10) / 10;
 export const CW = 630, CH = 880, MARGIN = 48;
 
 export function styleLabel(skin) {
-  if (skin.st === 'art') return `${STYLES.art.fr} · ${ART_FR[skin.art] || ''}`;
-  if (skin.st === 'geo') return `${STYLES.geo.fr} · ${PATTERNS[skin.p]}`;
-  if (skin.st === 'camo') return `${STYLES.camo.fr} · ${CAMOS[skin.cm]}`;
-  return STYLES[skin.st].fr;
+  if (skin.st === 'art') return `${loc(STYLES.art)} · ${ART_FR[skin.art] ? t(ART_FR[skin.art]) : ''}`;
+  if (skin.st === 'geo') return `${loc(STYLES.geo)} · ${t(PATTERNS[skin.p])}`;
+  if (skin.st === 'camo') return `${loc(STYLES.camo)} · ${t(CAMOS[skin.cm])}`;
+  return loc(STYLES[skin.st]);
 }
 
 // masque de bruit : blanc là où le bruit dépasse le seuil (≈ part couverte)
@@ -177,6 +178,7 @@ function cardFace(skin, card, id, opts) {
   const R = RARITIES[skin.r];
   const model = MODEL_BY_KEY[skin.m];
   const col = COLLECTION_BY_KEY[skin.col];
+  const name = loc(skin, 'n');
   const L = card ? (MARGIN * card.cx) / 100 : MARGIN / 2;
   const T = card ? (MARGIN * card.cy) / 100 : MARGIN / 2;
   const PW = CW - MARGIN, PH = CH - MARGIN;
@@ -189,8 +191,8 @@ function cardFace(skin, card, id, opts) {
   const AY = 64, AH = 540, NY = AY + AH + 16, NH = 112;
 
   const badges = [];
-  if (card?.tr != null) badges.push(['TRAQUEUR ' + String(card.tr).padStart(4, '0'), '#ff8a3d']);
-  if (card?.foil) badges.push(['HOLO', '#5ff3ff']);
+  if (card?.tr != null) badges.push([t('TRAQUEUR {n}', { n: String(card.tr).padStart(4, '0') }), '#ff8a3d']);
+  if (card?.foil) badges.push([t('HOLO'), '#5ff3ff']);
   let bxPos = 32;
   const badgeSvg = badges.map(([t, c]) => {
     const w = t.length * 11.5 + 24;
@@ -220,7 +222,7 @@ function cardFace(skin, card, id, opts) {
     <g transform="translate(${F(L)} ${F(T)})">
       <rect width="${PW}" height="${PH}" rx="20" fill="url(#${fid}pn)" stroke="#000" stroke-opacity=".6" stroke-width="2"/>
       ${wearTag || `<text x="26" y="46" class="t-model">${esc(model.name.toUpperCase())}</text>`}
-      <text x="${PW - 26}" y="46" class="t-rar" text-anchor="end" fill="${R.color}" style="filter:drop-shadow(0 0 6px ${R.glow})">${esc(R.fr.toUpperCase())}</text>
+      <text x="${PW - 26}" y="46" class="t-rar" text-anchor="end" fill="${R.color}" style="filter:drop-shadow(0 0 6px ${R.glow})">${esc(loc(R).toUpperCase())}</text>
       <g clip-path="url(#${fid}cl)">
         <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="#0a0b10"/>
         <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="url(#${fid}ab)"/>
@@ -236,8 +238,8 @@ function cardFace(skin, card, id, opts) {
       </g>
       <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" rx="16" fill="none" stroke="${R.color}" stroke-opacity=".7" stroke-width="2"/>
       <rect x="16" y="${NY}" width="${PW - 32}" height="${NH}" rx="14" fill="#000" fill-opacity=".38" stroke="${R.color}" stroke-opacity=".35"/>
-      <text x="${PW / 2}" y="${NY + 54}" text-anchor="middle" class="t-name" textLength="${Math.min(PW - 70, skin.n.length * 25)}" lengthAdjust="spacingAndGlyphs">${esc(skin.n)}</text>
-      <text x="${PW / 2}" y="${NY + 88}" text-anchor="middle" class="t-sub">${esc(model.name)} · <tspan fill="${t1}" font-weight="700">${esc(col.fr)}</tspan></text>
+      <text x="${PW / 2}" y="${NY + 54}" text-anchor="middle" class="t-name" textLength="${Math.min(PW - 70, name.length * 25)}" lengthAdjust="spacingAndGlyphs">${esc(name)}</text>
+      <text x="${PW / 2}" y="${NY + 88}" text-anchor="middle" class="t-sub">${esc(model.name)} · <tspan fill="${t1}" font-weight="700">${esc(loc(col))}</tspan></text>
       <text x="26" y="${PH - 30}" class="t-serial">${card?.serial ? esc(card.serial) : esc(skin.id.toUpperCase())}</text>
       <g transform="translate(${PW - 48} ${PH - 38})">${rarityShape(skin.r, 17)}</g>
     </g>
@@ -315,7 +317,7 @@ export function cardSVG(skin, card = null, opts = {}) {
   } else {
     inner = cardFace(skin, card, id, opts);
   }
-  return `<svg class="card-svg" viewBox="0 0 ${CW} ${CH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(MODEL_BY_KEY[skin.m].name)} | ${esc(skin.n)}">
+  return `<svg class="card-svg" viewBox="0 0 ${CW} ${CH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(MODEL_BY_KEY[skin.m].name)} | ${esc(loc(skin, 'n'))}">
     <defs><clipPath id="${id}clip"><rect width="${CW}" height="${CH}" rx="32"/></clipPath></defs>
     <g clip-path="url(#${id}clip)">
       <rect width="${CW}" height="${CH}" fill="#0b0c10"/>
@@ -361,13 +363,13 @@ export function cardHTML(skin, card = null, opts = {}) {
   if (opts.small) cls.push('small');
   const svg = cardSVG(skin, card, opts);
   const html = `<div class="${cls.join(' ')}" style="--rc:${R.color};--rg:${R.glow}" data-tilt>
-    <div class="card-inner">${svg}<div class="card-shine"></div>${card?.foil ? '<div class="card-foil"></div>' : ''}${card?.mp ? '<div class="misprint-tag">ERREUR D’IMPRESSION</div>' : ''}</div>
+    <div class="card-inner">${svg}<div class="card-shine"></div>${card?.foil ? '<div class="card-foil"></div>' : ''}${card?.mp ? `<div class="misprint-tag">${t('ERREUR D’IMPRESSION')}</div>` : ''}</div>
   </div>`;
   if (card?.g != null && !opts.noSlab) {
     return `<div class="slab ${card.g >= 10 ? 'pristine' : ''}" style="--rc:${R.color}">
       <div class="slab-label">
         <div class="slab-brand">MUGIGO GRADING<small>${esc(card.cert || '')}</small></div>
-        <div class="slab-name">${esc(MODEL_BY_KEY[skin.m].name)}<br><b>${esc(skin.n)}</b></div>
+        <div class="slab-name">${esc(MODEL_BY_KEY[skin.m].name)}<br><b>${esc(loc(skin, 'n'))}</b></div>
         <div class="slab-grade"><b>${card.g % 1 ? card.g.toFixed(1) : card.g}</b><small>${esc(gradeLabel(card.g))}</small></div>
       </div>
       <div class="slab-window">${html}</div>

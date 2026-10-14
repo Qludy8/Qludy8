@@ -4,6 +4,7 @@ import { SKINS, MODEL_BY_KEY, COLLECTION_BY_KEY } from '/shared/catalog.js';
 import { BRAND } from '/shared/config.js';
 import { skinTexture } from './skins.js';
 import { esc } from '../ui.js';
+import { t, L } from '/shared/i18n.js';
 
 let n = 0;
 function motif(key, id, t2) {
@@ -39,8 +40,8 @@ export function packSVG(pack) {
     bg = `<defs>${art.defs}</defs><g transform="translate(-661 0) scale(1.722)" opacity=".55">${art.body}</g><rect width="400" height="620" fill="#000" opacity=".35"/>`;
   }
   const sym = pack.sym || BRAND.glyph;
-  const name = pack.fr.toUpperCase();
-  return `<svg viewBox="0 0 400 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(pack.fr)}">
+  const name = L(pack).toUpperCase();
+  return `<svg viewBox="0 0 400 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(L(pack))}">
     <defs>
       <linearGradient id="${id}bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t1}"/><stop offset=".5" stop-color="color-mix(in srgb, ${t1} 40%, #0b0c12)"/><stop offset="1" stop-color="#0b0c12"/></linearGradient>
       <linearGradient id="${id}seal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="color-mix(in srgb, ${t1} 70%, #000)"/><stop offset=".35" stop-color="${t2}"/><stop offset=".6" stop-color="${t1}"/><stop offset="1" stop-color="color-mix(in srgb, ${t2} 70%, #000)"/></linearGradient>
@@ -60,8 +61,8 @@ export function packSVG(pack) {
       <rect y="452" width="400" height="2" fill="${t2}" opacity=".9"/>
       <text x="200" y="504" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="${name.length > 15 ? 30 : name.length > 11 ? 36 : 42}" fill="#fff">${esc(name)}</text>
       ${pack.ko ? `<text x="200" y="532" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="700" font-size="19" fill="${t2}" letter-spacing="3">${esc(pack.ko)}</text>` : ''}
-      <text x="200" y="${pack.ko ? 556 : 538}" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="700" font-size="15" fill="#fff" fill-opacity=".75">${esc(pack.tag)}</text>
-      <text x="200" y="${pack.ko ? 578 : 562}" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="14" fill="${t2}" letter-spacing="4">${pack.cards} CARTES</text>
+      <text x="200" y="${pack.ko ? 556 : 538}" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="700" font-size="15" fill="#fff" fill-opacity=".75">${esc(L(pack, 'tag'))}</text>
+      <text x="200" y="${pack.ko ? 578 : 562}" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="14" fill="${t2}" letter-spacing="4">${t('{n} CARTES', { n: pack.cards })}</text>
       <rect x="0" y="0" width="10" height="620" fill="#fff" fill-opacity=".08"/><rect x="390" y="0" width="10" height="620" fill="#000" fill-opacity=".2"/>
     </g>
     <g class="pack-top">
