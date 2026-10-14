@@ -12,8 +12,8 @@ export function patternsPage({ view, query }) {
   const st = { model: query.get('model') || 'rhoden', style: query.get('style') || 'fade' };
   const example = (style) => SKINS.find((s) => s.m === 'rhoden' && s.st === style && (style !== 'art' || s.art === 'dragon')) || SKINS.find((s) => s.m === 'rhoden' && s.st === style) || SKINS.find((s) => s.st === style);
   view.innerHTML = `<h1>Fiche des <span class="grad-text">motifs</span></h1>
-    <p class="muted" style="max-width:760px">Chaque carte reçoit une <b class="glow-text" style="--gc:#ffb020">graine de motif</b> de 0 à ${PATTERN.seeds - 1}. Elle positionne le motif sur l’arme.
-      Pour les styles <b>Fondu</b>, <b>Trempe</b> et <b>Marbrure</b>, la graine change vraiment le rendu : certaines sont rares et augmentent la valeur de la carte.</p>
+    <p class="muted" style="max-width:760px">Chaque carte reçoit une <b class="glow-text" style="--gc:#ffb020">graine de motif</b> de 0 à ${PATTERN.seeds - 1}.
+      Elle ne compte que pour les styles <b>Fondu</b>, <b>Trempe</b> et <b>Marbrure</b> : elle change vraiment le rendu, et certaines graines sont rares et augmentent la valeur de la carte. Les autres styles ont un rendu fixe.</p>
     <div class="section-title"><h2>Les styles</h2></div>
     <div class="style-grid">${Object.entries(STYLES).map(([k, s]) => {
     const sk = example(k);

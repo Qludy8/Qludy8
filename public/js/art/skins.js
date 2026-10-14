@@ -1,6 +1,6 @@
 // Textures de skins « pleine arme » (espace 1000 × 360) : la texture est dessinée sur toute la surface puis
 // découpée par les pièces peintes de l'arme. La graine de motif (0–999) décale / modifie le rendu.
-import { PATTERNS } from '/shared/catalog.js';
+import { PATTERNS, STYLES } from '/shared/catalog.js';
 import { describeSeed } from '/shared/patterns.js';
 import { patternDef } from './patterns.js';
 
@@ -106,11 +106,11 @@ function hardened(skin, id, pt) {
   const r = rng(pt * 7 + 13);
   for (let i = cols.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); if (Math.abs(i - j) < 4) [cols[i], cols[j]] = [cols[j], cols[i]]; }
   return { defs: `<filter id="${id}h" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency=".0055 .016" numOctaves="5" seed="${pt}"/>
+      <feTurbulence type="fractalNoise" baseFrequency=".0026 .0075" numOctaves="4" seed="${pt}"/>
       <feColorMatrix values="2.2 0 0 0 -.6  2.2 0 0 0 -.6  2.2 0 0 0 -.6  0 0 0 0 1"/>${ctf(cols)}</filter>
-    <filter id="${id}hs" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".002 .09" numOctaves="3" seed="${pt + 3}"/>
+    <filter id="${id}hs" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".0012 .045" numOctaves="2" seed="${pt + 3}"/>
       <feColorMatrix values="0 0 0 0 1  0 0 0 0 .95  0 0 0 0 .85  2.5 0 0 0 -1.15"/></filter>
-    <filter id="${id}hd" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".035 .06" numOctaves="2" seed="${pt + 9}"/>
+    <filter id="${id}hd" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".014 .026" numOctaves="2" seed="${pt + 9}"/>
       <feColorMatrix values="0 0 0 0 .05  0 0 0 0 .03  0 0 0 0 .08  3 0 0 0 -1.45"/></filter>`,
   body: `<rect width="${W}" height="${H}" filter="url(#${id}h)"/><rect width="${W}" height="${H}" filter="url(#${id}hd)" style="mix-blend-mode:multiply"/><rect width="${W}" height="${H}" filter="url(#${id}hs)" opacity=".35" style="mix-blend-mode:overlay"/>` };
 }
@@ -128,21 +128,21 @@ function marble(skin, id, pt) {
   else if (d?.tier === 3) cols = ['#04140f', '#2dd4bf', '#22c55e', '#a855f7', '#0b1020', '#6ee7b7'];
   const r = rng(pt + 101);
   const seq = Array.from({ length: 10 }, () => cols[Math.floor(r() * cols.length)]);
-  return { defs: `<filter id="${id}mb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="turbulence" baseFrequency=".0045 .013" numOctaves="4" seed="${pt}"/>
+  return { defs: `<filter id="${id}mb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="turbulence" baseFrequency=".0022 .0065" numOctaves="3" seed="${pt}"/>
       <feColorMatrix values="2.4 0 0 0 -.15  2.4 0 0 0 -.15  2.4 0 0 0 -.15  0 0 0 0 1"/>${ctf(seq)}</filter>
-    <filter id="${id}mv" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".01 .025" numOctaves="4" seed="${pt + 5}"/>
+    <filter id="${id}mv" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".005 .012" numOctaves="3" seed="${pt + 5}"/>
       <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1 0 0 0 0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0 0 0 0 .85 0 0 0 0 0"/></feComponentTransfer></filter>
-    <filter id="${id}mk" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".02 .05" numOctaves="3" seed="${pt + 8}"/>
+    <filter id="${id}mk" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".009 .022" numOctaves="2" seed="${pt + 8}"/>
       <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0 0 0 .7 0 0 0 0"/></feComponentTransfer></filter>`,
   body: `<rect width="${W}" height="${H}" filter="url(#${id}mb)"/><rect width="${W}" height="${H}" filter="url(#${id}mk)" opacity=".7"/><rect width="${W}" height="${H}" filter="url(#${id}mv)" opacity=".55"/>` };
 }
 
 // Acier damassé : strates d'acier (clair, sombre, bleuté) ondulées à deux échelles + teinte du skin
 function damascus(skin, c, id, pt) {
-  return { defs: `<pattern id="${id}dp" patternUnits="userSpaceOnUse" width="16" height="16" patternTransform="rotate(${(pt % 40) - 20})">
+  return { defs: `<pattern id="${id}dp" patternUnits="userSpaceOnUse" width="16" height="16" patternTransform="rotate(${(pt % 40) - 20}) scale(2)">
       <rect width="16" height="16" fill="#4d535c"/><rect width="16" height="4" fill="#d3d8df"/><rect y="5" width="16" height="2" fill="#23272e"/><rect y="9" width="16" height="3" fill="#8f97a2"/><rect y="13" width="16" height="1.5" fill="#6b7fa0"/></pattern>
-    <filter id="${id}dd" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".011 .028" numOctaves="4" seed="${pt}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="70"/></filter>
-    <filter id="${id}de" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".04 .07" numOctaves="2" seed="${pt + 2}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="18"/></filter>`,
+    <filter id="${id}dd" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".0055 .014" numOctaves="3" seed="${pt}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="120"/></filter>
+    <filter id="${id}de" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".02 .035" numOctaves="2" seed="${pt + 2}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="26"/></filter>`,
   body: `<g filter="url(#${id}dd)"><g filter="url(#${id}de)"><rect x="-50" y="-50" width="${W + 100}" height="${H + 100}" fill="url(#${id}dp)"/></g></g>
     <rect width="${W}" height="${H}" fill="${c.c1}" opacity=".3" style="mix-blend-mode:color"/>
     <rect width="${W}" height="${H}" fill="url(#${id}dp)" opacity=".06"/>` };
@@ -381,7 +381,8 @@ function flamesLayer(r, cols, op) {
 // ───────────────────────────── Point d'entrée
 export function skinTexture(skin, pt, id) {
   const c = colors(skin);
-  const seed = pt ?? 0;
+  // seuls les styles « à motif » dépendent de la graine de la carte ; les autres ont un rendu fixe
+  const seed = STYLES[skin.st]?.patternBased ? (pt ?? 0) : skin.seed % 1000;
   const r = rng((skin.seed ^ (seed * 2654435761)) >>> 0);
   let t;
   switch (skin.st) {

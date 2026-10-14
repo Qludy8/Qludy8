@@ -29,7 +29,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     <div class="stage">
       <div class="pack-big">${packSVG(pack)}<div class="tear-hint">CLIQUEZ OU GLISSEZ POUR DÉCHIRER</div></div>
       ${order.map((c, i) => `<div class="stack-card" data-i="${i}" style="--rg:${RARITIES[c.r].glow};z-index:${order.length - i};opacity:0;transform:translateY(30%) scale(.85)">
-        <div class="flip"><div class="face back"><div class="liseret"></div>${cardBack()}</div><div class="face front">${cardOf(c)}</div></div>
+        <div class="flip"><div class="face back"></div><div class="face front"></div></div>
       </div>`).join('')}
       <div class="reveal-info"></div>
       <div class="stack-hint"></div>
@@ -42,6 +42,25 @@ export function openSequence(pack, result, { onAgain } = {}) {
   const stage = $('.stage', el), packEl = $('.pack-big', el), info = $('.reveal-info', el), hint = $('.stack-hint', el);
   const stack = [...el.querySelectorAll('.stack-card')];
   let idx = 0, busy = false, torn = false, closed = false;
+
+  // rendu paresseux : seules les cartes proches du sommet de la pile existent dans le DOM
+  // (une ouverture ×10 = 50 cartes, chacune avec ses filtres d'usure → trop lourd en une fois)
+  const BACKS = 7, FRONTS = 2;
+  const stackPos = (s, i) => {
+    const depth = Math.min(i - idx, 6);
+    s.style.opacity = 1;
+    s.style.transform = `translate(${depth * 4}px, ${-depth * 4}px) rotate(${(i % 2 ? 1 : -1) * depth * 0.8}deg)`;
+  };
+  function prep() {
+    for (let i = idx; i < Math.min(stack.length, idx + BACKS); i++) {
+      const s = stack[i], back = s.querySelector('.face.back');
+      if (!back.firstChild) { back.innerHTML = `<div class="liseret"></div>${cardBack()}`; s.hidden = false; if (torn) stackPos(s, i); }
+      const front = s.querySelector('.face.front');
+      if (i < idx + FRONTS && !front.firstChild) front.innerHTML = cardOf(order[i]);
+    }
+  }
+  stack.forEach((s, i) => { s.hidden = i >= BACKS; });
+  prep();
 
   const center = () => { const r = stage.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
   const close = () => {
@@ -72,14 +91,9 @@ export function openSequence(pack, result, { onAgain } = {}) {
     setTimeout(() => el.style.setProperty('--glow', pack.theme[0]), 700);
     await sleep(450);
     packEl.classList.add('gone');
-    stack.forEach((s, i) => {
-      setTimeout(() => {
-        const depth = Math.min(i, 6);
-        s.style.opacity = 1;
-        s.style.transform = `translate(${depth * 4}px, ${-depth * 4}px) rotate(${(i % 2 ? 1 : -1) * depth * 0.8}deg)`;
-      }, 120 + (stack.length - i) * 40);
-    });
-    await sleep(500 + stack.length * 40);
+    const shown = stack.filter((s) => !s.hidden);
+    shown.forEach((s, i) => setTimeout(() => stackPos(s, i), 120 + (shown.length - i) * 40));
+    await sleep(500 + shown.length * 40);
     stack[0]?.classList.add('top');
     hint.textContent = `Cliquez sur la carte · ${stack.length} restante${stack.length > 1 ? 's' : ''}`;
   }
@@ -100,8 +114,10 @@ export function openSequence(pack, result, { onAgain } = {}) {
       info.innerHTML = '';
       const mini = document.createElement('div');
       mini.className = 'mini'; mini.innerHTML = cardOf(c, { small: true, noSlab: true, lite: true });
-      $('.tray', el).append(mini);
+      const tray = $('.tray', el); tray.append(mini);
+      if (tray.children.length > 12) tray.firstElementChild.remove();
       idx++;
+      prep();
       el.classList.remove('rays-on');
       stack[idx]?.classList.add('top');
       hint.textContent = idx < stack.length ? `Cliquez sur la carte · ${stack.length - idx} restante${stack.length - idx > 1 ? 's' : ''}` : '';
@@ -157,7 +173,6 @@ export function openSequence(pack, result, { onAgain } = {}) {
 
   async function revealAll() {
     if (!torn) { torn = true; packEl.classList.add('gone'); }
-    for (let i = idx; i < stack.length; i++) reveal(stack[i], order[i], true);
     const best = order.reduce((a, b) => (b.r > a.r || (b.mp && !a.mp) ? b : a), order[0]);
     if (best.r >= 4 || best.mp) {
       const R = RARITIES[best.r];
@@ -169,6 +184,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     summary();
   }
 
+  const EAGER = 10;
   function summary() {
     el.classList.add('done');
     el.classList.remove('rays-on');
@@ -188,8 +204,15 @@ export function openSequence(pack, result, { onAgain } = {}) {
           ${onAgain ? `<button class="btn primary" data-again>Rouvrir ${pack.free ? '' : `· ${pack.price} <i class="mu" aria-label="Mu">무</i>`}</button>` : ''}
         </div>
       </div>
-      <div class="summary-grid">${sorted.map((c, i) => `<div class="tile" style="--i:${i}">${cardOf(c)}
+      <div class="summary-grid">${sorted.map((c, i) => `<div class="tile" style="--i:${Math.min(i, 12)}">${i < EAGER ? cardOf(c) : `<div class="card-ph" data-ph="${i}"></div>`}
         <div class="meta"><span class="pill r" style="--rc:${RARITIES[c.r].color}">${RARITIES[c.r].fr}</span>${c.isNew ? '<span class="pill tag-new">NOUVEAU</span>' : ''}<b>${cr(c.value)}</b></div></div>`).join('')}</div>`;
+    // les cartes suivantes sont dessinées quand elles approchent de l'écran
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+      e.target.outerHTML = cardOf(sorted[Number(e.target.dataset.ph)]);
+    }), { root: sum, rootMargin: '400px 0px' });
+    sum.querySelectorAll('[data-ph]').forEach((x) => io.observe(x));
     sum.querySelector('[data-close2]').onclick = close;
     sum.querySelector('[data-again]')?.addEventListener('click', () => { close(); onAgain(); });
     sum.querySelector('[data-sell-low]')?.addEventListener('click', async (e) => {

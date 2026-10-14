@@ -178,7 +178,9 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .card-svg .t-lab { font-size: 18px; fill: #8a8fa3; letter-spacing: 3px; font-weight: 800; }
 .card-svg .t-val { font-size: 28px; fill: #fff; font-weight: 800; }
 .card-svg .t-serial { font-size: 18px; fill: #6d7285; letter-spacing: 2px; font-weight: 700; }
-.card-svg .t-glyph { font-size: 200px; font-weight: 800; }
+.card-svg .t-colsym { font-size: 420px; font-family: var(--ko); font-weight: 900; }
+.card-svg .t-wear { font-size: 22px; font-weight: 800; letter-spacing: 1.5px; }
+.rar-ico { display: inline-block; vertical-align: -.12em; overflow: visible; }
 .card-svg .t-badge { font-size: 16px; font-weight: 800; letter-spacing: .5px; }
 .card-svg .t-back { font-size: 46px; font-weight: 800; letter-spacing: 16px; }
 .card-svg .t-backsub { font-size: 28px; font-family: var(--ko); font-weight: 700; letter-spacing: 4px; }
@@ -268,7 +270,6 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .opening .stack-card.charging.lvl2 .face.back { animation-duration: .28s; }
 .opening .stack-card.shake { animation: shake .09s linear infinite; }
 @keyframes shake { 0% { translate: 0 0; } 25% { translate: -4px 2px; } 50% { translate: 3px -3px; } 75% { translate: -2px -2px; } 100% { translate: 2px 3px; } }
-.opening .stack-card.revealed .face.front { box-shadow: 0 0 60px -6px var(--rg); }
 .opening .stack-hint { position: absolute; top: -44px; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
 .opening .reveal-info { position: absolute; top: calc(100% + 16px); left: 50%; translate: -50% 0; width: max-content; max-width: 90vw; text-align: center; z-index: 4; transition: opacity .3s; }
 .opening .reveal-info .big { font-family: var(--display); font-size: 22px; font-weight: 700; }
@@ -501,3 +502,6 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .admin-toggle.on i { background: rgba(255, 122, 230, .45); }
 .admin-toggle.on i::after { transform: translateX(10px); background: #fff; }
 .balance.infinite { color: #ff7ae6; text-shadow: 0 0 12px rgba(255, 122, 230, .6); }
+/* résumé d'ouverture : les cartes hors écran ne sont pas rendues (ouvertures ×10) */
+
+.card-ph { aspect-ratio: 63 / 88; width: 100%; border-radius: 4.8%/3.4%; background: linear-gradient(160deg, #1b1d26, #0d0e13); }

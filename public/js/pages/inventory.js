@@ -1,6 +1,6 @@
 // Inventaire (sélection multiple, vente, contrat, gradation), fiche carte, suivi de gradation.
 import { RARITIES, WEAR, ECONOMY, GRADING, TRADE_UP, CENTERING } from '/shared/config.js';
-import { SKIN_BY_ID, MODEL_BY_KEY, FINISHES, COLLECTION_BY_KEY } from '/shared/catalog.js';
+import { SKIN_BY_ID, MODEL_BY_KEY, FINISHES, COLLECTION_BY_KEY, STYLES } from '/shared/catalog.js';
 import { describeSeed } from '/shared/patterns.js';
 import { styleLabel } from '../art/card.js';
 import { inspector } from '../inspect.js';
@@ -180,7 +180,7 @@ export async function cardPage({ view, params, stale, rerender, cert }) {
           <dt>Float</dt><dd>${fmtFloat(c.f)}</dd><dt>Usure</dt><dd>${esc(w.fr)} (${w.key})</dd>
           <dt>Centrage</dt><dd>${centeringLabel(c.cx, c.cy)} · G/D ${c.cx.toFixed(1)}/${(100 - c.cx).toFixed(1)} · H/B ${c.cy.toFixed(1)}/${(100 - c.cy).toFixed(1)}</dd>
           <dt>Note de centrage estimée</dt><dd>${c.mp ? '—' : centeringScore(c.cx, c.cy)}</dd>
-          <dt>Collection</dt><dd style="color:${COLLECTION_BY_KEY[s.col].theme[0]}">${esc(COLLECTION_BY_KEY[s.col].fr)}</dd><dt>Style</dt><dd>${esc(styleLabel(s))}</dd><dt>Graine</dt><dd>${c.pt ?? '—'}${describeSeed(s, c.pt) ? ` · <span style="color:${describeSeed(s, c.pt).tier ? '#ffd76a' : 'inherit'}">${esc(describeSeed(s, c.pt).label)}</span>` : ''}</dd><dt>Finition</dt><dd>${esc(FINISHES[s.f])}</dd>
+          <dt>Collection</dt><dd style="color:${COLLECTION_BY_KEY[s.col].theme[0]}">${esc(COLLECTION_BY_KEY[s.col].fr)}</dd><dt>Style</dt><dd>${esc(styleLabel(s))}</dd>${STYLES[s.st].patternBased ? `<dt>Graine</dt><dd>${c.pt ?? '—'}${describeSeed(s, c.pt) ? ` · <span style="color:${describeSeed(s, c.pt).tier ? '#ffd76a' : 'inherit'}">${esc(describeSeed(s, c.pt).label)}</span>` : ''}</dd>` : ''}<dt>Finition</dt><dd>${esc(FINISHES[s.f])}</dd>
           <dt>Exemplaires</dt><dd>${d.copies}</dd><dt>Obtenue</dt><dd>${new Date(c.created_at).toLocaleDateString('fr-FR')}</dd></dl></div>
         <div class="panel"><h3>${c.g != null ? `Gradation · ${c.g} ${esc(gradeLabel(c.g))}` : 'Population gradée'}</h3>
           ${subs.map(([k, label]) => `<div class="subgrade" style="animation-delay:0s;opacity:1"><span>${label}</span><div class="bar"><i style="width:${c.subs[k] * 10}%"></i></div><b>${c.subs[k]}</b></div>`).join('')}

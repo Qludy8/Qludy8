@@ -1,9 +1,8 @@
 // Rendu des cartes en SVG : cadre de rareté, centrage réel, arme dessinée pièce par pièce (matériaux + ombrage),
 // texture du skin, usure (écaillage, perte de couleur, taches, rayures), badges, carte erreur, slab gradé, dos luxe.
-import { RARITIES, WEAR, BRAND } from '/shared/config.js';
-import { MODEL_BY_KEY, STYLES, FINISHES, COLLECTION_BY_KEY, ART_FR, PATTERNS, CAMOS } from '/shared/catalog.js';
-import { wearOf, fmtFloat, centeringLabel, gradeLabel, isExtremeFloat } from '/shared/rules.js';
-import { describeSeed } from '/shared/patterns.js';
+import { RARITIES, BRAND } from '/shared/config.js';
+import { MODEL_BY_KEY, STYLES, COLLECTION_BY_KEY, ART_FR, PATTERNS, CAMOS } from '/shared/catalog.js';
+import { wearOf, gradeLabel } from '/shared/rules.js';
 import { WEAPON_ART, WEAPON_BOX, PAINT_BOX } from './weapons.js';
 import { skinTexture, rng } from './skins.js';
 import { esc } from '../ui.js';
@@ -40,28 +39,44 @@ export function weaponSVG(skin, card = null, opts = {}) {
   const all = parts.filter((p) => !['line', 'hi', 'wire', 'tex', 'hole', 'shade'].includes(p.k)).map((p) => p.d).join(' ');
   const paint = of('paint');
   const tex = skinTexture(skin, pt, `${id}t`);
-  const r = rng(hash(String(card?.serial || skin.id)));
 
-  // usure de la peinture
+  // usure de la peinture : tout est continu en fonction du float (aucun palier).
+  //  · écaillage : part des arêtes des pièces peintes puis gagne le centre (bruit + distance au bord)
+  //  · perte de couleur et salissure : voiles doux qui montent progressivement
+  //  · rayures fines : leur nombre croît avec le float, les premières restent en place
   let wearDefs = '', chipMask = '', wearOver = '';
-  if (float != null && float > 0.05) {
-    const sc = Array.from({ length: Math.floor(float * 38) }, () => {
-      const x = r() * 1000, y = r() * 360, len = 20 + r() * 110, a = (r() - 0.5) * 0.8;
-      return `M${F(x)} ${F(y)} l${F(Math.cos(a) * len)} ${F(Math.sin(a) * len)}`;
+  if (float != null && float > 0.004) {
+    const w = Math.min(1, float);
+    const sr = rng(hash(`${card?.serial || skin.id}:scr`));
+    const sc = Array.from({ length: Math.round(w * 46) }, () => {
+      const x = sr() * 1000, y = 20 + sr() * 320, len = 8 + sr() * 70, a = (sr() - 0.5) * 0.5;
+      return `M${F(x)} ${F(y)} q${F(Math.cos(a) * len * 0.5)} ${F((sr() - 0.5) * 6)} ${F(Math.cos(a) * len)} ${F(Math.sin(a) * len)}`;
     }).join(' ');
+    const ns = skin.seed % 997;
     if (!opts.lite) {
-      wearDefs += noiseMask(`${id}chip`, (0.02 + float * 0.025).toFixed(3), skin.seed % 997, Math.max(0, float - 0.15) * 0.72)
-        + noiseMask(`${id}loss`, '.006', (skin.seed + 3) % 997, Math.min(1, float * 1.2), 2)
-        + noiseMask(`${id}stain`, '.018', (skin.seed + 11) % 997, Math.max(0, float - 0.3) * 0.9);
+      // écaillage : bruit − intérieur (flou de la forme peinte) + décalage qui croît avec le float
+      const C = -0.1 + Math.pow(w, 0.8) * 0.52;
+      wearDefs += `<filter id="${id}chf" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="9" result="b"/><feColorMatrix in="b" values="0 0 0 1 0  0 0 0 1 0  0 0 0 1 0  0 0 0 0 1" result="bi"/>
+          <feTurbulence type="fractalNoise" baseFrequency=".045 .06" numOctaves="4" seed="${ns}" result="n"/>
+          <feComposite in="n" in2="bi" operator="arithmetic" k2="1" k3="-.55" k4="${C.toFixed(3)}" result="m"/>
+          <feColorMatrix in="m" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  16 0 0 0 -7.2"/><feComposite in2="SourceAlpha" operator="in"/></filter>
+        <filter id="${id}lsf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".004 .008" numOctaves="3" seed="${(ns + 3) % 997}"/>
+          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.2 0 0 0 -.55"/></filter>
+        <filter id="${id}stf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .02" numOctaves="4" seed="${(ns + 11) % 997}"/>
+          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  5 0 0 0 ${(-3.1 + w * 1.4).toFixed(2)}"/><feGaussianBlur stdDeviation="1.2"/></filter>
+        <mask id="${id}chip" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><g filter="url(#${id}chf)">${paint.map((p) => `<path d="${p.d}" fill="#fff" fill-rule="evenodd"/>`).join('')}</g></mask>
+        <mask id="${id}chipi" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" fill="#fff"/><rect width="1000" height="360" fill="#000" mask="url(#${id}chip)"/></mask>
+        <mask id="${id}loss" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" filter="url(#${id}lsf)"/></mask>
+        <mask id="${id}stain" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" filter="url(#${id}stf)"/></mask>`;
       chipMask = `mask="url(#${id}chipi)"`;
-      wearDefs += `<mask id="${id}chipi" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" fill="#fff"/><rect width="1000" height="360" fill="#000" mask="url(#${id}chip)"/></mask>`;
-      wearOver = `<rect width="1000" height="360" fill="#8f8a80" mask="url(#${id}loss)" opacity="${F(Math.min(0.85, float * 1.1))}" style="mix-blend-mode:saturation"/>
-        <rect width="1000" height="360" fill="#e9e1cf" mask="url(#${id}loss)" opacity="${F(float * 0.22)}"/>
-        <rect width="1000" height="360" fill="#3b2412" mask="url(#${id}stain)" opacity="${F(Math.min(0.75, float * 0.9))}" style="mix-blend-mode:multiply"/>`;
-    } else if (float > 0.3) {
-      wearOver = Array.from({ length: Math.floor(float * 8) }, () => `<ellipse cx="${F(r() * 1000)}" cy="${F(r() * 360)}" rx="${F(20 + r() * 50)}" ry="${F(10 + r() * 24)}" fill="#3b2412" opacity="${F(0.2 + float * 0.3)}"/>`).join('');
+      wearOver = `<rect width="1000" height="360" fill="#8f8a80" mask="url(#${id}loss)" opacity="${Math.min(0.9, 1.2 * Math.pow(w, 0.85)).toFixed(3)}" style="mix-blend-mode:saturation"/>
+        <rect width="1000" height="360" fill="#ece4d2" mask="url(#${id}loss)" opacity="${(w * w * 0.22).toFixed(3)}"/>
+        <rect width="1000" height="360" fill="#3a2614" mask="url(#${id}stain)" opacity="${(Math.pow(w, 1.3) * 0.7).toFixed(3)}" style="mix-blend-mode:multiply"/>`;
+    } else {
+      wearOver = `<rect width="1000" height="360" fill="#8f8a80" opacity="${(w * 0.5).toFixed(3)}" style="mix-blend-mode:saturation"/>`;
     }
-    wearOver += `<path d="${sc}" stroke="#f4f1ea" stroke-opacity="${F(0.2 + float * 0.35)}" stroke-width="1.6" fill="none"/>`;
+    wearOver += `<path d="${sc}" stroke="#f4f1ea" stroke-opacity="${(0.12 + w * 0.4).toFixed(3)}" stroke-width="1.2" stroke-linecap="round" fill="none"/>`;
   }
 
   // rendu « réaliste » : pas de contour épais, dégradés à reflet spéculaire, biseau intérieur, grain, ombre douce
@@ -131,6 +146,32 @@ function fit(m, x0, y0, w0, h0) {
   return `translate(${F(cx)} ${F(cy)}) rotate(${a}) scale(${k.toFixed(4)}) translate(${F(-(b.x + b.w / 2))} ${F(-(b.y + b.h / 2))})`;
 }
 
+// ───────── Forme de rareté (une forme par rang plutôt qu'un nombre de losanges)
+// cercle · triangle · losange · pentagone · hexagone · étoile · étoile à huit branches
+const poly = (n, r, rot = -90, inner = null) => {
+  const pts = [];
+  const k = inner ? n * 2 : n;
+  for (let i = 0; i < k; i++) {
+    const a = ((rot + (360 / k) * i) * Math.PI) / 180, rr = inner && i % 2 ? inner : r;
+    pts.push(`${F(Math.cos(a) * rr)} ${F(Math.sin(a) * rr)}`);
+  }
+  return `M${pts.join(' L')} Z`;
+};
+export const RARITY_SHAPES = [
+  (r) => `M${-r} 0 a${r} ${r} 0 1 0 ${2 * r} 0 a${r} ${r} 0 1 0 ${-2 * r} 0 Z`,
+  (r) => poly(3, r * 1.15, -90),
+  (r) => poly(4, r * 1.15, -90),
+  (r) => poly(5, r * 1.1, -90),
+  (r) => poly(6, r * 1.08, 0),
+  (r) => poly(5, r * 1.3, -90, r * 0.55),
+  (r) => poly(8, r * 1.35, -90, r * 0.5),
+];
+export function rarityShape(rar, size = 12, { stroke = '#000' } = {}) {
+  const R = RARITIES[rar];
+  return `<path d="${RARITY_SHAPES[rar](size)}" fill="${R.color}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px ${R.glow})"/>`;
+}
+export const rarityIcon = (rar, px = 14) => `<svg class="rar-ico" width="${px}" height="${px}" viewBox="-16 -16 32 32" aria-hidden="true">${rarityShape(rar, 11)}</svg>`;
+
 // ───────── Face complète d'une carte (cadre + panneau), coordonnées 630 × 880
 function cardFace(skin, card, id, opts) {
   const R = RARITIES[skin.r];
@@ -144,39 +185,26 @@ function cardFace(skin, card, id, opts) {
     ? '<stop offset="0" stop-color="#5ff3ff"/><stop offset=".33" stop-color="#ff7ae6"/><stop offset=".66" stop-color="#ffe46b"/><stop offset="1" stop-color="#5ff3ff"/>'
     : `<stop offset="0" stop-color="${R.color}"/><stop offset=".45" stop-color="#fff" stop-opacity=".85"/><stop offset=".5" stop-color="${R.color}"/><stop offset="1" stop-color="#15161a"/>`;
 
-  const bx = 26, bw = PW - 52, by = 690;
-  let floatBar = `<rect x="${bx - 2}" y="${by - 2}" width="${bw + 4}" height="14" rx="7" fill="#000" opacity=".5"/>` +
-    WEAR.tiers.map((t, i) => `<rect x="${F(bx + t.min * bw)}" y="${by}" width="${F((t.max - t.min) * bw)}" height="10" fill="${t.color}" opacity="${card ? 0.95 : 0.3}" ${i === 0 ? 'rx="5"' : ''}/>`).join('');
-  let floatTxt;
-  const seed = card ? describeSeed(skin, card.pt) : null;
-  if (card) {
-    const fx = bx + card.f * bw, w = wearOf(card.f);
-    floatBar += `<circle cx="${F(fx)}" cy="${by + 5}" r="11" fill="${w.color}" opacity=".35"/><circle cx="${F(fx)}" cy="${by + 5}" r="7" fill="#fff" stroke="${w.color}" stroke-width="3"/>`;
-    floatTxt = `<text x="26" y="${by - 20}" class="t-lab">FLOAT</text><text x="${PW - 26}" y="${by - 18}" class="t-val" text-anchor="end" fill="${w.color}">${fmtFloat(card.f)}</text>
-      <text x="26" y="${by + 46}" class="t-sub"><tspan fill="${w.color}" font-weight="800">${w.key}</tspan> · ${esc(w.fr)}</text>
-      <text x="${PW - 26}" y="${by + 46}" class="t-sub" text-anchor="end">Centrage ${centeringLabel(card.cx, card.cy)}</text>`;
-  } else {
-    floatBar += `<rect x="${F(bx + skin.fmin * bw)}" y="${by - 4}" width="${F((skin.fmax - skin.fmin) * bw)}" height="18" rx="9" fill="none" stroke="#fff" stroke-width="2.5"/>`;
-    floatTxt = `<text x="26" y="${by - 20}" class="t-lab">PLAGE DE FLOAT</text><text x="${PW - 26}" y="${by - 18}" class="t-val" text-anchor="end">${skin.fmin.toFixed(2)} – ${skin.fmax.toFixed(2)}</text>
-      <text x="26" y="${by + 46}" class="t-sub">${esc(FINISHES[skin.f])}</text>`;
-  }
+  // fenêtre d'illustration et cartouche du nom
+  const AY = 64, AH = 540, NY = AY + AH + 16, NH = 112;
 
   const badges = [];
   if (card?.tr != null) badges.push(['TRAQUEUR ' + String(card.tr).padStart(4, '0'), '#ff8a3d']);
   if (card?.foil) badges.push(['HOLO', '#5ff3ff']);
-  if (card && isExtremeFloat(card.f)) badges.push(['FLOAT EXTRÊME', '#ffe46b']);
-  if (seed?.tier) badges.push([seed.tierFr.toUpperCase(), '#ffd76a']);
   let bxPos = 32;
   const badgeSvg = badges.map(([t, c]) => {
     const w = t.length * 11.5 + 24;
-    const s = `<g transform="translate(${bxPos} 80)"><rect width="${w}" height="30" rx="15" fill="#000" fill-opacity=".62" stroke="${c}" stroke-width="2"/><text x="${w / 2}" y="21" text-anchor="middle" class="t-badge" fill="${c}">${t}</text></g>`;
+    const s = `<g transform="translate(${bxPos} ${AY + 16})"><rect width="${w}" height="30" rx="15" fill="#000" fill-opacity=".62" stroke="${c}" stroke-width="2"/><text x="${w / 2}" y="21" text-anchor="middle" class="t-badge" fill="${c}">${t}</text></g>`;
     bxPos += w + 8; return s;
   }).join('');
 
-  const gems = Array.from({ length: skin.r + 1 }, (_, i) => `<path d="M${PW - 32 - i * 22} 790 l8 -10 l8 10 l-8 10 Z" fill="${R.color}" stroke="#000" stroke-width="1"/>`).join('');
+  // état général : seulement le code à 2 lettres
+  const w = card ? wearOf(card.f) : null;
+  const wearTag = w ? `<g transform="translate(26 22)"><rect width="58" height="34" rx="9" fill="#000" fill-opacity=".45" stroke="${w.color}" stroke-width="2"/>
+    <text x="29" y="25" text-anchor="middle" class="t-wear" fill="${w.color}">${w.key}</text></g>` : '';
+
   const raysOp = 0.04 + skin.r * 0.03;
   const [t1, t2] = col.theme;
-  const styleTxt = `${styleLabel(skin)}${card?.pt != null ? ` · Graine ${card.pt}` : ''}`;
 
   return `<g>
     <defs>
@@ -184,67 +212,91 @@ function cardFace(skin, card, id, opts) {
       <linearGradient id="${fid}pn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1d26"/><stop offset=".62" stop-color="#101118"/><stop offset="1" stop-color="${R.color}" stop-opacity=".32"/></linearGradient>
       <radialGradient id="${fid}ab" cx=".5" cy=".5" r=".8"><stop offset="0" stop-color="${t1}" stop-opacity=".55"/><stop offset=".5" stop-color="${t2}" stop-opacity=".35"/><stop offset="1" stop-color="#07080c"/></radialGradient>
       <pattern id="${fid}gr" patternUnits="userSpaceOnUse" width="28" height="28"><path d="M28 0 L0 0 0 28" fill="none" stroke="#fff" stroke-opacity=".05"/></pattern>
-      <clipPath id="${fid}cl"><rect x="16" y="64" width="${PW - 32}" height="430" rx="16"/></clipPath>
+      <clipPath id="${fid}cl"><rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" rx="16"/></clipPath>
+      ${opts.lite ? '' : `<filter id="${fid}sg" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>`}
     </defs>
     <rect width="${CW}" height="${CH}" rx="32" fill="url(#${fid}fr)"/>
     <rect x="5" y="5" width="${CW - 10}" height="${CH - 10}" rx="28" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="3"/>
     <g transform="translate(${F(L)} ${F(T)})">
       <rect width="${PW}" height="${PH}" rx="20" fill="url(#${fid}pn)" stroke="#000" stroke-opacity=".6" stroke-width="2"/>
-      <text x="26" y="46" class="t-model">${esc(model.name.toUpperCase())}</text>
+      ${wearTag || `<text x="26" y="46" class="t-model">${esc(model.name.toUpperCase())}</text>`}
       <text x="${PW - 26}" y="46" class="t-rar" text-anchor="end" fill="${R.color}" style="filter:drop-shadow(0 0 6px ${R.glow})">${esc(R.fr.toUpperCase())}</text>
       <g clip-path="url(#${fid}cl)">
-        <rect x="16" y="64" width="${PW - 32}" height="430" fill="#0a0b10"/>
-        <rect x="16" y="64" width="${PW - 32}" height="430" fill="url(#${fid}ab)"/>
-        <rect x="16" y="64" width="${PW - 32}" height="430" fill="url(#${fid}gr)"/>
-        <g opacity="${raysOp}" transform="translate(${PW / 2} 280)">${Array.from({ length: 12 }, (_, i) => `<path d="M0 0 L-26 -440 L26 -440 Z" fill="#fff" transform="rotate(${i * 30})"/>`).join('')}</g>
-        <text x="${PW - 36}" y="476" class="t-glyph" text-anchor="end" fill="#fff" fill-opacity=".05">${esc(model.glyph)}</text>
-        <ellipse cx="${PW / 2}" cy="440" rx="230" ry="14" fill="#000" opacity=".5"/>
-        <g transform="${fit(skin.m, 16, 64, PW - 32, 430)}">${weaponSVG(skin, card, opts)}</g>
+        <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="#0a0b10"/>
+        <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="url(#${fid}ab)"/>
+        <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="url(#${fid}gr)"/>
+        <g opacity="${raysOp}" transform="translate(${PW / 2} ${AY + AH * 0.5})">${Array.from({ length: 12 }, (_, i) => `<path d="M0 0 L-26 -480 L26 -480 Z" fill="#fff" transform="rotate(${i * 30})"/>`).join('')}</g>
+        <g class="colsym" transform="translate(${PW / 2} ${AY + AH / 2})">
+          ${opts.lite ? '' : `<text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="none" stroke="${t1}" stroke-width="10" opacity=".35" filter="url(#${fid}sg)">${esc(col.sym)}</text>`}
+          <text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="${t1}" fill-opacity=".05" stroke-width="2.5" stroke-opacity=".5" style="stroke:color-mix(in srgb, ${t1} 75%, #fff)">${esc(col.sym)}</text>
+        </g>
+        <ellipse cx="${PW / 2}" cy="${AY + AH - 66}" rx="230" ry="14" fill="#000" opacity=".5"/>
+        <g transform="${fit(skin.m, 16, AY, PW - 32, AH)}">${weaponSVG(skin, card, opts)}</g>
         ${badgeSvg}
       </g>
-      <rect x="16" y="64" width="${PW - 32}" height="430" rx="16" fill="none" stroke="${R.color}" stroke-opacity=".7" stroke-width="2"/>
-      <rect x="16" y="508" width="${PW - 32}" height="110" rx="14" fill="#000" fill-opacity=".38" stroke="${R.color}" stroke-opacity=".35"/>
-      <text x="${PW / 2}" y="556" text-anchor="middle" class="t-name" textLength="${Math.min(PW - 70, skin.n.length * 25)}" lengthAdjust="spacingAndGlyphs">${esc(skin.n)}</text>
-      <text x="${PW / 2}" y="586" text-anchor="middle" class="t-sub">${esc(model.clsFr)} · <tspan fill="${t1}" font-weight="700">${esc(col.fr)}</tspan></text>
-      <text x="${PW / 2}" y="608" text-anchor="middle" class="t-sub2" fill="${seed?.tier ? '#ffd76a' : '#8f95a8'}">${esc(styleTxt)}${seed ? ` · ${esc(seed.label)}` : ''}</text>
-      ${floatTxt}
-      ${floatBar}
-      <line x1="26" x2="${PW - 26}" y1="756" y2="756" stroke="#fff" stroke-opacity=".1"/>
-      <text x="26" y="796" class="t-serial">${card?.serial ? esc(card.serial) : esc(skin.id.toUpperCase())}</text>
-      ${gems}
+      <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" rx="16" fill="none" stroke="${R.color}" stroke-opacity=".7" stroke-width="2"/>
+      <rect x="16" y="${NY}" width="${PW - 32}" height="${NH}" rx="14" fill="#000" fill-opacity=".38" stroke="${R.color}" stroke-opacity=".35"/>
+      <text x="${PW / 2}" y="${NY + 54}" text-anchor="middle" class="t-name" textLength="${Math.min(PW - 70, skin.n.length * 25)}" lengthAdjust="spacingAndGlyphs">${esc(skin.n)}</text>
+      <text x="${PW / 2}" y="${NY + 88}" text-anchor="middle" class="t-sub">${esc(model.name)} · <tspan fill="${t1}" font-weight="700">${esc(col.fr)}</tspan></text>
+      <text x="26" y="${PH - 30}" class="t-serial">${card?.serial ? esc(card.serial) : esc(skin.id.toUpperCase())}</text>
+      <g transform="translate(${PW - 48} ${PH - 38})">${rarityShape(skin.r, 17)}</g>
     </g>
   </g>`;
 }
 
-// ───────── Usure visible de la carte (rayures, coins blanchis, perte de couleur, taches, pli)
+// ───────── Usure visible de la carte : même logique que les skins, continue de 0 à 1.
+// Chaque effet a son propre tirage aléatoire : en montant le float, les marques existantes restent
+// à leur place et de nouvelles s'ajoutent (coins blanchis, bords écaillés, rayures, perte de couleur, taches, pli).
+const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function cardWear(card, id, lite) {
-  const f = card.f;
-  if (f < 0.04) return '';
-  const r = rng(hash(card.serial || String(card.id || 0)));
+  const f = Math.min(1, card.f);
+  if (f < 0.004) return '';
+  const key = card.serial || String(card.id || 0);
+  const rs = (k) => rng(hash(`${key}:${k}`));
   let s = '', defs = '';
-  if (!lite && f > 0.12) {
-    defs = `<filter id="${id}cf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".008" numOctaves="2" seed="${Math.floor(r() * 999)}"/>
-        <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  12 0 0 0 ${(-12 * (0.62 - f * 0.28)).toFixed(2)}"/></filter>
+
+  // bords : blanchiment irrégulier qui s'étend
+  if (!lite) {
+    const ns = rs('n')() * 997 | 0;
+    defs += `<filter id="${id}ef" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="${ns}"/>
+        <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  9 0 0 0 ${(-5.6 + f * 4.2).toFixed(2)}"/></filter>
+      <mask id="${id}em" maskUnits="userSpaceOnUse" x="0" y="0" width="${CW}" height="${CH}"><rect width="${CW}" height="${CH}" filter="url(#${id}ef)"/></mask>
+      <filter id="${id}cf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".005 .007" numOctaves="3" seed="${(ns + 5) % 997}"/>
+        <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.4 0 0 0 -.6"/></filter>
       <mask id="${id}cm" maskUnits="userSpaceOnUse" x="0" y="0" width="${CW}" height="${CH}"><rect width="${CW}" height="${CH}" filter="url(#${id}cf)"/></mask>
-      <filter id="${id}sf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="3" seed="${Math.floor(r() * 999)}"/>
-        <feColorMatrix values="0 0 0 0 .32  0 0 0 0 .2  0 0 0 0 .09  6 0 0 0 ${(-6 * (0.74 - f * 0.16)).toFixed(2)}"/><feGaussianBlur stdDeviation="1.5"/></filter>`;
-    s += `<rect width="${CW}" height="${CH}" fill="#9a958a" mask="url(#${id}cm)" opacity="${F(Math.min(0.8, f))}" style="mix-blend-mode:saturation"/>
-      <rect width="${CW}" height="${CH}" fill="#efe6d2" mask="url(#${id}cm)" opacity="${F(f * 0.18)}"/>`;
-    if (f > 0.3) s += `<rect width="${CW}" height="${CH}" filter="url(#${id}sf)" opacity="${F(Math.min(0.55, f * 0.6))}" style="mix-blend-mode:multiply"/>`;
-  } else if (f > 0.4) {
-    for (let i = 0; i < Math.floor(f * 6); i++) s += `<ellipse cx="${F(r() * CW)}" cy="${F(r() * CH)}" rx="${F(20 + r() * 50)}" ry="${F(14 + r() * 30)}" fill="#6b4a2a" opacity="${F(0.08 + r() * 0.14)}"/>`;
+      <filter id="${id}sf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".02 .026" numOctaves="4" seed="${(ns + 9) % 997}"/>
+        <feColorMatrix values="0 0 0 0 .3  0 0 0 0 .19  0 0 0 0 .08  5 0 0 0 ${(-3.7 + f * 1.0).toFixed(2)}"/><feGaussianBlur stdDeviation="1.4"/></filter>`;
+    // perte de couleur et voile jauni
+    s += `<rect width="${CW}" height="${CH}" fill="#9a958a" mask="url(#${id}cm)" opacity="${Math.min(0.8, Math.pow(f, 0.9) * 0.9).toFixed(3)}" style="mix-blend-mode:saturation"/>
+      <rect width="${CW}" height="${CH}" fill="#efe6d2" mask="url(#${id}cm)" opacity="${(f * f * 0.16).toFixed(3)}"/>
+      <rect width="${CW}" height="${CH}" filter="url(#${id}sf)" opacity="${(Math.pow(f, 1.5) * 0.42).toFixed(3)}" style="mix-blend-mode:multiply"/>
+      <rect x="4" y="4" width="${CW - 8}" height="${CH - 8}" rx="29" fill="none" stroke="#f4f1ea" stroke-width="${(4 + f * 16).toFixed(1)}" mask="url(#${id}em)" opacity="${Math.min(0.85, 0.25 + f * 0.7).toFixed(3)}"/>`;
+  } else {
+    s += `<rect width="${CW}" height="${CH}" fill="#9a958a" opacity="${(f * 0.45).toFixed(3)}" style="mix-blend-mode:saturation"/>
+      <rect x="4" y="4" width="${CW - 8}" height="${CH - 8}" rx="29" fill="none" stroke="#f4f1ea" stroke-width="${(2 + f * 8).toFixed(1)}" opacity="${(f * 0.6).toFixed(3)}" stroke-dasharray="${f < 0.5 ? '6 22' : '20 10'}"/>`;
   }
-  const n = Math.floor(f * 40);
+
+  // coins blanchis
+  const rc = rs('c');
+  for (const [cx, cy] of [[10, 10], [CW - 10, 10], [10, CH - 10], [CW - 10, CH - 10]]) {
+    const k = 0.4 + rc() * 0.6;
+    s += `<circle cx="${cx}" cy="${cy}" r="${(2 + f * 22 * k).toFixed(1)}" fill="#f4f1ea" opacity="${Math.min(0.85, f * 1.3 * k).toFixed(3)}"/>`;
+  }
+
+  // rayures : les premières restent en place quand le float monte
+  const rr = rs('s');
+  const n = Math.round(f * 44);
   for (let i = 0; i < n; i++) {
-    const x = r() * CW, y = r() * CH, len = 20 + r() * 110 * (0.4 + f), a = r() * Math.PI;
-    s += `<path d="M${F(x)} ${F(y)} q${F(Math.cos(a) * len * 0.5)} ${F(Math.sin(a) * len * 0.5 + (r() - 0.5) * 12)} ${F(Math.cos(a) * len)} ${F(Math.sin(a) * len)}" stroke="#fff" stroke-opacity="${F(0.1 + r() * 0.22)}" stroke-width="${F(0.6 + r() * 1.3)}" fill="none"/>`;
+    const x = rr() * CW, y = rr() * CH, len = 14 + rr() * 90, a = rr() * Math.PI, bend = (rr() - 0.5) * 12, op = 0.08 + rr() * 0.2, sw = 0.6 + rr() * 1.2;
+    s += `<path d="M${F(x)} ${F(y)} q${F(Math.cos(a) * len * 0.5)} ${F(Math.sin(a) * len * 0.5 + bend)} ${F(Math.cos(a) * len)} ${F(Math.sin(a) * len)}" stroke="#fff" stroke-opacity="${(op * (0.5 + f * 0.5)).toFixed(3)}" stroke-width="${F(sw)}" fill="none"/>`;
   }
-  const dash = Array.from({ length: 12 }, () => Math.round(4 + r() * 60 * (1.2 - f))).join(' ');
-  s += `<rect x="3" y="3" width="${CW - 6}" height="${CH - 6}" rx="30" fill="none" stroke="#f4f1ea" stroke-opacity="${F(Math.min(0.7, f))}" stroke-width="${F(3 + f * 8)}" stroke-linecap="round" stroke-dasharray="${dash}"/>`;
-  if (f > 0.3) for (const [cx, cy] of [[14, 14], [CW - 14, 14], [14, CH - 14], [CW - 14, CH - 14]]) s += `<circle cx="${cx}" cy="${cy}" r="${F(6 + f * 18 * r())}" fill="#f4f1ea" opacity="${F(0.3 + f * 0.45)}"/>`;
-  if (f > 0.62) {
-    const y1 = 100 + r() * 300, y2 = y1 + 150 + r() * 400;
-    s += `<path d="M0 ${F(y1)} L${CW} ${F(y2)}" stroke="#000" stroke-opacity=".32" stroke-width="5"/><path d="M0 ${F(y1 + 4)} L${CW} ${F(y2 + 4)}" stroke="#fff" stroke-opacity=".3" stroke-width="2"/>`;
+
+  // pli : apparaît en fondu sur les cartes très usées
+  const crease = smooth(0.55, 0.9, f);
+  if (crease > 0) {
+    const rp = rs('p');
+    const y1 = 100 + rp() * 300, y2 = y1 + 150 + rp() * 400;
+    s += `<g opacity="${crease.toFixed(3)}"><path d="M0 ${F(y1)} L${CW} ${F(y2)}" stroke="#000" stroke-opacity=".3" stroke-width="5"/><path d="M0 ${F(y1 + 4)} L${CW} ${F(y2 + 4)}" stroke="#fff" stroke-opacity=".28" stroke-width="2"/></g>`;
   }
   return `<defs>${defs}</defs><g class="wear" pointer-events="none">${s}</g>`;
 }
