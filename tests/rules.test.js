@@ -22,11 +22,8 @@ test('note de centrage façon PSA', () => {
   assert.equal(centeringScore(28, 50), 6);
 });
 
-test('le centrage modifie la valeur en + ou en −', () => {
-  const good = cardValue(base, skin).value;
-  const bad = cardValue({ ...base, cx: 30 }, skin).value;
-  assert.ok(good > skin.base, 'parfaitement centrée > base');
-  assert.ok(bad < skin.base, 'mal centrée < base');
+test('le centrage n’influence plus la valeur (seule l’arme compte)', () => {
+  assert.equal(cardValue(base, skin).value, cardValue({ ...base, cx: 30 }, skin).value);
 });
 
 test('la gradation peut faire gagner ou perdre de la valeur', () => {

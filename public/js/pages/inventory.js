@@ -4,7 +4,7 @@ import { SKIN_BY_ID, MODEL_BY_KEY, FINISHES, COLLECTION_BY_KEY, STYLES } from '/
 import { describeSeed } from '/shared/patterns.js';
 import { styleLabel } from '../art/card.js';
 import { inspector } from '../inspect.js';
-import { wearOf, fmtFloat, centeringScore, centeringLabel, gradeLabel } from '/shared/rules.js';
+import { wearOf, fmtFloat, gradeLabel } from '/shared/rules.js';
 import { api, post, store } from '../api.js';
 import { cardOf } from '../opening.js';
 import { tile, skinTitle, rarityPill, priceChart } from '../common.js';
@@ -13,7 +13,9 @@ import { sound } from '../fx.js';
 import { t, tr, L, fmt, locale } from '/shared/i18n.js';
 
 // libellés des multiplicateurs de valeur (calculés en français par le serveur)
-const SUBS = { centering: 'Centrage', corners: 'Coins', edges: 'Bords', surface: 'Surface' };
+// sous-notes de gradation : elles jugent l'arme (les anciennes cartes gardent centrage / coins)
+const SUB_LABELS = { paint: 'Peinture', edges: 'Arêtes', surface: 'Surface', shine: 'Éclat', centering: 'Centrage', corners: 'Coins' };
+const subsOf = (c) => Object.keys(c.subs || {}).map((k) => [k, SUB_LABELS[k] || k]);
 function partLabel(l) {
   let m;
   if ((m = /^Usure (\w+)$/.exec(l))) return t('Usure {w}', { w: m[1] });
@@ -204,7 +206,7 @@ export async function cardPage({ view, params, stale, rerender, cert }) {
   const mine = me && c.owner_id === me.id;
   const w = wearOf(c.f);
   const burned = c.status === 'BURNED';
-  const subs = c.subs ? Object.entries(SUBS) : [];
+  const subs = subsOf(c);
 
   view.innerHTML = `<div class="detail">
     <div class="art-col">${cardOf(c)}</div>
@@ -225,8 +227,6 @@ export async function cardPage({ view, params, stale, rerender, cert }) {
       <div class="grid cols-2" style="margin-top:18px">
         <div class="panel"><h3>${t('État')}</h3><dl class="kv">
           <dt>${t('Float')}</dt><dd>${fmtFloat(c.f)}</dd><dt>${t('Usure')}</dt><dd>${esc(L(w))} (${w.key})</dd>
-          <dt>${t('Centrage')}</dt><dd>${centeringLabel(c.cx, c.cy)} · ${t('G/D')} ${c.cx.toFixed(1)}/${(100 - c.cx).toFixed(1)} · ${t('H/B')} ${c.cy.toFixed(1)}/${(100 - c.cy).toFixed(1)}</dd>
-          <dt>${t('Note de centrage estimée')}</dt><dd>${c.mp ? '—' : centeringScore(c.cx, c.cy)}</dd>
           <dt>${t('Collection')}</dt><dd style="color:${COLLECTION_BY_KEY[s.col].theme[0]}">${esc(L(COLLECTION_BY_KEY[s.col]))}</dd><dt>${t('Style')}</dt><dd>${esc(styleLabel(s))}</dd>${STYLES[s.st].patternBased ? `<dt>${t('Graine')}</dt><dd>${c.pt ?? '—'}${describeSeed(s, c.pt) ? ` · <span style="color:${describeSeed(s, c.pt).tier ? '#ffd76a' : 'inherit'}">${esc(describeSeed(s, c.pt).label)}</span>` : ''}</dd>` : ''}<dt>${t('Finition')}</dt><dd>${esc(t(FINISHES[s.f]))}</dd>
           <dt>${t('Exemplaires')}</dt><dd>${fmt(d.copies)}</dd><dt>${t('Obtenue')}</dt><dd>${new Date(c.created_at).toLocaleDateString(locale())}</dd></dl></div>
         <div class="panel"><h3>${c.g != null ? `${t('Gradation')} · ${c.g} ${esc(gradeLabel(c.g))}` : t('Population gradée')}</h3>
@@ -309,7 +309,7 @@ function revealModal(results, done) {
     m.el.querySelector('[data-body]').innerHTML = `<div class="grade-reveal">
       <div>${cardOf(c)}</div>
       <div><h2>${esc(skinTitle(SKIN_BY_ID.get(c.s)))}</h2><div class="muted small">${esc(c.cert)}</div>
-        <div class="grid" style="gap:10px;margin:18px 0">${Object.entries(SUBS).map(([k, l], j) => `<div class="subgrade" style="animation-delay:${0.3 + j * 0.45}s"><span>${t(l)}</span><div class="bar"><i style="width:${c.subs[k] * 10}%"></i></div><b>${c.subs[k]}</b></div>`).join('')}</div>
+        <div class="grid" style="gap:10px;margin:18px 0">${subsOf(c).map(([k, l], j) => `<div class="subgrade" style="animation-delay:${0.3 + j * 0.45}s"><span>${t(l)}</span><div class="bar"><i style="width:${c.subs[k] * 10}%"></i></div><b>${c.subs[k]}</b></div>`).join('')}</div>
         <div class="row" style="align-items:flex-end"><div class="final-grade ${c.g >= 9.5 ? 'grad-text' : ''}" style="animation-delay:2.2s">${c.g}</div><div class="subgrade" style="animation-delay:2.4s;display:block"><b>${esc(gradeLabel(c.g))}</b><br>
           <span class="${delta >= 0 ? 'pos' : 'neg'}">${cr(c.before)} → ${cr(c.value)} (${delta >= 0 ? '+' : ''}${fmt(delta)})</span></div></div>
         <div class="row end" style="margin-top:20px">${i < results.length - 1 ? `<button class="btn primary" data-next>${t('Carte suivante ({n}/{total})', { n: i + 2, total: results.length })}</button>` : `<button class="btn primary" data-end>${t('Terminer')}</button>`}</div>

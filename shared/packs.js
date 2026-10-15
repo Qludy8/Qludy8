@@ -6,7 +6,7 @@ import { SKINS, MODELS } from './catalog.js';
 
 // Multiplicateur moyen d'une carte vs sa valeur de base (usure, holo, traqueur, centrage, graines…),
 // mesuré par `npm run calibrate`.
-export const AVG_CARD_MULT = 0.6;
+export const AVG_CARD_MULT = 0.525;
 
 export const packFilter = (filter = {}) => (s) =>
   (!filter.classes || filter.classes.includes(s.cls)) && (!filter.models || filter.models.includes(s.m)) && (!filter.collection || s.col === filter.collection);

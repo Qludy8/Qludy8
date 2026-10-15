@@ -71,10 +71,8 @@ export function cardValue(card, skin, pop = null) {
   if (card.g != null) {
     const gm = gradeMult(card.g); v *= gm; push(t('Grade {g}', { g: card.g }), gm);
     if (pop != null) { const pb = popBonus(pop); v *= pb; push(t('Population {n}', { n: pop }), pb); }
-  } else if (!card.mp) {
-    const cm = stepDown(CENTERING.valueMult, centeringScore(card.cx, card.cy));
-    v *= cm; push(t('Centrage {c}', { c: centeringLabel(card.cx, card.cy) }), cm);
   }
+  // le centrage ne compte plus : toutes les cartes sont imprimées parfaitement, seule l'arme varie
   return { value: Math.max(1, Math.round(v)), parts };
 }
 

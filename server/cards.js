@@ -3,7 +3,7 @@ import { randomInt, randomBytes } from 'node:crypto';
 import { RARITIES, WEAR, MODIFIERS, CENTERING, MISPRINT, GRADING, PITY, PATTERN } from '../shared/config.js';
 import { SKINS } from '../shared/catalog.js';
 import { packFilter } from '../shared/packs.js';
-import { wearOf, centeringScore, FLOAT_DECIMALS } from '../shared/rules.js';
+import { wearOf, FLOAT_DECIMALS } from '../shared/rules.js';
 
 // Uniforme [0,1) cryptographique (53 bits)
 export function rand() {
@@ -115,10 +115,10 @@ export function gradeCard(card) {
   const wear = wearOf(card.f).key;
   const { k, p, sigma } = GRADING.model;
   const sub = (s) => clamp(round05(10 - k * card.f ** p + gauss() * s), 1, 10);
-  const centering = card.mp ? 1 : clamp(round05(centeringScore(card.cx, card.cy) + gauss() * 0.25), 1, 10);
-  const subs = { centering, corners: sub(sigma[wear]), edges: sub(sigma[wear]), surface: sub(sigma[wear] * 1.1) };
+  // la carte elle-même est toujours impeccable : la note juge l'arme (peinture, arêtes, surface, éclat)
+  const subs = { paint: sub(sigma[wear]), edges: sub(sigma[wear]), surface: sub(sigma[wear] * 1.1), shine: sub(sigma[wear] * 0.9) };
   const w = GRADING.weights;
-  let g = subs.centering * w.centering + subs.corners * w.corners + subs.edges * w.edges + subs.surface * w.surface;
+  let g = subs.paint * w.paint + subs.edges * w.edges + subs.surface * w.surface + subs.shine * w.shine;
   g = Math.min(g, Math.min(...Object.values(subs)) + 1, GRADING.maxByWear[wear]);
   g = clamp(Math.floor(g * 2) / 2, 1, 10);
   return { subs, grade: g };

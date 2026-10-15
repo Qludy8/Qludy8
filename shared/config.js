@@ -79,7 +79,7 @@ export const GRADING = {
   },
   valueFeeRate: 0.02, maxValueFee: 600,
   model: { k: 9.0, p: 0.75, sigma: { IM: 0.45, PM: 0.55, EP: 0.85, US: 0.9, RV: 0.9 } },
-  weights: { centering: 0.2, corners: 0.25, edges: 0.2, surface: 0.35 },
+  weights: { paint: 0.35, edges: 0.25, surface: 0.25, shine: 0.15 },   // sous-notes de l'arme
   maxByWear: { IM: 10, PM: 10, EP: 9, US: 7, RV: 6 },
   labels: [[10, 'Pristine'], [9.5, 'Gem Mint'], [9, 'Mint'], [8, 'NM-MT'], [7, 'NM'], [6, 'EX'], [0, 'Abîmée']],
   valueMult: [[10, 6], [9.5, 3], [9, 2], [8, 1.4], [7, 1.15], [6, 1.0], [5, 0.9], [0, 0.75]],

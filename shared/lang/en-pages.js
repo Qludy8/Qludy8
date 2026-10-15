@@ -287,4 +287,7 @@ export const EN_PAGES = {
   'Gain': 'Gain',
   'Recycler': 'Recycle',
   '{n} doublon(s) recyclé(s) · +{gain}': '{n} duplicate(s) recycled · +{gain}',
+  'Peinture': 'Paint',
+  'Arêtes': 'Edges',
+  'Éclat': 'Shine',
 };

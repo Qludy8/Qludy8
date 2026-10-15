@@ -7,7 +7,7 @@ import { WEAPON_ART, WEAPON_BOX, PAINT_BOX } from './weapons.js';
 import { HAS_3D } from './weapons3d.js';
 import { skinTexture, rng } from './skins.js';
 import { esc } from '../ui.js';
-import { t, L as loc } from '/shared/i18n.js';
+import { t, L as loc, getLang } from '/shared/i18n.js';
 
 let uidN = 0;
 const uid = () => `a${(++uidN).toString(36)}`;
@@ -196,137 +196,59 @@ export function rarityShape(rar, size = 12, { stroke = '#000' } = {}) {
 }
 export const rarityIcon = (rar, px = 14) => `<svg class="rar-ico" width="${px}" height="${px}" viewBox="-16 -16 32 32" aria-hidden="true">${rarityShape(rar, 11)}</svg>`;
 
-// ───────── Face complète d'une carte (cadre + panneau), coordonnées 630 × 880
+// ───────── Face d'une carte (style épuré) : fond gris propre à chaque carte, nom en haut,
+// initiale de la rareté dans une pastille claire ; la rareté se lit surtout au bord lumineux (CSS, animé).
+const GRAYS = [['#3a3d44', '#24262b'], ['#45484f', '#2b2d32'], ['#4f525a', '#303238'], ['#363940', '#1f2125'], ['#5a5d65', '#36383e'], ['#41444b', '#27292e']];
+export const rarityLetter = (r) => (getLang() === 'en' ? ['C', 'U', 'R', 'UR', 'L', 'M', 'T'] : ['C', 'P', 'R', 'U', 'L', 'M', 'T'])[r];
 function cardFace(skin, card, id, opts) {
   const R = RARITIES[skin.r];
   const model = MODEL_BY_KEY[skin.m];
   const col = COLLECTION_BY_KEY[skin.col];
   const name = loc(skin, 'n');
-  const L = card ? (MARGIN * card.cx) / 100 : MARGIN / 2;
-  const T = card ? (MARGIN * card.cy) / 100 : MARGIN / 2;
-  const PW = CW - MARGIN, PH = CH - MARGIN;
   const fid = `${id}${opts.suffix || ''}`;
-  const frameStops = skin.r === 6
-    ? '<stop offset="0" stop-color="#5ff3ff"/><stop offset=".33" stop-color="#ff7ae6"/><stop offset=".66" stop-color="#ffe46b"/><stop offset="1" stop-color="#5ff3ff"/>'
-    : `<stop offset="0" stop-color="${R.color}"/><stop offset=".45" stop-color="#fff" stop-opacity=".85"/><stop offset=".5" stop-color="${R.color}"/><stop offset="1" stop-color="#15161a"/>`;
+  const [g1, g2] = GRAYS[skin.seed % GRAYS.length];
+  const [t1] = col.theme;
+  const AY = 150, AH = 560;                       // fenêtre de l'arme
 
-  // fenêtre d'illustration et cartouche du nom
-  const AY = 64, AH = 540, NY = AY + AH + 16, NH = 112;
+  const badge = card?.tr != null ? (() => {
+    const txt = t('TRAQUEUR {n}', { n: String(card.tr).padStart(4, '0') }); const w = txt.length * 11.5 + 24;
+    return `<g transform="translate(36 ${AY + 14})"><rect width="${w}" height="30" rx="15" fill="#000" fill-opacity=".55" stroke="#ff8a3d" stroke-width="2"/><text x="${w / 2}" y="21" text-anchor="middle" class="t-badge" fill="#ff8a3d">${txt}</text></g>`;
+  })() : '';
 
-  const badges = [];
-  if (card?.tr != null) badges.push([t('TRAQUEUR {n}', { n: String(card.tr).padStart(4, '0') }), '#ff8a3d']);
-  let bxPos = 32;
-  const badgeSvg = badges.map(([t, c]) => {
-    const w = t.length * 11.5 + 24;
-    const s = `<g transform="translate(${bxPos} ${AY + 16})"><rect width="${w}" height="30" rx="15" fill="#000" fill-opacity=".62" stroke="${c}" stroke-width="2"/><text x="${w / 2}" y="21" text-anchor="middle" class="t-badge" fill="${c}">${t}</text></g>`;
-    bxPos += w + 8; return s;
-  }).join('');
-
-  // état général : seulement le code à 2 lettres
-  // indicateur d'usure : barre des états, avec seulement un point à la position du float
-  const FY = PH - 82, FX = 30, FW = PW - 60;
-  const floatBar = card ? `<g class="fbar" opacity=".9">
-      <rect x="${FX - 2}" y="${FY - 2}" width="${FW + 4}" height="10" rx="5" fill="#000" opacity=".45"/>
-      ${WEAR.tiers.map((tr) => `<rect x="${F(FX + tr.min * FW)}" y="${FY}" width="${F((tr.max - tr.min) * FW)}" height="6" fill="${tr.color}" opacity=".85"/>`).join('')}
-      <circle cx="${F(FX + Math.min(1, card.f) * FW)}" cy="${FY + 3}" r="8" fill="#fff" stroke="#000" stroke-opacity=".55" stroke-width="2.5"/></g>` : '';
-
-  const raysOp = 0.04 + skin.r * 0.03;
-  const [t1, t2] = col.theme;
+  // usure de l'arme : barre des états, avec seulement un point à la position du float
+  const FY = CH - 78, FX = 40, FW = CW - 80;
+  const floatBar = card ? `<g class="fbar">
+      <rect x="${FX - 2}" y="${FY - 2}" width="${FW + 4}" height="10" rx="5" fill="#000" opacity=".35"/>
+      ${WEAR.tiers.map((tr) => `<rect x="${F(FX + tr.min * FW)}" y="${FY}" width="${F((tr.max - tr.min) * FW)}" height="6" fill="${tr.color}" opacity=".9"/>`).join('')}
+      <circle cx="${F(FX + Math.min(1, card.f) * FW)}" cy="${FY + 3}" r="8" fill="#fff" stroke="#000" stroke-opacity=".5" stroke-width="2.5"/></g>` : '';
+  const letter = rarityLetter(skin.r);
 
   return `<g>
     <defs>
-      <linearGradient id="${fid}fr" x1="0" y1="0" x2="1" y2="1">${frameStops}</linearGradient>
-      <linearGradient id="${fid}pn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1d26"/><stop offset=".62" stop-color="#101118"/><stop offset="1" stop-color="${R.color}" stop-opacity=".32"/></linearGradient>
-      <radialGradient id="${fid}ab" cx=".5" cy=".5" r=".8"><stop offset="0" stop-color="${t1}" stop-opacity=".55"/><stop offset=".5" stop-color="${t2}" stop-opacity=".35"/><stop offset="1" stop-color="#07080c"/></radialGradient>
-      <pattern id="${fid}gr" patternUnits="userSpaceOnUse" width="28" height="28"><path d="M28 0 L0 0 0 28" fill="none" stroke="#fff" stroke-opacity=".05"/></pattern>
-      <clipPath id="${fid}cl"><rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" rx="16"/></clipPath>
-      ${opts.lite ? '' : `<filter id="${fid}sg" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>`}
+      <linearGradient id="${fid}bg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="${g1}"/><stop offset="1" stop-color="${g2}"/></linearGradient>
+      <radialGradient id="${fid}sp" cx=".5" cy=".55" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      ${opts.lite ? '' : `<filter id="${fid}sg" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8"/></filter>`}
     </defs>
-    <rect width="${CW}" height="${CH}" rx="32" fill="url(#${fid}fr)"/>
-    <rect x="5" y="5" width="${CW - 10}" height="${CH - 10}" rx="28" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="3"/>
-    <g transform="translate(${F(L)} ${F(T)})">
-      <rect width="${PW}" height="${PH}" rx="20" fill="url(#${fid}pn)" stroke="#000" stroke-opacity=".6" stroke-width="2"/>
-      <text x="26" y="46" class="t-model">${esc(model.name.toUpperCase())}</text>
-      <text x="${PW - 26}" y="46" class="t-rar" text-anchor="end" fill="${R.color}" style="filter:drop-shadow(0 0 6px ${R.glow})">${esc(loc(R).toUpperCase())}</text>
-      <g clip-path="url(#${fid}cl)">
-        <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="#0a0b10"/>
-        <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="url(#${fid}ab)"/>
-        <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="url(#${fid}gr)"/>
-        <g opacity="${raysOp}" transform="translate(${PW / 2} ${AY + AH * 0.5})">${Array.from({ length: 12 }, (_, i) => `<path d="M0 0 L-26 -480 L26 -480 Z" fill="#fff" transform="rotate(${i * 30})"/>`).join('')}</g>
-        <g class="colsym" transform="translate(${PW / 2} ${AY + AH / 2})">
-          ${opts.lite ? '' : `<text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="none" stroke="${t1}" stroke-width="10" opacity=".35" filter="url(#${fid}sg)">${esc(col.sym)}</text>`}
-          <text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="${t1}" fill-opacity=".05" stroke-width="2.5" stroke-opacity=".5" style="stroke:color-mix(in srgb, ${t1} 75%, #fff)">${esc(col.sym)}</text>
-        </g>
-        <ellipse cx="${PW / 2}" cy="${AY + AH - 66}" rx="230" ry="14" fill="#000" opacity=".5"/>
-        <g transform="${fit(skin.m, 16, AY, PW - 32, AH)}">${weaponSVG(skin, card, opts)}</g>
-        ${badgeSvg}
-      </g>
-      <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" rx="16" fill="none" stroke="${R.color}" stroke-opacity=".7" stroke-width="2"/>
-      <rect x="16" y="${NY}" width="${PW - 32}" height="${NH}" rx="14" fill="#000" fill-opacity=".38" stroke="${R.color}" stroke-opacity=".35"/>
-      <text x="${PW / 2}" y="${NY + 54}" text-anchor="middle" class="t-name" textLength="${Math.min(PW - 70, name.length * 25)}" lengthAdjust="spacingAndGlyphs">${esc(name)}</text>
-      <text x="${PW / 2}" y="${NY + 88}" text-anchor="middle" class="t-sub">${esc(model.name)} · <tspan fill="${t1}" font-weight="700">${esc(loc(col))}</tspan></text>
-      ${floatBar}
-      <text x="26" y="${PH - 30}" class="t-serial">${card?.serial ? esc(card.serial) : esc(skin.id.toUpperCase())}</text>
-      <g transform="translate(${PW - 48} ${PH - 38})">${rarityShape(skin.r, 17)}</g>
+    <rect width="${CW}" height="${CH}" rx="32" fill="url(#${fid}bg)"/>
+    <rect width="${CW}" height="${CH}" rx="32" fill="url(#${fid}sp)"/>
+    <rect x="1.5" y="1.5" width="${CW - 3}" height="${CH - 3}" rx="31" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3"/>
+    <text x="40" y="78" class="t-name t-top" textLength="${F(Math.min(CW - 170, name.length * 27))}" lengthAdjust="spacingAndGlyphs">${esc(name)}</text>
+    <text x="40" y="114" class="t-sub t-topsub">${esc(model.name)} · <tspan fill="${t1}" font-weight="700">${esc(loc(col))}</tspan></text>
+    <g transform="translate(${CW - 70} 70)">
+      <circle r="34" fill="#f2f3f6" opacity=".94"/>
+      <circle r="34" fill="none" stroke="${R.color}" stroke-width="3.5"/>
+      <text y="${letter.length > 1 ? 11 : 13}" text-anchor="middle" class="t-rletter${letter.length > 1 ? ' two' : ''}" fill="#1b1d22">${letter}</text>
     </g>
+    <g class="colsym" transform="translate(${CW / 2} ${AY + AH / 2})">
+      ${opts.lite ? '' : `<text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="none" stroke="${t1}" stroke-width="10" opacity=".28" filter="url(#${fid}sg)">${esc(col.sym)}</text>`}
+      <text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="#fff" fill-opacity=".03" stroke-width="2.5" stroke-opacity=".38" style="stroke:color-mix(in srgb, ${t1} 70%, #fff)">${esc(col.sym)}</text>
+    </g>
+    <ellipse cx="${CW / 2}" cy="${AY + AH - 70}" rx="240" ry="15" fill="#000" opacity=".35"/>
+    <g transform="${fit(skin.m, 30, AY, CW - 60, AH)}">${weaponSVG(skin, card, opts)}</g>
+    ${badge}
+    ${floatBar}
+    <text x="${CW / 2}" y="${CH - 30}" text-anchor="middle" class="t-serial">${card?.serial ? esc(card.serial) : esc(skin.id.toUpperCase())}</text>
   </g>`;
-}
-
-// ───────── Usure visible de la carte : même logique que les skins, continue de 0 à 1.
-// Chaque effet a son propre tirage aléatoire : en montant le float, les marques existantes restent
-// à leur place et de nouvelles s'ajoutent (coins blanchis, bords écaillés, rayures, perte de couleur, taches, pli).
-const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-function cardWear(card, id, lite) {
-  const f = Math.min(1, card.f);
-  if (f < 0.004) return '';
-  const key = card.serial || String(card.id || 0);
-  const rs = (k) => rng(hash(`${key}:${k}`));
-  let s = '', defs = '';
-
-  // bords : blanchiment irrégulier qui s'étend
-  if (!lite) {
-    const ns = rs('n')() * 997 | 0;
-    defs += `<filter id="${id}ef" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="${ns}"/>
-        <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  9 0 0 0 ${(-5.6 + f * 4.2).toFixed(2)}"/></filter>
-      <mask id="${id}em" maskUnits="userSpaceOnUse" x="0" y="0" width="${CW}" height="${CH}"><rect width="${CW}" height="${CH}" filter="url(#${id}ef)"/></mask>
-      <filter id="${id}cf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".005 .007" numOctaves="3" seed="${(ns + 5) % 997}"/>
-        <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.4 0 0 0 -.6"/></filter>
-      <mask id="${id}cm" maskUnits="userSpaceOnUse" x="0" y="0" width="${CW}" height="${CH}"><rect width="${CW}" height="${CH}" filter="url(#${id}cf)"/></mask>
-      <filter id="${id}sf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".02 .026" numOctaves="4" seed="${(ns + 9) % 997}"/>
-        <feColorMatrix values="0 0 0 0 .3  0 0 0 0 .19  0 0 0 0 .08  5 0 0 0 ${(-3.7 + f * 1.0).toFixed(2)}"/><feGaussianBlur stdDeviation="1.4"/></filter>`;
-    // perte de couleur et voile jauni
-    s += `<rect width="${CW}" height="${CH}" fill="#9a958a" mask="url(#${id}cm)" opacity="${Math.min(0.8, Math.pow(f, 0.9) * 0.9).toFixed(3)}" style="mix-blend-mode:saturation"/>
-      <rect width="${CW}" height="${CH}" fill="#efe6d2" mask="url(#${id}cm)" opacity="${(f * f * 0.16).toFixed(3)}"/>
-      <rect width="${CW}" height="${CH}" filter="url(#${id}sf)" opacity="${(Math.pow(f, 1.5) * 0.42).toFixed(3)}" style="mix-blend-mode:multiply"/>
-      <rect x="4" y="4" width="${CW - 8}" height="${CH - 8}" rx="29" fill="none" stroke="#f4f1ea" stroke-width="${(4 + f * 16).toFixed(1)}" mask="url(#${id}em)" opacity="${Math.min(0.85, 0.25 + f * 0.7).toFixed(3)}"/>`;
-  } else {
-    s += `<rect width="${CW}" height="${CH}" fill="#9a958a" opacity="${(f * 0.45).toFixed(3)}" style="mix-blend-mode:saturation"/>
-      <rect x="4" y="4" width="${CW - 8}" height="${CH - 8}" rx="29" fill="none" stroke="#f4f1ea" stroke-width="${(2 + f * 8).toFixed(1)}" opacity="${(f * 0.6).toFixed(3)}" stroke-dasharray="${f < 0.5 ? '6 22' : '20 10'}"/>`;
-  }
-
-  // coins blanchis
-  const rc = rs('c');
-  for (const [cx, cy] of [[10, 10], [CW - 10, 10], [10, CH - 10], [CW - 10, CH - 10]]) {
-    const k = 0.4 + rc() * 0.6;
-    s += `<circle cx="${cx}" cy="${cy}" r="${(2 + f * 22 * k).toFixed(1)}" fill="#f4f1ea" opacity="${Math.min(0.85, f * 1.3 * k).toFixed(3)}"/>`;
-  }
-
-  // rayures : les premières restent en place quand le float monte
-  const rr = rs('s');
-  const n = Math.round(f * 44);
-  for (let i = 0; i < n; i++) {
-    const x = rr() * CW, y = rr() * CH, len = 14 + rr() * 90, a = rr() * Math.PI, bend = (rr() - 0.5) * 12, op = 0.08 + rr() * 0.2, sw = 0.6 + rr() * 1.2;
-    s += `<path d="M${F(x)} ${F(y)} q${F(Math.cos(a) * len * 0.5)} ${F(Math.sin(a) * len * 0.5 + bend)} ${F(Math.cos(a) * len)} ${F(Math.sin(a) * len)}" stroke="#fff" stroke-opacity="${(op * (0.5 + f * 0.5)).toFixed(3)}" stroke-width="${F(sw)}" fill="none"/>`;
-  }
-
-  // pli : apparaît en fondu sur les cartes très usées
-  const crease = smooth(0.55, 0.9, f);
-  if (crease > 0) {
-    const rp = rs('p');
-    const y1 = 100 + rp() * 300, y2 = y1 + 150 + rp() * 400;
-    s += `<g opacity="${crease.toFixed(3)}"><path d="M0 ${F(y1)} L${CW} ${F(y2)}" stroke="#000" stroke-opacity=".3" stroke-width="5"/><path d="M0 ${F(y1 + 4)} L${CW} ${F(y2 + 4)}" stroke="#fff" stroke-opacity=".28" stroke-width="2"/></g>`;
-  }
-  return `<defs>${defs}</defs><g class="wear" pointer-events="none">${s}</g>`;
 }
 
 // ───────── Brillance progressive selon la rareté (remplace les holos), ternie et rendue irrégulière par l'usure
@@ -335,8 +257,9 @@ function cardWear(card, id, lite) {
 export const GLOSS = [0.1, 0.18, 0.3, 0.42, 0.56, 0.72, 0.9];
 export const glossOf = (r, f = 0) => GLOSS[r] * Math.pow(1 - Math.min(1, f), 1.6);
 function cardGloss(skin, card, id, lite) {
-  const r = skin.r, f = card ? Math.min(1, card.f) : 0;
-  const k = GLOSS[r], keep = Math.pow(1 - f, 1.6);
+  // la carte ne s'use plus : brillance identique pour toutes les cartes d'une même rareté
+  const r = skin.r, f = 0;
+  const k = GLOSS[r], keep = 1;
   if (k * keep < 0.01) return '';
   const R = RARITIES[r];
   const tint = r >= 6 ? '#ffffff' : r >= 4 ? (r === 4 ? '#ffe2a0' : '#ffd0e0') : '#ffffff';
@@ -391,7 +314,6 @@ export function cardSVG(skin, card = null, opts = {}) {
       <rect width="${CW}" height="${CH}" fill="#0b0c10"/>
       ${inner}
       ${cardGloss(skin, card, id, opts.lite)}
-      ${card ? cardWear(card, id, opts.lite) : ''}
     </g>
   </svg>`;
 }
@@ -426,11 +348,11 @@ export function cardBack() {
 // ───────── Enveloppe HTML (tilt, glow, holo, slab)
 export function cardHTML(skin, card = null, opts = {}) {
   const R = RARITIES[skin.r];
-  const cls = ['card', `r${skin.r}`];
+  const cls = ['card', `r${skin.r}`, 'gb'];
   if (card?.mp) cls.push('misprint');
   if (opts.small) cls.push('small');
   const svg = cardSVG(skin, card, opts);
-  const gloss = glossOf(skin.r, card?.f ?? 0);
+  const gloss = glossOf(skin.r, 0);
   const html = `<div class="${cls.join(' ')}" style="--rc:${R.color};--rg:${R.glow};--gloss:${(0.25 + gloss * 1.2).toFixed(2)}" data-tilt>
     <div class="card-inner">${svg}<div class="card-shine"></div>${card?.mp ? `<div class="misprint-tag">${t('ERREUR D’IMPRESSION')}</div>` : ''}</div>
   </div>`;

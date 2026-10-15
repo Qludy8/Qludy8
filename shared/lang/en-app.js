@@ -163,8 +163,8 @@ export const EN_APP = {
   'Skins': 'Skins',
   '{n} skins répartis sur {m} modèles d’armes imaginaires.': '{n} skins spread across {m} imaginary weapon models.',
   'Usure (float)': 'Wear (float)',
-  'Chaque carte reçoit un float entre 0 et 1 (6 décimales), fixé à jamais. Plus il est bas, plus la carte est propre : la peinture de l’arme s’écaille et la carte se raye, se plie et se tache à mesure que le float monte.':
-    'Every card gets a float between 0 and 1 (6 decimals), locked in forever. The lower it is, the cleaner the card: as the float rises, the weapon’s paint chips and the card gets scratched, creased and stained.',
+  'Chaque carte reçoit un float entre 0 et 1 (6 décimales), fixé à jamais. Plus il est bas, plus la carte est propre : la peinture de l’arme s’écaille, se décolore et se salit à mesure que le float monte. La carte, elle, reste impeccable.':
+    'Every card gets a float between 0 and 1 (6 decimals), locked in forever. The lower it is, the cleaner the card: as the float rises, the weapon’s paint chips, fades and gets grimy. The card itself stays pristine.',
   'État': 'Condition',
   'Float': 'Float',
   'Valeur': 'Value',
@@ -180,8 +180,8 @@ export const EN_APP = {
   'Effet sur une carte non gradée : {list}.': 'Effect on an ungraded card: {list}.',
   '<b>Carte erreur</b> : 1 chance sur {n} — deux cartes apparaissent à moitié sur la même feuille. Valeur {m}.':
     '<b>Misprint</b>: 1 chance in {n} — two half cards show up on the same sheet. Value {m}.',
-  'Envoyez jusqu’à {n} cartes. Quatre sous-notes (centrage, coins, bords, surface) donnent une note finale de 1 à 10, plafonnée à la plus basse sous-note + 1 et par l’état d’usure.':
-    'Submit up to {n} cards. Four sub-grades (centering, corners, edges, surface) produce a final grade from 1 to 10, capped at the lowest sub-grade + 1 and by the wear condition.',
+  'Envoyez jusqu’à {n} cartes. L’arme est expertisée : quatre sous-notes (peinture, arêtes, surface, éclat) donnent une note finale de 1 à 10, plafonnée à la plus basse sous-note + 1 et par l’état d’usure.':
+    'Submit up to {n} cards. The weapon is appraised: four sub-grades (paint, edges, surface, shine) produce a final grade from 1 to 10, capped at the lowest sub-grade + 1 and by the wear condition.',
   'Note': 'Grade',
   'Libellé': 'Label',
   'Abîmée': 'Damaged',
@@ -198,4 +198,5 @@ export const EN_APP = {
     'A pack’s average value is about 87% of its price (computed automatically): jackpots exist, easy money doesn’t.',
   'Mentions': 'Legal',
   'Les noms, modèles et visuels d’armes sont entièrement inventés et générés procéduralement.': 'Weapon names, models and visuals are entirely made up and procedurally generated.',
+  'Toutes les cartes sortent parfaitement imprimées : seule l’arme varie (usure, motif). Exception rarissime :': 'Every card comes out perfectly printed: only the weapon varies (wear, pattern). One very rare exception:',
 };
