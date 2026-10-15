@@ -4,6 +4,7 @@ import { RARITIES, BRAND, WEAR } from '/shared/config.js';
 import { MODEL_BY_KEY, STYLES, COLLECTION_BY_KEY, ART_FR, PATTERNS, CAMOS } from '/shared/catalog.js';
 import { gradeLabel } from '/shared/rules.js';
 import { WEAPON_ART, WEAPON_BOX, PAINT_BOX } from './weapons.js';
+import { HAS_3D } from './weapons3d.js';
 import { skinTexture, rng } from './skins.js';
 import { esc } from '../ui.js';
 import { t, L as loc } from '/shared/i18n.js';
@@ -78,6 +79,28 @@ export function weaponSVG(skin, card = null, opts = {}) {
       wearOver = `<rect width="1000" height="360" fill="#8f8a80" opacity="${(w * 0.5).toFixed(3)}" style="mix-blend-mode:saturation"/>`;
     }
     wearOver += `<path d="${sc}" stroke="#f4f1ea" stroke-opacity="${(0.12 + w * 0.4).toFixed(3)}" stroke-width="1.2" stroke-linecap="round" fill="none"/>`;
+  }
+
+  // ── armes rendues en 3D (Blender) : image de base + skin multiplié par l'éclairage des zones peintes + reflets
+  if (HAS_3D.has(skin.m)) {
+    const src = (k) => `/img/weapons/${skin.m}.${k}`;
+    const img = (k, extra = '') => `<image href="${src(k)}" x="0" y="0" width="1000" height="360" preserveAspectRatio="none" ${extra}/>`;
+    const specOp = (0.85 * (1 - 0.6 * Math.min(1, float ?? 0))).toFixed(3);
+    return `<g class="weapon w3d">
+      <defs>${tex.defs}${wearDefs}
+        <mask id="${id}pm" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360">${img('mask.png')}</mask>
+        ${skin.r >= 5 && !opts.lite ? `<filter id="${id}gl" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>` : ''}
+        ${opts.lite ? '' : `<filter id="${id}sb" x="-10%" y="-20%" width="120%" height="150%"><feGaussianBlur stdDeviation="7"/></filter>`}
+      </defs>
+      ${skin.r >= 5 && !opts.lite ? `<path d="${all}" fill="none" stroke="${RARITIES[skin.r].glow}" stroke-width="10" opacity=".22" filter="url(#${id}gl)"/>` : ''}
+      <path d="${all}" fill="#000" opacity="${opts.lite ? 0.25 : 0.45}" transform="translate(6 16)" fill-rule="evenodd" ${opts.lite ? '' : `filter="url(#${id}sb)"`}/>
+      ${img('base.webp')}
+      <g mask="url(#${id}pm)"><g ${chipMask} style="isolation:isolate">
+        <g transform="${texFit(skin.m)}">${tex.body}</g>${wearOver}
+        ${img('light.webp', 'style="mix-blend-mode:multiply"')}
+      </g></g>
+      ${img('spec.webp', `style="mix-blend-mode:screen" opacity="${specOp}"`)}
+    </g>`;
   }
 
   // rendu « réaliste » : pas de contour épais, dégradés à reflet spéculaire, biseau intérieur, grain, ombre douce

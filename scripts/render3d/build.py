@@ -351,9 +351,9 @@ def build(model, paint_mode):
                 continue
         mk = raster(polys)
         if not mk.any(): continue
-        if k == 'hole':
-            # évidement : fond sombre en retrait de la surface
-            z = np.where(mk, np.maximum(top - 2.5, 0.2), 0)
+        if k in ('hole', 'shade'):
+            # évidement (ou zone ombrée) : fond sombre en retrait de la surface
+            z = np.where(mk, np.maximum(top - (2.5 if k == 'hole' else 0.8), 0.2), 0)
             grid_mesh(name, mk, z, M['hole']); continue
         R, crown = PROFILE.get(k, (6, 0.1))
         h = heightfield(mk, D[k], R, crown, knife_blade=(knife and k == 'paint'))
@@ -468,7 +468,7 @@ def render_model(model):
     m = (np.clip(alpha, 0, 1) * 255 + 0.5).astype(np.uint8)
     Image.fromarray(m, 'L').save(os.path.join(out_dir, f'{model}.mask.png'), optimize=True)
 
-models = only or list(DATA.keys())
+models = only or [m for m in DATA if not os.path.exists(os.path.join(out_dir, f'{m}.mask.png'))]
 for m in models:
     print('──', m, flush=True)
     render_model(m)
