@@ -24,10 +24,11 @@ export async function collectionPage({ view, query, stale }) {
 
   view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>${t('Collection')}</h1>
       <p class="muted">${t('{n} cartes existent.', { n: fmt(SKINS.length) })} ${me ? t('Vous en possédez <b>{n}</b> ({pct} %).', { n: oAll, pct: fmt((oAll / tAll) * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }) : t('<a href="#/register" class="grad-text">Créez un compte</a> pour suivre votre progression.')}</p></div></div>
+    <details class="progress-fold" ${state.model ? 'open' : ''}><summary><span>${t('Progression par arme')}</span><b class="mono">${oAll}/${tAll}</b><div class="bar"><i style="width:${(oAll / tAll) * 100}%"></i></div></summary>
     <div class="collection-progress">
       <div class="model-chip ${state.model === '' ? 'on' : ''}" data-model=""><b>${t('Tous les modèles')}</b><div class="muted small">${oAll}/${tAll}</div><div class="bar" style="margin-top:8px"><i style="width:${(oAll / tAll) * 100}%"></i></div></div>
       ${MODELS.map((m) => { const [o, tot] = countFor((s) => s.m === m.key); return `<div class="model-chip ${state.model === m.key ? 'on' : ''}" data-model="${m.key}"><b>${esc(m.name)}</b><div class="muted small">${esc(L(m, 'clsFr'))} · ${o}/${tot}</div><div class="bar" style="margin-top:8px"><i style="width:${(o / tot) * 100}%"></i></div></div>`; }).join('')}
-    </div>
+    </div></details>
     <div class="filters">
       <input class="input" placeholder="${t('Rechercher un skin…')}" data-f="q">
       <select class="input" data-f="r"><option value="">${t('Toutes raretés')}</option>${RARITIES.map((r, i) => `<option value="${i}">${esc(L(r))}</option>`).join('')}</select>

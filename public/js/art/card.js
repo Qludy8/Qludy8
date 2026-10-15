@@ -93,7 +93,6 @@ export function weaponSVG(skin, card = null, opts = {}) {
         ${opts.lite ? '' : `<filter id="${id}sb" x="-10%" y="-20%" width="120%" height="150%"><feGaussianBlur stdDeviation="7"/></filter>`}
       </defs>
       ${skin.r >= 5 && !opts.lite ? `<path d="${all}" fill="none" stroke="${RARITIES[skin.r].glow}" stroke-width="10" opacity=".22" filter="url(#${id}gl)"/>` : ''}
-      <path d="${all}" fill="#000" opacity="${opts.lite ? 0.25 : 0.45}" transform="translate(6 16)" fill-rule="evenodd" ${opts.lite ? '' : `filter="url(#${id}sb)"`}/>
       ${img('base.webp')}
       <g mask="url(#${id}pm)"><g ${chipMask} style="isolation:isolate">
         <g transform="${texFit(skin.m)}">${tex.body}</g>${wearOver}
@@ -196,9 +195,15 @@ export function rarityShape(rar, size = 12, { stroke = '#000' } = {}) {
 }
 export const rarityIcon = (rar, px = 14) => `<svg class="rar-ico" width="${px}" height="${px}" viewBox="-16 -16 32 32" aria-hidden="true">${rarityShape(rar, 11)}</svg>`;
 
+// contour unique d'un caractère coréen : la forme pleine est dilatée puis on retire la forme elle-même,
+// ce qui donne un seul trait autour de la lettre (au lieu des contours de chaque trait superposé), plus un halo flou.
+export const koOutline = (color, width = 2, glow = 6) => `<feMorphology in="SourceAlpha" operator="dilate" radius="${width}" result="d"/>
+  <feComposite in="d" in2="SourceAlpha" operator="out" result="o"/><feFlood flood-color="${color}"/><feComposite in2="o" operator="in" result="line"/>
+  ${glow ? `<feGaussianBlur in="line" stdDeviation="${glow}" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="line"/></feMerge>` : ''}`;
+
 // ───────── Face d'une carte (style épuré) : fond gris propre à chaque carte, nom en haut,
 // initiale de la rareté dans une pastille claire ; la rareté se lit surtout au bord lumineux (CSS, animé).
-const GRAYS = [['#3a3d44', '#24262b'], ['#45484f', '#2b2d32'], ['#4f525a', '#303238'], ['#363940', '#1f2125'], ['#5a5d65', '#36383e'], ['#41444b', '#27292e']];
+const GRAYS = [['#2a2c31', '#17181b'], ['#313338', '#1b1c20'], ['#36383e', '#1e1f23'], ['#26282c', '#141518'], ['#3b3d43', '#212226'], ['#2e3035', '#191a1d']];
 export const rarityLetter = (r) => (getLang() === 'en' ? ['C', 'U', 'R', 'UR', 'L', 'M', 'T'] : ['C', 'P', 'R', 'U', 'L', 'M', 'T'])[r];
 function cardFace(skin, card, id, opts) {
   const R = RARITIES[skin.r];
@@ -227,7 +232,7 @@ function cardFace(skin, card, id, opts) {
     <defs>
       <linearGradient id="${fid}bg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="${g1}"/><stop offset="1" stop-color="${g2}"/></linearGradient>
       <radialGradient id="${fid}sp" cx=".5" cy=".55" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
-      ${opts.lite ? '' : `<filter id="${fid}sg" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8"/></filter>`}
+      <filter id="${fid}ko" x="-10%" y="-10%" width="120%" height="120%">${koOutline(`color-mix(in srgb, ${t1} 70%, #fff)`, 2.2, opts.lite ? 0 : 7)}</filter>
     </defs>
     <rect width="${CW}" height="${CH}" rx="32" fill="url(#${fid}bg)"/>
     <rect width="${CW}" height="${CH}" rx="32" fill="url(#${fid}sp)"/>
@@ -236,14 +241,11 @@ function cardFace(skin, card, id, opts) {
     <text x="40" y="114" class="t-sub t-topsub">${esc(model.name)} · <tspan fill="${t1}" font-weight="700">${esc(loc(col))}</tspan></text>
     <g transform="translate(${CW - 70} 70)">
       <circle r="34" fill="#f2f3f6" opacity=".94"/>
-      <circle r="34" fill="none" stroke="${R.color}" stroke-width="3.5"/>
       <text y="${letter.length > 1 ? 11 : 13}" text-anchor="middle" class="t-rletter${letter.length > 1 ? ' two' : ''}" fill="#1b1d22">${letter}</text>
     </g>
     <g class="colsym" transform="translate(${CW / 2} ${AY + AH / 2})">
-      ${opts.lite ? '' : `<text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="none" stroke="${t1}" stroke-width="10" opacity=".28" filter="url(#${fid}sg)">${esc(col.sym)}</text>`}
-      <text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="#fff" fill-opacity=".03" stroke-width="2.5" stroke-opacity=".38" style="stroke:color-mix(in srgb, ${t1} 70%, #fff)">${esc(col.sym)}</text>
+      <text y="0" dy=".36em" text-anchor="middle" class="t-colsym" fill="#fff" filter="url(#${fid}ko)" opacity=".3">${esc(col.sym)}</text>
     </g>
-    <ellipse cx="${CW / 2}" cy="${AY + AH - 70}" rx="240" ry="15" fill="#000" opacity=".35"/>
     <g transform="${fit(skin.m, 30, AY, CW - 60, AH)}">${weaponSVG(skin, card, opts)}</g>
     ${badge}
     ${floatBar}

@@ -44,7 +44,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
   document.body.style.overflow = 'hidden';
   const fx = new Particles(el.querySelector('canvas.fx'));
   // particules qui remontent du bas de l'écran, à la couleur courante de la scène
-  fx.ambient(() => el.style.getPropertyValue('--glow') || pack.theme[0]);
+  fx.ambient(() => el.style.getPropertyValue('--glow') || pack.theme[0], 0.12);
   const stage = $('.stage', el), packEl = $('.pack-big', el), info = $('.reveal-info', el), hint = $('.stack-hint', el);
   const stack = [...el.querySelectorAll('.stack-card')];
   let idx = 0, busy = false, torn = false, closed = false;
@@ -56,7 +56,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
   const stackPos = (s, i) => {
     const depth = Math.min(i - idx, 6);
     s.style.opacity = 1;
-    s.style.transform = `translate(${depth * 4}px, ${-depth * 4}px) rotate(${(i % 2 ? 1 : -1) * depth * 0.8}deg)`;
+    s.style.transform = `translate(${depth * 3}px, ${-depth * 3}px) rotate(${(i % 2 ? 1 : -1) * Math.min(depth, 3) * 0.25}deg)`;
   };
   function prep() {
     for (let i = idx; i < Math.min(stack.length, idx + BACKS); i++) {
@@ -87,7 +87,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     sound.play('tear'); haptic(30);
     packEl.classList.add('torn');
     const [x, y] = center();
-    fx.burst(x, y - stage.offsetHeight * 0.45, ['#fff', pack.theme[1]], 50, { speed: 6, size: 2.5 });
+    fx.burst(x, y - stage.offsetHeight * 0.45, ['#fff', pack.theme[1]], 22, { speed: 6, size: 2.5 });
     // lueur rapide de la couleur de la carte la plus rare du booster
     const best = order.reduce((a, b) => (b.r > a.r ? b : a), order[0]);
     const bc = best.mp ? '#ff2b6a' : RARITIES[best.r].glow;
@@ -142,7 +142,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
       const [x, y] = center();
       s.classList.add('charging'); if (c.r >= 5 || c.mp) s.classList.add('lvl2');
       el.style.setProperty('--glow', c.mp ? '#ff2b6a' : R.glow);
-      if (c.r >= 4 || c.mp) fx.swirl(x, y, c.mp ? ['#ff2b6a', '#fff'] : [R.color, R.glow, '#fff'], 40 + (c.r - 4) * 30, { radius: stage.offsetWidth * 0.95, life: CHARGE_MS / 16 });
+      if (c.r >= 4 || c.mp) fx.swirl(x, y, c.mp ? ['#ff2b6a', '#fff'] : [R.color, R.glow, '#fff'], 18 + (c.r - 4) * 10, { radius: stage.offsetWidth * 0.95, life: CHARGE_MS / 16 });
       sound.play('charge', c.mp ? 6 : c.r); haptic(c.r >= 4 ? [20, 30, 20] : 15);
       await sleep(CHARGE_MS);
       s.classList.remove('charging', 'lvl2');
@@ -161,15 +161,15 @@ export function openSequence(pack, result, { onAgain } = {}) {
       burst.classList.remove('go'); void burst.offsetWidth; burst.classList.add('go');
       const wave = $('.shockwave', el);
       wave.style.setProperty('--rg', R.glow); wave.classList.remove('go'); void wave.offsetWidth; wave.classList.add('go');
-      fx.burst(x, y, [R.color, R.glow, '#fff'], 40 + c.r * 25, { speed: 6 + c.r, size: 3 });
-      if (c.r >= 4 || c.mp) fx.stars(x, y, c.r === 6 || c.mp ? ['#5ff3ff', '#ff7ae6', '#ffe46b', '#fff'] : [R.color, '#fff'], 14 + (c.r - 4) * 12, { speed: 7 + c.r });
+      fx.burst(x, y, [R.color, R.glow, '#fff'], 16 + c.r * 8, { speed: 6 + c.r, size: 3 });
+      if (c.r >= 4 || c.mp) fx.stars(x, y, c.r === 6 || c.mp ? ['#5ff3ff', '#ff7ae6', '#ffe46b', '#fff'] : [R.color, '#fff'], 8 + (c.r - 4) * 5, { speed: 7 + c.r });
       if (c.r >= 4 || c.mp) { const f = $('.flash-screen', el); f.style.background = '#fff'; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
       if (c.r >= 5 || c.mp) {
         el.classList.remove('quake'); void el.offsetWidth; el.classList.add('quake');
-        fx.rain(c.r === 6 || c.mp ? ['#5ff3ff', '#ff7ae6', '#ffe46b', '#fff'] : ['#ffd76a', '#ffb020', '#fff'], 140);
+        fx.rain(c.r === 6 || c.mp ? ['#5ff3ff', '#ff7ae6', '#ffe46b', '#fff'] : ['#ffd76a', '#ffb020', '#fff'], 60);
       }
     } else {
-      fx.burst(x, y, R.color, 14, { speed: 4, size: 2 });
+      fx.burst(x, y, R.color, 6, { speed: 4, size: 2 });
     }
     const skin = SKIN_BY_ID.get(c.s);
     const w = wearOf(c.f);
@@ -184,7 +184,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     if (best.r >= 4 || best.mp) {
       const R = RARITIES[best.r];
       const [x, y] = center();
-      fx.burst(x, y, [R.color, '#fff'], 120, { speed: 10 });
+      fx.burst(x, y, [R.color, '#fff'], 50, { speed: 10 });
       sound.play('rare', best.r);
     }
     idx = stack.length;

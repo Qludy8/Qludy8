@@ -4,6 +4,7 @@ import { SKINS, MODEL_BY_KEY, COLLECTION_BY_KEY } from '/shared/catalog.js';
 import { BRAND } from '/shared/config.js';
 import { skinTexture } from './skins.js';
 import { esc } from '../ui.js';
+import { koOutline } from './card.js';
 import { t, L } from '/shared/i18n.js';
 
 let n = 0;
@@ -49,14 +50,15 @@ export function packSVG(pack) {
       <radialGradient id="${id}glow" cx=".5" cy=".46" r=".5"><stop offset="0" stop-color="${t2}" stop-opacity=".55"/><stop offset="1" stop-color="${t2}" stop-opacity="0"/></radialGradient>
       <linearGradient id="${id}sy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="${t2}" stop-opacity=".05"/></linearGradient>
       <filter id="${id}ng" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="${id}ko" x="-20%" y="-20%" width="140%" height="140%">${koOutline(t2, 3, 8)}</filter>
       <clipPath id="${id}c"><rect width="400" height="620" rx="14"/></clipPath>
     </defs>
     <g clip-path="url(#${id}c)">
       <rect width="400" height="620" fill="url(#${id}bg)"/>
       ${bg}
       <circle cx="200" cy="270" r="200" fill="url(#${id}glow)"/>
-      <text x="200" y="352" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="230" fill="url(#${id}sy)" stroke="${t2}" stroke-width="4" filter="url(#${id}ng)">${esc(sym)}</text>
-      <text x="200" y="352" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="230" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="1.4">${esc(sym)}</text>
+      <text x="200" y="352" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="230" fill="url(#${id}sy)">${esc(sym)}</text>
+      <text x="200" y="352" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="230" fill="#fff" filter="url(#${id}ko)">${esc(sym)}</text>
       <rect y="452" width="400" height="168" fill="#000" fill-opacity=".5"/>
       <rect y="452" width="400" height="2" fill="${t2}" opacity=".9"/>
       <text x="200" y="504" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="${name.length > 15 ? 30 : name.length > 11 ? 36 : 42}" fill="#fff">${esc(name)}</text>

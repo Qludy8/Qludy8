@@ -1,5 +1,5 @@
 // Petits utilitaires d'interface : échappement, toasts, modales, tilt 3D, formatage.
-import { t, fmt } from '/shared/i18n.js';
+import { t, fmt, locale } from '/shared/i18n.js';
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -77,14 +77,14 @@ export function initTilt() {
   document.addEventListener('pointerleave', () => { if (active) reset(active); active = null; });
 }
 
-export function animateNumber(el, to, ms = 700) {
+export function animateNumber(el, to, ms = 700, format = fmt) {
   const from = Number(el.dataset.v || 0);
   el.dataset.v = to;
-  if (reducedMotion() || from === to) { el.textContent = fmt(Math.round(to)); return; }
+  if (reducedMotion() || from === to) { el.textContent = format(Math.round(to)); return; }
   const t0 = performance.now();
   const step = (t) => {
     const k = Math.min(1, (t - t0) / ms), e = 1 - (1 - k) ** 3;
-    el.textContent = fmt(Math.round(from + (to - from) * e));
+    el.textContent = format(Math.round(from + (to - from) * e));
     if (k < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
@@ -95,3 +95,6 @@ export function avatar(u, size = 36) {
   const letter = esc((u.username || '?')[0].toUpperCase());
   return `<span class="avatar" style="--h:${u.avatar_hue ?? 200};width:${size}px;height:${size}px;font-size:${size * 0.45}px">${letter}</span>`;
 }
+
+// nombre compact pour l'en-tête (12 345 → 12 345 ; 1 234 567 → 1,2 M)
+export const compact = (n) => (Math.abs(n) < 100000 ? fmt(n) : new Intl.NumberFormat(locale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n));

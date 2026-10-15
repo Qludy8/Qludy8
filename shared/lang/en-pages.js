@@ -290,4 +290,5 @@ export const EN_PAGES = {
   'Peinture': 'Paint',
   'Arêtes': 'Edges',
   'Éclat': 'Shine',
+  'Progression par arme': 'Progress by weapon',
 };

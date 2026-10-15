@@ -5,7 +5,7 @@ import { PACKS, packFilter } from '/shared/packs.js';
 import { patternsPage } from './pages/patterns.js';
 import { api, post, store } from './api.js';
 import { t, tr, L, fmt, locale, getLang, LANGS, switchLang } from '/shared/i18n.js';
-import { esc, cr, ago, dur, toast, modal, initTilt, animateNumber, avatar, $, $$ } from './ui.js';
+import { esc, cr, ago, dur, toast, modal, initTilt, animateNumber, avatar, compact, $, $$ } from './ui.js';
 import { packSVG } from './art/pack.js';
 import { cardHTML } from './art/card.js';
 import { openSequence, cardOf } from './opening.js';
@@ -44,50 +44,86 @@ function header(me) {
     + `<a href="#/shop" class="nav-locked ${route === 'shop' ? 'on' : ''}" title="${t('Bientôt disponible')}">${t('Boutique')} <span aria-hidden="true">🔒</span></a>`;
   const right = $('#top-right');
   if (!me) {
-    right.innerHTML = `${langButton()}<a class="btn sm ghost" href="#/login">${t('Connexion')}</a><a class="btn sm primary" href="#/register">${t('Jouer gratuitement')}</a>`;
+    right.innerHTML = `${langButton()}<a class="btn sm ghost" href="#/login">${t('Connexion')}</a><a class="btn sm primary" href="#/register">${t('Jouer gratuitement')}</a><button class="icon-btn burger" data-burger aria-label="${t('Menu')}">☰</button>`;
+    right.querySelector('[data-burger]').onclick = openDrawer;
     return;
   }
   if (!right.querySelector('.balance')) {
     right.innerHTML = `
       <a class="icon-btn" href="#/rewards" title="${t('Récompenses')}">🎁<span class="dot" data-daily hidden>!</span></a>
       <button class="icon-btn" data-notif title="${t('Notifications')}">🔔<span class="dot" data-unread hidden></span></button>
-      ${langButton()}
-      <button class="admin-toggle" data-admin hidden title="${t('Mode admin de test : Mu illimités, gradation instantanée')}"><i></i><span>Admin</span></button>
       <a class="balance" href="#/rewards" title="${t('Solde')}"><span data-bal>0</span>${MU}</a>
-      <button class="user-chip" data-menu>${avatar(me, 30)}<span class="name">${esc(me.username)}</span></button>`;
+      <button class="user-chip" data-menu title="${t('Menu')}">${avatar(me, 30)}</button>`;
     right.querySelector('[data-notif]').onclick = showNotifications;
-    right.querySelector('[data-menu]').onclick = userMenu;
-    right.querySelector('[data-admin]').onclick = async (e) => {
-      const btn = e.currentTarget; btn.disabled = true;
-      try {
-        store.set(await post('/admin/toggle', { on: !store.me.admin }));
-        toast(store.me.admin ? t('Mode admin activé : Mu illimités, gradation instantanée') : t('Mode admin désactivé'), 'good');
-      } catch (err) { toast(err.message, 'error'); }
-      btn.disabled = false;
-    };
+    right.querySelector('[data-menu]').onclick = openDrawer;
   }
-  const adm = right.querySelector('[data-admin]');
-  adm.hidden = !me.adminToggle; adm.classList.toggle('on', !!me.admin); adm.setAttribute('aria-pressed', String(!!me.admin));
+  const bal = right.querySelector('[data-bal]');
   right.querySelector('.balance').classList.toggle('infinite', !!me.admin);
-  if (me.admin) right.querySelector('[data-bal]').textContent = '∞';
-  else animateNumber(right.querySelector('[data-bal]'), me.balance);
+  if (me.admin) bal.textContent = '∞';
+  else animateNumber(bal, me.balance, 700, compact);
+  right.querySelector('.balance').title = `${t('Solde')} : ${fmt(me.balance)}`;
   const dd = right.querySelector('[data-daily]'); dd.hidden = !(me.daily.available || me.questsReady); dd.textContent = me.questsReady || '!';
   const un = right.querySelector('[data-unread]');
   un.hidden = !(me.unread + me.gradingReady); un.textContent = me.unread + me.gradingReady;
+  if (document.querySelector('.drawer.open')) fillDrawer();
 }
-function userMenu() {
-  const me = store.me;
-  const m = modal(`<div class="row">${avatar(me, 54)}<div><h2 style="margin:0">${esc(me.username)}</h2>
-    <div class="muted small">${t('Niveau {n}', { n: me.level.level })} ${me.discord.verified ? `· <span class="verified">${t('✔ Discord vérifié')}</span>` : ''}</div></div></div>
-    <div class="bar" style="margin:16px 0 6px"><i style="width:${me.level.next ? ((me.level.xp - me.level.cur) / (me.level.next - me.level.cur)) * 100 : 100}%"></i></div>
-    <div class="muted small">${fmt(me.level.xp)} XP${me.level.next ? ` / ${fmt(me.level.next)}` : ''}</div>
-    <div class="grid" style="margin-top:18px;grid-template-columns:1fr 1fr;gap:10px">
-      <a class="btn" href="#/u/${encodeURIComponent(me.username)}">${t('Mon profil')}</a><a class="btn" href="#/grading">${t('Gradation')}${me.gradingReady ? ` (${me.gradingReady})` : ''}</a>
-      <a class="btn" href="#/rewards">${t('Récompenses')}</a><a class="btn" href="#/settings">${t('Paramètres')}</a>
-      <a class="btn" href="#/help">${t('Aide & règles')}</a><button class="btn danger" data-logout>${t('Déconnexion')}</button>
-    </div>`);
-  m.el.addEventListener('click', (e) => { if (e.target.closest('a')) m.close(); });
-  m.el.querySelector('[data-logout]').onclick = async () => { await post('/auth/logout'); m.close(); store.set(null); location.hash = '#/'; };
+// ───────────────────────────── Application installable (PWA)
+let installPrompt = null;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; document.querySelectorAll('[data-install-row]').forEach((x) => { x.hidden = false; }); });
+addEventListener('appinstalled', () => { installPrompt = null; toast(t('Mugigo est installé !'), 'good'); });
+async function installApp() {
+  if (installPrompt) { installPrompt.prompt(); await installPrompt.userChoice.catch(() => null); installPrompt = null; return; }
+  if (isIOS()) modal(`<h2>${t('Installer Mugigo')}</h2><p class="muted">${t('Sur iPhone : touchez le bouton Partager de Safari, puis « Sur l’écran d’accueil ».')}</p>`);
+}
+if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+
+// ───────────────────────────── Menu latéral (toutes les pages, récompenses, langue, réglages)
+const DRAWER = [
+  ['', 'Boosters', '부'], ['collection', 'Collection', '수'], ['inventory', 'Inventaire', '가'], ['market', 'Marché', '시'],
+  ['trades', 'Échanges', '교', 'openTrades'], ['friends', 'Amis', '친', 'friendRequests'], ['leaderboard', 'Classement', '순'],
+  ['patterns', 'Motifs', '무'], ['rewards', 'Récompenses', '보', 'questsReady'], ['grading', 'Gradation', '감', 'gradingReady'],
+  ['shop', 'Boutique', '상'], ['settings', 'Paramètres', '설'], ['help', 'Aide & règles', '도'],
+];
+function openDrawer() {
+  let d = document.querySelector('.drawer');
+  if (!d) {
+    d = document.createElement('div'); d.className = 'drawer';
+    d.innerHTML = '<div class="drawer-bg" data-close-drawer></div><aside class="drawer-panel" role="dialog" aria-modal="true"></aside>';
+    document.body.append(d);
+    d.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-close-drawer]') || e.target.closest('a[href]')) closeDrawer();
+      if (e.target.closest('[data-logout]')) { await post('/auth/logout'); closeDrawer(); store.set(null); location.hash = '#/'; }
+      if (e.target.closest('[data-admin]')) {
+        try { store.set(await post('/admin/toggle', { on: !store.me.admin })); toast(store.me.admin ? t('Mode admin activé : Mu illimités, gradation instantanée') : t('Mode admin désactivé'), 'good'); }
+        catch (err) { toast(esc(err.message), 'error'); }
+      }
+      if (e.target.closest('[data-install]')) installApp();
+    });
+    addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+  }
+  fillDrawer();
+  requestAnimationFrame(() => d.classList.add('open'));
+  document.body.classList.add('drawer-on');
+}
+function closeDrawer() { document.querySelector('.drawer')?.classList.remove('open'); document.body.classList.remove('drawer-on'); }
+function fillDrawer() {
+  const me = store.me, panel = document.querySelector('.drawer-panel'); if (!panel) return;
+  const cur = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
+  const next = LANGS.find((l) => l.key !== getLang());
+  panel.innerHTML = `
+    <div class="drawer-head"><span class="drawer-ko">메뉴</span><button class="icon-btn" data-close-drawer aria-label="${t('Fermer')}">✕</button></div>
+    ${me ? `<a class="drawer-user" href="#/u/${encodeURIComponent(me.username)}">${avatar(me, 46)}<div><b>${esc(me.username)}</b>
+      <div class="muted small">${t('Niveau {n}', { n: me.level.level })} · ${me.admin ? '∞' : fmt(me.balance)} ${MU}</div>
+      <div class="bar"><i style="width:${me.level.next ? ((me.level.xp - me.level.cur) / (me.level.next - me.level.cur)) * 100 : 100}%"></i></div></div></a>` : `<div class="row" style="padding:6px 4px 14px"><a class="btn primary" href="#/register">${t('Jouer gratuitement')}</a><a class="btn" href="#/login">${t('Connexion')}</a></div>`}
+    <nav class="drawer-nav">${DRAWER.map(([k, label, ko, badge]) => `<a href="#/${k}" class="${cur === k ? 'on' : ''} ${k === 'shop' ? 'locked' : ''}">
+      <span class="ko">${ko}</span><span>${t(label)}</span>${k === 'shop' ? '<span aria-hidden="true">🔒</span>' : ''}${badge && me?.[badge] ? `<span class="dot">${me[badge]}</span>` : ''}</a>`).join('')}</nav>
+    <div class="drawer-sec">
+      <div class="drawer-row"><span>${t('Langue')}</span><button class="lang-btn" data-lang="${next.key}"><b>${LANGS.find((l) => l.key === getLang()).short}</b><span>${next.short}</span></button></div>
+      ${me?.adminToggle ? `<div class="drawer-row"><span>${t('Mode admin')}</span><button class="admin-toggle ${me.admin ? 'on' : ''}" data-admin><i></i><span>Admin</span></button></div>` : ''}
+      <div class="drawer-row" data-install-row ${installPrompt || isIOS() ? '' : 'hidden'}><span>${t('Application')}</span><button class="btn sm" data-install>${t('Installer')}</button></div>
+    </div>
+    ${me ? `<button class="btn danger" data-logout style="margin-top:auto">${t('Déconnexion')}</button>` : ''}`;
 }
 async function showNotifications() {
   const list = await api('/notifications');
@@ -183,7 +219,7 @@ function packModal(key) {
   const pool = SKINS.filter(packFilter(p.filter));
   const me = store.me;
   const atLeast = (r) => p.rates.slice(r).reduce((a, b) => a + b, 0) / 100;
-  const pity = [[3, me?.pity.ultra, PITY.ultraAfter, `${L(RARITIES[3])}+`], [4, me?.pity.legend, PITY.legendaryAfter, `${L(RARITIES[4])}+`],
+  const pity = [[3, me?.pity.ultra, PITY.ultraAfter, `${L(RARITIES[3])}`], [4, me?.pity.legend, PITY.legendaryAfter, `${L(RARITIES[4])}`],
     ...(p.rates[6] >= PITY.transcendentMinRate ? [[6, me?.pity.trans, PITY.transcendentAfter, L(RARITIES[6])]] : [])];
   const m = modal(`<div class="grid pack-modal" style="grid-template-columns:minmax(160px,240px) 1fr;gap:26px;align-items:start">
       <div class="pack-art" style="width:100%">${packSVG(p)}</div>
@@ -211,7 +247,7 @@ function packModal(key) {
     const mp = 1 - (1 - MISPRINT.chance) ** cards;
     m.el.querySelector('[data-sim-out]').innerHTML = [3, 4, 5, 6].filter((r) => atLeast(r) > 0).map((r) => {
       const pr = 1 - (1 - atLeast(r)) ** cards;
-      return `<div class="sim-cell" style="--rc:${RARITIES[r].color}"><b>${pct(fmt(pr * 100, { minimumFractionDigits: pr > 0.995 ? 0 : 1, maximumFractionDigits: pr > 0.995 ? 0 : 1 }))}</b><span>${esc(L(RARITIES[r]))}${r < 6 ? '+' : ''}</span><div class="bar"><i style="width:${pr * 100}%;background:${RARITIES[r].color}"></i></div></div>`;
+      return `<div class="sim-cell" style="--rc:${RARITIES[r].color}"><b>${pct(fmt(pr * 100, { minimumFractionDigits: pr > 0.995 ? 0 : 1, maximumFractionDigits: pr > 0.995 ? 0 : 1 }))}</b><span>${esc(L(RARITIES[r]))}</span><div class="bar"><i style="width:${pr * 100}%;background:${RARITIES[r].color}"></i></div></div>`;
     }).join('') + `<div class="sim-cell" style="--rc:#ff2b6a"><b>${pct(dec2(mp * 100))}</b><span>${t('Carte erreur')}</span><div class="bar"><i style="width:${mp * 100}%;background:#ff2b6a"></i></div></div>`;
   };
   if (sim) { sim.addEventListener('input', upd); upd(); }
@@ -275,6 +311,7 @@ async function home({ token }) {
           <div class="k-seg" role="tablist">${groups.map(([g, title]) => `<button role="tab" data-tab="${g}">${title}</button>`).join('')}</div></div>
         <p class="muted small" data-tabsub></p>
         <div class="k-packs" data-packs></div>
+        <div class="k-swipe-dots" data-swipe-dots></div>
       </div>
       <aside class="k-detail panel" data-detail></aside>
     </section>
@@ -324,7 +361,7 @@ async function home({ token }) {
         <div><b>${fmt(pool)}</b><span>${t('skins possibles')}</span></div>
       </div>
       <div class="eyebrow" style="margin-top:16px">${t('Chance par booster')}</div>
-      <div class="k-odds">${shown.map((r) => { const c = chance(r) * 100; return `<div class="k-odd" style="--rc:${RARITIES[r].color}"><span><i></i>${esc(L(RARITIES[r]))}${r < 6 ? '+' : ''}</span>
+      <div class="k-odds">${shown.map((r) => { const c = chance(r) * 100; return `<div class="k-odd" style="--rc:${RARITIES[r].color}"><span><i></i>${esc(L(RARITIES[r]))}</span>
         <div class="k-bar"><i style="width:${Math.max(1.5, Math.min(100, c))}%"></i></div><b class="mono">${fmt(c < 1 ? +c.toFixed(2) : +c.toFixed(1))} %</b></div>`; }).join('')}</div>
       <button class="btn gold xl k-open" data-open="${p.key}">${t('Ouvrir')} <span class="k-chip">${priceChip(p)}</span></button>
       <div class="row" style="justify-content:center;margin-top:10px">${p.free ? '' : `<button class="btn sm" data-open10="${p.key}">${t('Ouvrir ×10')}</button>`}<button class="btn sm ghost" data-pack-info="${p.key}">${t('Taux détaillés & simulateur')}</button></div>`;
@@ -338,8 +375,28 @@ async function home({ token }) {
     grid.innerHTML = list.map((p, i) => `<button class="k-pack" data-pack="${p.key}" style="--t1:${p.theme[0]};--t2:${p.theme[1]};--i:${i}">
         <div class="pack-art">${packSVG(p)}</div><span class="k-price mono">${p.free ? `<span data-free-label>${me ? `${me.free.stock}/${me.free.max}` : t('Gratuit')}</span>` : `${fmt(p.price)} ${MU}`}</span></button>`).join('');
     grid.classList.remove('tab-in'); void grid.offsetWidth; grid.classList.add('tab-in');
+    $('[data-swipe-dots]', view).innerHTML = list.map((p, i) => `<i data-dot-i="${i}"></i>`).join('');
+    grid.scrollLeft = 0;
     showDetail(list.some((p) => p.key === sel) ? sel : list[0].key);
+    syncDots();
   };
+  // mobile : un booster par écran, on balaie de côté ; le booster visible est sélectionné
+  const mobile = matchMedia('(max-width: 600px)');
+  const syncDots = () => {
+    const items = [...grid.querySelectorAll('.k-pack')];
+    const i = items.findIndex((x) => x.dataset.pack === sel);
+    $('[data-swipe-dots]', view).querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === i));
+  };
+  let swipeT = 0;
+  grid.addEventListener('scroll', () => {
+    if (!mobile.matches) return;
+    clearTimeout(swipeT);
+    swipeT = setTimeout(() => {
+      const items = [...grid.querySelectorAll('.k-pack')];
+      const i = Math.round(grid.scrollLeft / grid.clientWidth);
+      if (items[i] && items[i].dataset.pack !== sel) { showDetail(items[i].dataset.pack); syncDots(); }
+    }, 90);
+  }, { passive: true });
   let tab0 = 'base';
   try { tab0 = localStorage.getItem('mugigo.packTab') || 'base'; } catch { /* stockage indisponible */ }
   view.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -350,7 +407,7 @@ async function home({ token }) {
     const info = e.target.closest('[data-pack-info]'); if (info) return packModal(info.dataset.packInfo);
     const pk = e.target.closest('.k-pack'); if (pk) {
       if (pk.dataset.pack === sel && innerWidth > 900) return openPack(sel, 1);
-      showDetail(pk.dataset.pack);
+      showDetail(pk.dataset.pack); syncDots();
       if (innerWidth <= 900) detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   });
@@ -371,7 +428,7 @@ async function claimDaily() {
     const r = await post('/daily');
     sound.play('coin');
     toast(t('Jour {n} : +{reward}', { n: r.streak, reward: cr(r.reward) }), 'good');
-    await store.refresh(); route();
+    await store.refresh(); route(true);
   } catch (e) { toast(esc(e.message), 'error'); }
 }
 
@@ -413,8 +470,11 @@ async function rewardsPage({ token }) {
   const me = store.me, d = me.daily;
   const doneDays = d.available ? d.streak : d.streak;
   const quests = [['daily', t('Quêtes du jour'), t('Réinitialisées chaque jour')], ['weekly', t('Quêtes de la semaine'), t('Réinitialisées chaque lundi')], ['long', t('Exploits'), t('Une seule fois, pour les plus acharnés')]];
-  view.innerHTML = `<h1>${t('Récompenses')}</h1>
-    <div class="grid cols-2">
+  const claimable = ['daily', 'weekly', 'long'].flatMap((g) => missions[g]).filter((m) => !m.claimed && m.progress >= m.target);
+  const nAll = claimable.length + (d.available ? 1 : 0);
+  view.innerHTML = `<div class="row between" style="align-items:center"><h1 style="margin:0">${t('Récompenses')}</h1>
+      <button class="btn gold" data-claim-all ${nAll ? '' : 'disabled'}>${t('Tout réclamer')}${nAll ? ` <span class="k-chip">${nAll}</span>` : ''}</button></div>
+    <div class="grid cols-2" style="margin-top:18px">
       <div class="panel"><div class="row between"><h2>${t('Connexion quotidienne')}</h2><span class="pill">${pl(d.streak, t('Série : {n} jour', { n: d.streak }), t('Série : {n} jours', { n: d.streak }))}</span></div>
         <div class="daily">${d.table.map((v, i) => {
     const pos = ((doneDays - 1) % 7 + 7) % 7;
@@ -443,9 +503,21 @@ async function rewardsPage({ token }) {
       <tbody>${txs.map((x) => `<tr><td class="muted small">${new Date(x.at).toLocaleString(locale())}</td><td>${esc(x.type)}</td><td class="muted">${esc(tr(x.note || ''))}</td>
         <td style="text-align:right" class="${x.amount >= 0 ? 'pos' : 'neg'}">${x.amount >= 0 ? '+' : ''}${fmt(x.amount)}</td><td style="text-align:right">${fmt(x.balance_after)}</td></tr>`).join('')}</tbody></table></div>`;
   $('[data-daily]', view).onclick = claimDaily;
+  // tout réclamer d'un coup : récompense du jour + quêtes terminées
+  $('[data-claim-all]', view).onclick = async (e) => {
+    e.target.disabled = true;
+    let total = 0, n = 0;
+    try {
+      if (store.me.daily.available) { const r = await post('/daily'); total += r.reward; n++; }
+      for (const m of claimable) { await post(`/missions/${m.key}/claim`); total += m.reward; n++; }
+      sound.play('coin');
+      toast(t('{n} récompense(s) réclamée(s) · +{gain}', { n, gain: cr(total) }), 'good');
+    } catch (err) { toast(esc(err.message), 'error'); }
+    await store.refresh(); route(true);
+  };
   view.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-claim]'); if (!b) return;
-    try { await post(`/missions/${b.dataset.claim}/claim`); sound.play('coin'); toast(t('Quête réclamée !'), 'good'); await store.refresh(); route(); } catch (err) { toast(esc(err.message), 'error'); }
+    try { await post(`/missions/${b.dataset.claim}/claim`); sound.play('coin'); toast(t('Quête réclamée !'), 'good'); await store.refresh(); route(true); } catch (err) { toast(esc(err.message), 'error'); }
   });
 }
 
@@ -472,7 +544,7 @@ function settingsPage({ query }) {
       <div class="row" style="margin-top:12px;gap:8px"><span class="muted">${t('Langue')}</span>${LANGS.map((l) => `<button class="btn sm ${l.key === getLang() ? 'primary' : ''}" ${l.key === getLang() ? 'disabled' : `data-lang="${l.key}"`}>${esc(l.label)}</button>`).join('')}</div>
     </div></div>`;
   $('[data-mock]', view)?.addEventListener('click', async () => {
-    try { await post('/discord/mock'); toast(t('Compte vérifié (simulation)'), 'good'); await store.refresh(); route(); } catch (e) { toast(esc(e.message), 'error'); }
+    try { await post('/discord/mock'); toast(t('Compte vérifié (simulation)'), 'good'); await store.refresh(); route(true); } catch (e) { toast(esc(e.message), 'error'); }
   });
   $('[data-sound]', view).onchange = (e) => { sound.on = e.target.checked; };
   const form = $('[data-profile]', view);
@@ -539,8 +611,12 @@ const ROUTES = [
   [/^login$/, () => authPage('login')],
   [/^register$/, () => authPage('register')],
 ];
-export async function route() {
+// soft = mise à jour sur place après une action (réclamer, vendre…) : pas de page blanche,
+// pas d'animation d'entrée, la position de défilement est conservée.
+export async function route(soft = false) {
+  soft = soft === true;
   const token = ++renderToken;
+  const scrollY = window.scrollY;
   timers.forEach(clearInterval); timers.clear(); freeTicker();
   const [path, qs] = location.hash.replace(/^#\/?/, '').split('?');
   const query = new URLSearchParams(qs || '');
@@ -552,13 +628,14 @@ export async function route() {
     if (auth && !store.me) { location.hash = '#/login'; return; }
     const host = $('#view-host');
     view = document.createElement('div');
-    view.className = 'view';
-    host.replaceChildren(view);
-    const ctx = { view, token, params: m.slice(1).map(decodeURIComponent), query, every, openPack, rerender: route, stale: () => token !== renderToken };
+    view.className = soft ? 'view soft' : 'view';
+    if (!soft) host.replaceChildren(view);
+    const ctx = { view, token, params: m.slice(1).map(decodeURIComponent), query, every, openPack, rerender: () => route(true), stale: () => token !== renderToken };
     try { await fn(ctx); } catch (e) {
       if (token === renderToken) view.innerHTML = `<div class="empty"><b>${t('Oups')}</b>${esc(e.message)}</div>`;
     }
-    window.scrollTo({ top: 0 });
+    if (token !== renderToken) return;
+    if (soft) { host.replaceChildren(view); window.scrollTo({ top: scrollY }); } else window.scrollTo({ top: 0 });
     return;
   }
   location.hash = '#/';
@@ -573,8 +650,12 @@ function staticTexts() {
   $('#legal').textContent = t(LEGAL);
 }
 store.on(header);
-addEventListener('hashchange', route);
+addEventListener('hashchange', () => route());
 initTilt();
 staticTexts();
-store.refresh().then(route);
+const t0 = performance.now();
+store.refresh().then(() => route()).finally(() => {
+  // écran de chargement : affiché au moins un court instant pour éviter un flash
+  setTimeout(() => { const sp = document.getElementById('splash'); sp?.classList.add('gone'); setTimeout(() => sp?.remove(), 500); }, Math.max(0, 650 - (performance.now() - t0)));
+});
 every(() => store.me && store.refresh(), 25000);

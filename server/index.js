@@ -18,6 +18,8 @@ app.use((_req, res, next) => {
 app.use(loadUser);
 app.use('/api', api());
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Route inconnue' }));
+// le service worker doit toujours être relu (sinon les mises à jour du jeu tardent)
+app.get('/sw.js', (_req, res) => { res.set('Cache-Control', 'no-cache'); res.sendFile(join(root, 'public', 'sw.js')); });
 app.use('/shared', express.static(join(root, 'shared'), { maxAge: '1h' }));
 app.use(express.static(join(root, 'public'), { maxAge: '1h' }));
 app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(join(root, 'public', 'index.html')));
