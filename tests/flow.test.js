@@ -7,6 +7,7 @@ const { one, all, run } = await import('../server/db.js');
 const G = await import('../server/game.js');
 const { createUser } = await import('../server/auth.js');
 const { PACK_BY_KEY } = await import('../shared/packs.js');
+const { ECONOMY } = await import('../shared/config.js');
 
 const a = createUser({ username: 'alice', password: 'password123' });
 const b = createUser({ username: 'bob', password: 'password123' });
@@ -24,9 +25,9 @@ test('boosters offerts puis payants', () => {
   assert.equal(owned(a).length, 20, 'rollback : aucune carte créée si le paiement échoue');
 });
 
-test('colis gratuits limités par le stock', () => {
-  G.openPacks(b, 'free', 2);
-  assert.throws(() => G.openPacks(b, 'free', 1), /Plus de colis/);
+test('boosters gratuits limités par le stock (départ à 10/10)', () => {
+  G.openPacks(b, 'free', ECONOMY.free.maxStock);
+  assert.throws(() => G.openPacks(b, 'free', 1), /Plus de booster/);
 });
 
 test('vente au système à 55 %', () => {
