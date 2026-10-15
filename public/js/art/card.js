@@ -4,7 +4,7 @@ import { RARITIES, BRAND, WEAR } from '/shared/config.js';
 import { MODEL_BY_KEY, STYLES, COLLECTION_BY_KEY, ART_FR, PATTERNS, CAMOS } from '/shared/catalog.js';
 import { gradeLabel } from '/shared/rules.js';
 import { WEAPON_ART, WEAPON_BOX, PAINT_BOX } from './weapons.js';
-import { HAS_3D } from './weapons3d.js';
+import { HAS_3D, PHOTO } from './weapons3d.js';
 import { skinTexture, rng } from './skins.js';
 import { esc } from '../ui.js';
 import { t, L as loc, getLang } from '/shared/i18n.js';
@@ -67,7 +67,7 @@ export function weaponSVG(skin, card = null, opts = {}) {
           <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.2 0 0 0 -.55"/></filter>
         <filter id="${id}stf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .02" numOctaves="4" seed="${(ns + 11) % 997}"/>
           <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  5 0 0 0 ${(-3.1 + w * 1.4).toFixed(2)}"/><feGaussianBlur stdDeviation="1.2"/></filter>
-        <mask id="${id}chip" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><g filter="url(#${id}chf)">${paint.map((p) => `<path d="${p.d}" fill="#fff" fill-rule="evenodd"/>`).join('')}</g></mask>
+        <mask id="${id}chip" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><g filter="url(#${id}chf)">${PHOTO[skin.m] ? `<image href="/img/weapons/${skin.m}.mask.png" x="0" y="0" width="1000" height="360" preserveAspectRatio="none"/>` : paint.map((p) => `<path d="${p.d}" fill="#fff" fill-rule="evenodd"/>`).join('')}</g></mask>
         <mask id="${id}chipi" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" fill="#fff"/><rect width="1000" height="360" fill="#000" mask="url(#${id}chip)"/></mask>
         <mask id="${id}loss" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" filter="url(#${id}lsf)"/></mask>
         <mask id="${id}stain" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" filter="url(#${id}stf)"/></mask>`;
@@ -92,7 +92,7 @@ export function weaponSVG(skin, card = null, opts = {}) {
         ${skin.r >= 5 && !opts.lite ? `<filter id="${id}gl" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>` : ''}
         ${opts.lite ? '' : `<filter id="${id}sb" x="-10%" y="-20%" width="120%" height="150%"><feGaussianBlur stdDeviation="7"/></filter>`}
       </defs>
-      ${skin.r >= 5 && !opts.lite ? `<path d="${all}" fill="none" stroke="${RARITIES[skin.r].glow}" stroke-width="10" opacity=".22" filter="url(#${id}gl)"/>` : ''}
+      ${skin.r >= 5 && !opts.lite && !PHOTO[skin.m] ? `<path d="${all}" fill="none" stroke="${RARITIES[skin.r].glow}" stroke-width="10" opacity=".22" filter="url(#${id}gl)"/>` : ''}
       ${img('base.webp')}
       <g mask="url(#${id}pm)"><g ${chipMask} style="isolation:isolate">
         <g transform="${texFit(skin.m)}">${tex.body}</g>${wearOver}
@@ -152,16 +152,17 @@ export function weaponSVG(skin, card = null, opts = {}) {
 
 // la texture (1000 × 360) est cadrée sur la zone peinte du modèle (mise à l'échelle uniforme, « cover »)
 function texFit(m) {
-  const b = PAINT_BOX[m];
+  const b = PHOTO[m] ? boxOf(PHOTO[m].box) : PAINT_BOX[m];
   const k = Math.max(b.w / 1000, b.h / 360) * 1.04;
   return `translate(${F(b.x + b.w / 2 - 500 * k)} ${F(b.y + b.h / 2 - 180 * k)}) scale(${k.toFixed(4)})`;
 }
 
+const boxOf = ([x, y, w, h]) => ({ x, y, w, h });
 // cadre l'arme dans la fenêtre d'illustration
 // (les couteaux sont inclinés pour occuper la fenêtre)
 function fit(m, x0, y0, w0, h0) {
-  const b = WEAPON_BOX[m];
-  const a = MODEL_BY_KEY[m].cls === 'knife' ? -24 : 0;
+  const b = PHOTO[m] ? boxOf(PHOTO[m].box) : WEAPON_BOX[m];
+  const a = PHOTO[m]?.tilt ?? (MODEL_BY_KEY[m].cls === 'knife' ? -24 : 0);
   const ra = (Math.abs(a) * Math.PI) / 180;
   const bw = b.w * Math.cos(ra) + b.h * Math.sin(ra), bh = b.w * Math.sin(ra) + b.h * Math.cos(ra);
   const k = Math.min((w0 - 40) / bw, (h0 - 70) / bh);

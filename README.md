@@ -45,6 +45,14 @@ node --input-type=module -e "import { WEAPON_ART } from './public/js/art/weapons
 python scripts/render3d/build.py parts.json public/img/weapons [modèle …] --samples 64 --scale 1.5
 ```
 
+### Importer une arme depuis une image
+Une image détourée (PNG à fond transparent, canon à droite de préférence) peut remplacer le rendu d’une arme :
+```
+python scripts/import-weapon.py ak47.png rhoden public/img/weapons [--rotate DEG] [--flip]
+```
+Le script crée l’image de base, l’éclairage, les reflets et le masque, puis affiche le cadre à reporter dans
+`PHOTO` (`public/js/art/weapons3d.js`). Le skin est multiplié par l’éclairage de la photo : le relief est conservé.
+
 ### Langues
 Le jeu est en français et en anglais (bouton FR/EN dans l’en-tête, ou Paramètres). Le français sert de clé :
 `t('Texte')` dans le code, traductions dans `shared/lang/en-*.js`, champs `en`/`…En` dans les données.
