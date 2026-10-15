@@ -150,20 +150,20 @@ function rateSliders(p) {
 function bindPacks(root) {
   // inclinaison 3D du booster qui suit la souris
   root.addEventListener('pointermove', (e) => {
-    const tile = e.target.closest('.pack-tile'); if (!tile || e.pointerType === 'touch') return;
+    const tile = e.target.closest('.pack-tile, .k-pack'); if (!tile || e.pointerType === 'touch') return;
     const art = tile.querySelector('.pack-art'), r = art.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
     art.style.setProperty('--ry', `${(x * 22).toFixed(1)}deg`); art.style.setProperty('--rx', `${(-y * 18).toFixed(1)}deg`);
     art.style.setProperty('--mx', `${((x + 0.5) * 100).toFixed(0)}%`); art.style.setProperty('--my', `${((y + 0.5) * 100).toFixed(0)}%`);
   });
   root.addEventListener('pointerout', (e) => {
-    const tile = e.target.closest('.pack-tile'); if (!tile || tile.contains(e.relatedTarget)) return;
+    const tile = e.target.closest('.pack-tile, .k-pack'); if (!tile || tile.contains(e.relatedTarget)) return;
     const art = tile.querySelector('.pack-art'); art.style.setProperty('--rx', '0deg'); art.style.setProperty('--ry', '0deg');
   });
   root.addEventListener('click', (e) => {
     const o = e.target.closest('[data-open]');
     if (o) { e.stopPropagation(); return openPack(o.dataset.open, 1); }
-    const t = e.target.closest('[data-pack]');
+    const t = e.target.closest('.pack-tile[data-pack]');
     if (t) packModal(t.dataset.pack);
   });
 }
@@ -229,64 +229,143 @@ function feedItem(f) {
 
 async function home({ token }) {
   const me = store.me;
-  const [feed, stats] = await Promise.all([api('/feed'), api('/stats')]);
+  const [feed, stats, lb] = await Promise.all([api('/feed'), api('/stats'), api('/leaderboards').catch(() => null)]);
   if (token !== renderToken) return;
-  const showcase = [SKINS.find((s) => s.r === 5 && s.m === 'nightfang' && s.st === 'art') || SKINS.find((s) => s.r === 5 && s.m === 'nightfang'), SKINS.find((s) => s.r === 6 && s.m === 'rhoden'), SKINS.find((s) => s.r === 5 && s.m === 'lumen')];
+  const byKey = Object.fromEntries(PACKS.map((p) => [p.key, p]));
   const groups = [
     ['base', t('Boosters'), '부스터', t('Les grands classiques : tout le catalogue ou une famille d’armes.')],
     ['collection', t('Collections'), '컬렉션', t('Dix univers illustrés : chaque booster ne contient que les skins de sa collection.')],
     ['model', t('Par arme'), '무기', t('Ciblez votre modèle préféré.')],
   ];
-  view.innerHTML = `
-    <section class="hero hero-compact">
-      <div>
-        <div class="pill" style="margin-bottom:12px">⚡ ${t('{n} cartes · {p} boosters', { n: `<b class="glow-text" style="--gc:#ffb020">${fmt(stats.skins)}</b>`, p: PACKS.length })}</div>
-        <h1>${t('Collectionnez l’<span class="grad-text">arsenal</span> le plus rare.')}</h1>
-        <p>${t('Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les armes les mieux conservées et les <b style="color:#ff5a8a">cartes erreur</b> (1 sur {n}). Échangez avec vos amis et dominez le classement.', { n: fmt(Math.round(1 / MISPRINT.chance)) })}</p>
-        <div class="row" style="margin-top:18px">
-          ${me ? `<button class="btn primary xl" data-quick-free>${t('Ouvrir un booster gratuit ({n})', { n: me.free.stock })}</button>${me.daily.available ? `<button class="btn xl" data-daily>🎁 ${t('Récompense du jour +{r} {mu}', { r: fmt(me.daily.reward), mu: MU })}</button>` : ''}`
-    : `<a class="btn primary xl" href="#/register">${t('Commencer – {start} {mu} + {packs} boosters offerts', { start: fmt(ECONOMY.startBalance), mu: MU, packs: ECONOMY.welcomePacks })}</a><a class="btn xl" href="#/collection">${t('Voir la collection')}</a>`}
-        </div>
-        <div class="stats"><div><b style="color:#5ff3ff">${fmt(stats.players)}</b>${t('joueurs')}</div><div><b style="color:#b266ff">${fmt(stats.cards)}</b>${t('cartes en circulation')}</div><div><b style="color:#4ade80">${fmt(stats.listings)}</b>${t('annonces au marché')}</div></div>
+  // bandeau « à la une » : boosters mis en avant, avec trois cartes rares de leur contenu
+  const FEATURED = ['royal', 'blades', 'free'].map((k) => byKey[k]).filter(Boolean);
+  const heroCards = (p) => {
+    const pool = SKINS.filter(packFilter(p.filter));
+    const best = [...pool].sort((a, b) => b.r - a.r || b.base - a.base);
+    return [best[0], best[3] || best[1], best[7] || best[2]].filter(Boolean);
+  };
+  const priceChip = (p) => p.free ? t('Gratuit') : `${fmt(p.price)} ${MU}`;
+  const slide = (p, i) => `<div class="k-slide ${i ? '' : 'on'}" data-slide="${i}" style="--t1:${p.theme[0]};--t2:${p.theme[1]}">
+      <div class="k-slide-text">
+        <span class="eyebrow">${p.free ? t('Toutes les {m} min · {max} en réserve', { m: ECONOMY.free.intervalMs / 60e3, max: ECONOMY.free.maxStock }) : t('Booster à la une')} · <span class="ko">${esc(p.ko || '')}</span></span>
+        <h1>${esc(L(p))}</h1>
+        <p class="muted">${esc(L(p, 'tag'))}${/\d/.test(L(p, 'tag')) ? '' : ` · ${t('{n} cartes', { n: p.cards })}`}</p>
+        <div class="row" style="margin-top:22px"><button class="btn primary xl k-cta" data-open="${p.key}">${t('Ouvrir ce booster')} <span class="k-chip">${priceChip(p)}</span></button>
+          <button class="btn xl ghost" data-pack-info="${p.key}">${t('Voir le booster')}</button></div>
       </div>
-      <div class="hero-cards">${showcase.map((s, i) => cardHTML(s, { f: [0.012, 0.0004, 0.09][i], cx: 50, cy: 50, tr: null, mp: null, g: null, pt: 7, serial: 'MG-VITRINE' })).join('')}</div>
-    </section>
-    <div class="home-grid">
-      <div>
-        <div class="pack-tabs" role="tablist">${groups.map(([g, title, ko]) => `<button role="tab" data-tab="${g}"><span class="ko">${ko}</span>${title}<small>${PACKS.filter((p) => p.group === g).length}</small></button>`).join('')}</div>
-        <p class="muted small" data-tabsub></p>
-        <div class="packs" data-packs></div>
-      </div>
-      <aside class="feed-col"><div class="section-title"><h2>${t('Drops en direct')}</h2><span class="pill"><span class="online on"></span> live</span></div>
-        <div class="panel feed" data-feed>${feed.map(feedItem).join('') || `<div class="empty">${t('Aucun drop pour l’instant')}</div>`}</div></aside>
+      <div class="k-slide-art"><span class="k-bigsym">${esc(p.sym || '무')}</span>
+        <div class="hero-cards">${heroCards(p).map((s) => cardHTML(s, null, { lite: true })).join('')}</div></div>
     </div>`;
-  // trois catégories de boosters en onglets (l'onglet choisi est mémorisé)
-  const grid = $('[data-packs]', view);
+  const steps = [
+    [t('Ouvre tes boosters'), t('Un booster gratuit se recharge toutes les {m} minutes (jusqu’à {max} en réserve). Les Mu en débloquent d’autres.', { m: ECONOMY.free.intervalMs / 60e3, max: ECONOMY.free.maxStock })],
+    [t('Complète tes collections'), t('Chaque collection est un album. Les doublons s’échangent entre amis ou se recyclent en Mu.')],
+    [t('Fais grader tes armes'), t('Les experts notent l’état de l’arme : une note de 10 multiplie la valeur de la carte.')],
+  ];
+  const big = feed.filter((f) => f.card.r >= 4 || f.card.mp);
+  const pulls = (big.length >= 6 ? big : feed.filter((f) => f.card.r >= 2)).slice(0, 16);
+  const podium = lb?.value?.slice(0, 3) || [];
+
+  view.innerHTML = `
+    <section class="k-hero" data-hero>${FEATURED.map(slide).join('')}
+      <div class="k-dots">${FEATURED.map((_, i) => `<button data-dot="${i}" class="${i ? '' : 'on'}" aria-label="${i + 1}"></button>`).join('')}</div></section>
+    <section class="k-steps">${steps.map(([h, d], i) => `<div><b class="k-num">0${i + 1}</b><h3>${h}</h3><p class="muted">${d}</p></div>`).join('')}</section>
+    <section class="k-shop">
+      <div>
+        <div class="k-shop-head"><h2>${t('Choisis ton booster')}</h2>
+          <div class="k-seg" role="tablist">${groups.map(([g, title]) => `<button role="tab" data-tab="${g}">${title}</button>`).join('')}</div></div>
+        <p class="muted small" data-tabsub></p>
+        <div class="k-packs" data-packs></div>
+      </div>
+      <aside class="k-detail panel" data-detail></aside>
+    </section>
+    <section class="k-pulls">
+      <span class="eyebrow"><span class="online on"></span> ${t('En direct · légendaires et mieux')}</span>
+      <h2>${t('Gros tirages')}</h2>
+      <div class="k-strip" data-strip>${pulls.map((f) => `<a class="k-pull" href="#/card/${f.card.id}">${cardOf(f.card, { small: true, lite: true, noSlab: true })}
+        <div class="k-pull-user">${avatar({ username: f.username, avatar_hue: (f.username.charCodeAt(0) * 37) % 360 }, 24)}<b>${esc(f.username)}</b></div><span class="muted mono">${ago(f.at)}</span></a>`).join('') || `<div class="empty">${t('Aucun drop pour l’instant')}</div>`}</div>
+    </section>
+    <section class="k-bottom">
+      <div><div class="k-sec-head"><h2>${t('En chiffres')}</h2><a href="#/market">${t('Tout le marché')}</a></div>
+        <div class="k-stats">
+          <div class="panel"><b>${fmt(stats.players)}</b><span>${t('joueurs')}</span></div>
+          <div class="panel"><b>${fmt(stats.cards)}</b><span>${t('cartes en circulation')}</span></div>
+          <div class="panel"><b>${fmt(stats.listings)}</b><span>${t('annonces au marché')}</span></div>
+          <div class="panel"><b>${fmt(stats.skins)}</b><span>${t('skins à collectionner')}</span></div>
+        </div></div>
+      <div><div class="k-sec-head"><h2>${t('Top collectionneurs')}</h2><a href="#/leaderboard">${t('Classement complet')}</a></div>
+        <div class="k-podium">${[1, 0, 2].map((i) => podium[i] ? `<a class="k-step s${i + 1}" href="#/u/${encodeURIComponent(podium[i].username)}">
+          ${avatar(podium[i], i === 0 ? 74 : 58)}<b>${esc(podium[i].username)}</b><span class="mono muted">${cr(podium[i].value)}</span><div class="k-block">${i + 1}</div></a>` : '<div></div>').join('')}</div></div>
+    </section>`;
+
+  // carrousel du bandeau
+  let cur = 0;
+  const go = (n) => { cur = (n + FEATURED.length) % FEATURED.length; view.querySelectorAll('[data-slide]').forEach((x, i) => x.classList.toggle('on', i === cur)); view.querySelectorAll('[data-dot]').forEach((x, i) => x.classList.toggle('on', i === cur)); };
+  view.querySelectorAll('[data-dot]').forEach((b) => b.addEventListener('click', () => go(Number(b.dataset.dot))));
+  every(() => { if (!document.hidden && !view.querySelector('.k-hero:hover')) go(cur + 1); }, 7000);
+
+  // boutique : onglets + grille de boosters + panneau de détail du booster sélectionné
+  const grid = $('[data-packs]', view), detail = $('[data-detail]', view);
+  let sel = null;
+  const showDetail = (key) => {
+    const p = byKey[key]; if (!p) return;
+    sel = key;
+    grid.querySelectorAll('[data-pack]').forEach((x) => x.classList.toggle('sel', x.dataset.pack === key));
+    const minR = p.rates.findIndex((x) => x > 0);
+    const chance = (r) => 1 - (1 - p.rates.slice(r).reduce((a, b) => a + b, 0) / 100) ** p.cards;
+    const shown = [2, 3, 4, 5, 6].filter((r) => p.rates.slice(r).some((x) => x > 0));
+    const pool = SKINS.filter(packFilter(p.filter)).length;
+    detail.innerHTML = `<div class="k-d-head" style="--t1:${p.theme[0]}"><span class="k-d-sym">${esc(p.sym || '무')}</span>
+        <div><h3>${esc(L(p))}</h3><div class="muted">${esc(L(p, 'tag'))}</div></div></div>
+      <div class="k-d-stats">
+        <div><b>${p.cards}</b><span>${t('cartes par booster')}</span></div>
+        <div><b style="color:${RARITIES[minR].color}">${esc(L(RARITIES[minR]))}</b><span>${t('ou mieux, à chaque carte')}</span></div>
+        ${p.free ? `<div><b>${me ? `${me.free.stock}/${me.free.max}` : '—'}</b><span>${t('boosters gratuits en réserve')}</span></div>`
+          : `<div><b style="color:var(--accent)">${PITY.legendaryAfter}</b><span>${t('avant Légendaire garanti')}</span></div>`}
+        <div><b>${fmt(pool)}</b><span>${t('skins possibles')}</span></div>
+      </div>
+      <div class="eyebrow" style="margin-top:16px">${t('Chance par booster')}</div>
+      <div class="k-odds">${shown.map((r) => { const c = chance(r) * 100; return `<div class="k-odd" style="--rc:${RARITIES[r].color}"><span><i></i>${esc(L(RARITIES[r]))}${r < 6 ? '+' : ''}</span>
+        <div class="k-bar"><i style="width:${Math.max(1.5, Math.min(100, c))}%"></i></div><b class="mono">${fmt(c < 1 ? +c.toFixed(2) : +c.toFixed(1))} %</b></div>`; }).join('')}</div>
+      <button class="btn gold xl k-open" data-open="${p.key}">${t('Ouvrir')} <span class="k-chip">${priceChip(p)}</span></button>
+      <div class="row" style="justify-content:center;margin-top:10px">${p.free ? '' : `<button class="btn sm" data-open10="${p.key}">${t('Ouvrir ×10')}</button>`}<button class="btn sm ghost" data-pack-info="${p.key}">${t('Taux détaillés & simulateur')}</button></div>`;
+  };
   const showTab = (g) => {
     const grp = groups.find((x) => x[0] === g) || groups[0];
     try { localStorage.setItem('mugigo.packTab', grp[0]); } catch { /* stockage indisponible */ }
     view.querySelectorAll('[data-tab]').forEach((b) => { b.classList.toggle('on', b.dataset.tab === grp[0]); b.setAttribute('aria-selected', b.dataset.tab === grp[0]); });
     $('[data-tabsub]', view).textContent = grp[3];
-    grid.innerHTML = PACKS.filter((p) => p.group === grp[0]).sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0)).map((p, i) => packTile(p, me, i)).join('');
+    const list = PACKS.filter((p) => p.group === grp[0]).sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0));
+    grid.innerHTML = list.map((p, i) => `<button class="k-pack" data-pack="${p.key}" style="--t1:${p.theme[0]};--t2:${p.theme[1]};--i:${i}">
+        <div class="pack-art">${packSVG(p)}</div><span class="k-price mono">${p.free ? `<span data-free-label>${me ? `${me.free.stock}/${me.free.max}` : t('Gratuit')}</span>` : `${fmt(p.price)} ${MU}`}</span></button>`).join('');
     grid.classList.remove('tab-in'); void grid.offsetWidth; grid.classList.add('tab-in');
+    showDetail(list.some((p) => p.key === sel) ? sel : list[0].key);
   };
   let tab0 = 'base';
   try { tab0 = localStorage.getItem('mugigo.packTab') || 'base'; } catch { /* stockage indisponible */ }
   view.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
   showTab(tab0);
+  view.addEventListener('click', (e) => {
+    const o = e.target.closest('[data-open]'); if (o) { e.stopPropagation(); return openPack(o.dataset.open, 1); }
+    const o10 = e.target.closest('[data-open10]'); if (o10) return openPack(o10.dataset.open10, 10);
+    const info = e.target.closest('[data-pack-info]'); if (info) return packModal(info.dataset.packInfo);
+    const pk = e.target.closest('.k-pack'); if (pk) {
+      if (pk.dataset.pack === sel && innerWidth > 900) return openPack(sel, 1);
+      showDetail(pk.dataset.pack);
+      if (innerWidth <= 900) detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  });
   bindPacks(grid);
-  $('[data-quick-free]', view)?.addEventListener('click', () => openPack('free', 1));
   $('[data-daily]', view)?.addEventListener('click', claimDaily);
   let last = feed[0]?.at || 0;
   every(async () => {
     const f = await api('/feed').catch(() => []);
-    const fresh = f.filter((x) => x.at > last);
+    const fresh = f.filter((x) => x.at > last && (x.card.r >= 4 || x.card.mp));
+    if (f[0]) last = Math.max(last, f[0].at);
     if (!fresh.length) return;
-    last = f[0].at;
-    $('[data-feed]', view)?.insertAdjacentHTML('afterbegin', fresh.map(feedItem).join(''));
+    $('[data-strip]', view)?.insertAdjacentHTML('afterbegin', fresh.map((x) => `<a class="k-pull fresh" href="#/card/${x.card.id}">${cardOf(x.card, { small: true, lite: true, noSlab: true })}
+      <div class="k-pull-user">${avatar({ username: x.username, avatar_hue: (x.username.charCodeAt(0) * 37) % 360 }, 24)}<b>${esc(x.username)}</b></div><span class="muted mono">${ago(x.at)}</span></a>`).join(''));
   }, 8000);
 }
-
 async function claimDaily() {
   try {
     const r = await post('/daily');
