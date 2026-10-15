@@ -66,7 +66,7 @@ export function rollCard(rarity, filter) {
   const f = rollFloat(skin);
   const { cx, cy } = rollCentering();
   const tr = rand() < MODIFIERS.tracker.chance ? randomInt(0, 2500) : null;
-  const foil = rarity >= MODIFIERS.foil.minRarity && rand() < MODIFIERS.foil.chance ? 1 : 0;
+  const foil = 0; // cartes holographiques supprimées (remplacées par la brillance progressive)
   let mp = null;
   if (rand() < MISPRINT.chance) {
     // la 2e moitié vient d'un skin voisin du même modèle (comme une feuille mal découpée)

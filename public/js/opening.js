@@ -96,7 +96,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     const shown = stack.filter((s) => !s.hidden);
     shown.forEach((s, i) => setTimeout(() => stackPos(s, i), 120 + (shown.length - i) * 40));
     await sleep(500 + shown.length * 40);
-    stack[0]?.classList.add('top');
+    stack[0]?.classList.add('is-top');
     hint.textContent = left(stack.length);
   }
 
@@ -121,7 +121,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
       idx++;
       prep();
       el.classList.remove('rays-on');
-      stack[idx]?.classList.add('top');
+      stack[idx]?.classList.add('is-top');
       hint.textContent = idx < stack.length ? left(stack.length - idx) : '';
       await sleep(260);
       if (idx >= stack.length) summary();
@@ -169,7 +169,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     const skin = SKIN_BY_ID.get(c.s);
     const w = wearOf(c.f);
     info.innerHTML = `<div class="big" style="color:${R.color}">${esc(MODEL_BY_KEY[skin.m].name)} | ${esc(L(skin, 'n'))}</div>
-      <div class="muted small">${esc(L(R))} · ${w.key} ${fmtFloat(c.f)}${c.foil ? ` · ${t('Holo')}` : ''}${c.tr != null ? ` · ${t('Traqueur')}` : ''}</div>
+      <div class="muted small">${esc(L(R))} · ${w.key} ${fmtFloat(c.f)}${c.tr != null ? ` · ${t('Traqueur')}` : ''}</div>
       <div style="margin-top:6px">${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span> ` : ''}<span class="pill">${cr(c.value)}</span></div>`;
   }
 
@@ -191,7 +191,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     el.classList.add('done');
     el.classList.remove('rays-on');
     const total = cards.reduce((a, c) => a + c.value, 0);
-    const lows = cards.filter((c) => c.r <= 1 && !c.mp && !c.foil && c.g == null);
+    const lows = cards.filter((c) => c.r <= 1 && !c.mp && c.g == null);
     const lowGain = lows.reduce((a, c) => a + Math.max(1, Math.floor(c.value * ECONOMY.sellToSystemRate)), 0);
     const sum = $('.summary', el);
     const sorted = [...cards].sort((a, b) => b.value - a.value);

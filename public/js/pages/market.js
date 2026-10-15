@@ -9,7 +9,7 @@ import { t, L, fmt } from '/shared/i18n.js';
 
 export async function marketPage({ view, query }) {
   const me = store.me;
-  const st = { q: '', model: query.get('model') || '', r: '', sort: 'new', fmin: '', fmax: '', pmin: '', pmax: '', foil: '', graded: '', misprint: '', tracker: '', mine: '', page: 0 };
+  const st = { q: '', model: query.get('model') || '', r: '', sort: 'new', fmin: '', fmax: '', pmin: '', pmax: '', graded: '', misprint: '', tracker: '', mine: '', page: 0 };
   view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>${t('Marché')}</h1><p class="muted">${t('Achetez et vendez entre joueurs. Le vendeur paie 5 % de frais ; le paiement est garanti par le site.')}</p></div>
       ${me ? `<label class="check"><input type="checkbox" data-c="mine"> ${t('Mes annonces')}</label>` : ''}</div>
     <div class="filters">
@@ -21,7 +21,6 @@ export async function marketPage({ view, query }) {
       <input class="input" style="min-width:0;width:100px" placeholder="${t('Float max')}" data-f="fmax" inputmode="decimal">
       <input class="input" style="min-width:0;width:100px" placeholder="${t('Prix min')}" data-f="pmin" inputmode="numeric">
       <input class="input" style="min-width:0;width:100px" placeholder="${t('Prix max')}" data-f="pmax" inputmode="numeric">
-      <label class="check"><input type="checkbox" data-c="foil"> ${t('Holo')}</label>
       <label class="check"><input type="checkbox" data-c="graded"> ${t('Gradées')}</label>
       <label class="check"><input type="checkbox" data-c="tracker"> ${t('Traqueur')}</label>
       <label class="check"><input type="checkbox" data-c="misprint"> ${t('Erreurs')}</label>

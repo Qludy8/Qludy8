@@ -89,7 +89,7 @@ export async function skinModal(id) {
       <h2 style="margin-top:10px">${esc(skinTitle(s))}</h2>
       <dl class="kv"><dt>${t('Collection')}</dt><dd style="color:${COLLECTION_BY_KEY[s.col].theme[0]}">${esc(L(COLLECTION_BY_KEY[s.col]))}</dd><dt>${t('Style')}</dt><dd>${esc(styleLabel(s))}</dd><dt>${t('Finition')}</dt><dd>${esc(t(FINISHES[s.f]))}</dd>
         <dt>${t('Plage de float')}</dt><dd>${s.fmin.toFixed(2)} – ${s.fmax.toFixed(2)}</dd><dt>${t('Valeur de base (Neuf)')}</dt><dd>${cr(s.base)}</dd>
-        <dt>${t('Holo possible')}</dt><dd>${s.r >= MODIFIERS.foil.minRarity ? t('Oui') : t('Non')}</dd><dt>${t('En circulation')}</dt><dd data-copies>…</dd></dl>
+        <dt>${t('En circulation')}</dt><dd data-copies>…</dd></dl>
       <div style="margin-top:18px" data-insp></div>
       <h3 style="margin-top:18px">${t('Historique des ventes')}</h3><div data-chart>…</div>
       <h3 style="margin-top:18px">${t('En vente maintenant')}</h3><div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr))" data-list>…</div>

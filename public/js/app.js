@@ -237,7 +237,7 @@ async function home({ token }) {
         </div>
         <div class="stats"><div><b style="color:#5ff3ff">${fmt(stats.players)}</b>${t('joueurs')}</div><div><b style="color:#b266ff">${fmt(stats.cards)}</b>${t('cartes en circulation')}</div><div><b style="color:#4ade80">${fmt(stats.listings)}</b>${t('annonces au marché')}</div></div>
       </div>
-      <div class="hero-cards">${showcase.map((s, i) => cardHTML(s, { f: [0.012, 0.0004, 0.09][i], cx: 50, cy: 50, tr: null, foil: i === 1 ? 1 : 0, mp: null, g: null, pt: 7, serial: 'MG-VITRINE' })).join('')}</div>
+      <div class="hero-cards">${showcase.map((s, i) => cardHTML(s, { f: [0.012, 0.0004, 0.09][i], cx: 50, cy: 50, tr: null, mp: null, g: null, pt: 7, serial: 'MG-VITRINE' })).join('')}</div>
     </section>
     <div class="home-grid">
       <div>${groups.map(([g, title, ko, sub]) => `
@@ -387,9 +387,9 @@ function helpPage() {
       <div class="panel"><h2>${t('Usure (float)')}</h2><p class="muted">${t('Chaque carte reçoit un float entre 0 et 1 (6 décimales), fixé à jamais. Plus il est bas, plus la carte est propre : la peinture de l’arme s’écaille et la carte se raye, se plie et se tache à mesure que le float monte.')}</p>
         <table class="t"><thead><tr><th>${t('État')}</th><th>${t('Float')}</th><th>${t('Valeur')}</th><th>${t('Probabilité')}</th></tr></thead><tbody>
         ${WEAR.tiers.map((w) => `<tr><td>${esc(L(w))} (${w.key})</td><td>${dec2(w.min)} – ${dec2(w.max)}</td><td>${x(w.mult)}</td><td>${pct(fmt(w.weight))}</td></tr>`).join('')}</tbody></table>
-        <p class="muted small">${t('Float extrême (&lt; {low} ou &gt; {high}) : {m0} à {m1}. Holo ({fc}, dès Rare) : {fm}. Traqueur ({tc}) : {tm}.', {
+        <p class="muted small">${t('Float extrême (&lt; {low} ou &gt; {high}) : {m0} à {m1}. Traqueur ({tc}) : {tm}.', {
     low: fmt(MODIFIERS.extreme.low), high: fmt(MODIFIERS.extreme.high), m0: x(MODIFIERS.extreme.mult[0]), m1: x(MODIFIERS.extreme.mult[1]),
-    fc: pct(fmt(MODIFIERS.foil.chance * 100)), fm: x(MODIFIERS.foil.mult), tc: pct(fmt(MODIFIERS.tracker.chance * 100)), tm: x(MODIFIERS.tracker.mult) })}</p></div>
+    tc: pct(fmt(MODIFIERS.tracker.chance * 100)), tm: x(MODIFIERS.tracker.mult) })}</p></div>
       <div class="panel"><h2>${t('Centrage & cartes erreur')}</h2><p class="muted">${t('Comme une vraie carte imprimée, la bordure n’est jamais parfaitement égale. Le centrage (ex. 55/45) est visible sur chaque carte et influence sa valeur, puis sa sous-note de gradation.')}</p>
         <table class="t"><thead><tr><th>${t('Écart max')}</th><th>${t('Note de centrage')}</th></tr></thead><tbody>${CENTERING.scale.slice(0, 8).map(([d, s]) => `<tr><td>${t('≤ {d} pts ({a}/{b})', { d, a: 50 + d, b: 50 - d })}</td><td>${fmt(s)}</td></tr>`).join('')}</tbody></table>
         <p class="muted small">${t('Effet sur une carte non gradée : {list}.', { list: CENTERING.valueMult.map(([s, m]) => `${fmt(s)}+ → ${x(m)}`).join(' · ') })}<br>

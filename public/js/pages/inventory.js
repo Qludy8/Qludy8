@@ -41,7 +41,7 @@ export async function inventoryPage(ctx) {
       <input class="input" placeholder="${t('Rechercher…')}" data-f="q">
       <select class="input" data-f="r"><option value="">${t('Toutes raretés')}</option>${RARITIES.map((r, i) => `<option value="${i}">${esc(L(r))}</option>`).join('')}</select>
       <select class="input" data-f="w"><option value="">${t('Toutes usures')}</option>${WEAR.tiers.map((w) => `<option value="${w.key}">${esc(L(w))}</option>`).join('')}</select>
-      <select class="input" data-f="flag"><option value="">${t('Tout')}</option><option value="foil">${t('Holo')}</option><option value="graded">${t('Gradées')}</option><option value="mp">${t('Cartes erreur')}</option><option value="tr">${t('Traqueur')}</option><option value="listed">${t('En vente')}</option><option value="locked">${t('Favoris')}</option></select>
+      <select class="input" data-f="flag"><option value="">${t('Tout')}</option><option value="graded">${t('Gradées')}</option><option value="mp">${t('Cartes erreur')}</option><option value="tr">${t('Traqueur')}</option><option value="listed">${t('En vente')}</option><option value="locked">${t('Favoris')}</option></select>
       <select class="input" data-f="sort"><option value="new">${t('Plus récentes')}</option><option value="value">${t('Valeur ↓')}</option><option value="rarity">${t('Rareté ↓')}</option><option value="float">${t('Float ↑')}</option></select>
     </div>
     <div class="cards" data-grid></div><div class="pager" data-pager></div><div data-bar></div>`;
@@ -52,7 +52,6 @@ export async function inventoryPage(ctx) {
       if (st.q && !skinTitle(s).toLowerCase().includes(st.q)) return false;
       if (st.r !== '' && c.r !== Number(st.r)) return false;
       if (st.w && wearOf(c.f).key !== st.w) return false;
-      if (st.flag === 'foil' && !c.foil) return false;
       if (st.flag === 'graded' && c.g == null) return false;
       if (st.flag === 'mp' && !c.mp) return false;
       if (st.flag === 'tr' && c.tr == null) return false;
@@ -174,7 +173,7 @@ export async function cardPage({ view, params, stale, rerender, cert }) {
   view.innerHTML = `<div class="detail">
     <div class="art-col">${cardOf(c)}</div>
     <div>
-      <div class="row">${rarityPill(c.r)}${c.foil ? `<span class="pill" style="color:#5ff3ff">${t('Holo')}</span>` : ''}${c.tr != null ? `<span class="pill" style="color:#ff8a3d">${t('Traqueur {n}', { n: c.tr })}</span>` : ''}${c.mp ? `<span class="pill" style="color:#ff2b6a">${t('Carte erreur')}</span>` : ''}${burned ? `<span class="pill neg">${t('Détruite')}</span>` : ''}</div>
+      <div class="row">${rarityPill(c.r)}${c.tr != null ? `<span class="pill" style="color:#ff8a3d">${t('Traqueur {n}', { n: c.tr })}</span>` : ''}${c.mp ? `<span class="pill" style="color:#ff2b6a">${t('Carte erreur')}</span>` : ''}${burned ? `<span class="pill neg">${t('Détruite')}</span>` : ''}</div>
       <h1 style="margin-top:12px">${esc(model.name)} <span class="muted">|</span> ${esc(L(s, 'n'))}</h1>
       <div class="row muted small"><span>${esc(c.serial)}</span>${c.cert ? `<span>· ${t('Certificat {cert}', { cert: esc(c.cert) })}</span>` : ''}<span>· ${t('Propriétaire :')} <a href="#/u/${encodeURIComponent(d.owner.username)}"><b>${esc(d.owner.username)}</b></a></span></div>
       <div class="panel" style="margin-top:18px"><div class="row between"><div><div class="muted small">${t('Valeur de référence')}</div><div style="font-family:var(--display);font-size:34px;font-weight:700">${cr(c.value)}</div></div>

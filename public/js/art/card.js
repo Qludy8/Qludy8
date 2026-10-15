@@ -1,8 +1,8 @@
 // Rendu des cartes en SVG : cadre de rareté, centrage réel, arme dessinée pièce par pièce (matériaux + ombrage),
 // texture du skin, usure (écaillage, perte de couleur, taches, rayures), badges, carte erreur, slab gradé, dos luxe.
-import { RARITIES, BRAND } from '/shared/config.js';
+import { RARITIES, BRAND, WEAR } from '/shared/config.js';
 import { MODEL_BY_KEY, STYLES, COLLECTION_BY_KEY, ART_FR, PATTERNS, CAMOS } from '/shared/catalog.js';
-import { wearOf, gradeLabel } from '/shared/rules.js';
+import { gradeLabel } from '/shared/rules.js';
 import { WEAPON_ART, WEAPON_BOX, PAINT_BOX } from './weapons.js';
 import { skinTexture, rng } from './skins.js';
 import { esc } from '../ui.js';
@@ -192,7 +192,6 @@ function cardFace(skin, card, id, opts) {
 
   const badges = [];
   if (card?.tr != null) badges.push([t('TRAQUEUR {n}', { n: String(card.tr).padStart(4, '0') }), '#ff8a3d']);
-  if (card?.foil) badges.push([t('HOLO'), '#5ff3ff']);
   let bxPos = 32;
   const badgeSvg = badges.map(([t, c]) => {
     const w = t.length * 11.5 + 24;
@@ -201,9 +200,12 @@ function cardFace(skin, card, id, opts) {
   }).join('');
 
   // état général : seulement le code à 2 lettres
-  const w = card ? wearOf(card.f) : null;
-  const wearTag = w ? `<g transform="translate(26 22)"><rect width="58" height="34" rx="9" fill="#000" fill-opacity=".45" stroke="${w.color}" stroke-width="2"/>
-    <text x="29" y="25" text-anchor="middle" class="t-wear" fill="${w.color}">${w.key}</text></g>` : '';
+  // indicateur d'usure : barre des états, avec seulement un point à la position du float
+  const FY = PH - 82, FX = 30, FW = PW - 60;
+  const floatBar = card ? `<g class="fbar" opacity=".9">
+      <rect x="${FX - 2}" y="${FY - 2}" width="${FW + 4}" height="10" rx="5" fill="#000" opacity=".45"/>
+      ${WEAR.tiers.map((tr) => `<rect x="${F(FX + tr.min * FW)}" y="${FY}" width="${F((tr.max - tr.min) * FW)}" height="6" fill="${tr.color}" opacity=".85"/>`).join('')}
+      <circle cx="${F(FX + Math.min(1, card.f) * FW)}" cy="${FY + 3}" r="8" fill="#fff" stroke="#000" stroke-opacity=".55" stroke-width="2.5"/></g>` : '';
 
   const raysOp = 0.04 + skin.r * 0.03;
   const [t1, t2] = col.theme;
@@ -221,7 +223,7 @@ function cardFace(skin, card, id, opts) {
     <rect x="5" y="5" width="${CW - 10}" height="${CH - 10}" rx="28" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="3"/>
     <g transform="translate(${F(L)} ${F(T)})">
       <rect width="${PW}" height="${PH}" rx="20" fill="url(#${fid}pn)" stroke="#000" stroke-opacity=".6" stroke-width="2"/>
-      ${wearTag || `<text x="26" y="46" class="t-model">${esc(model.name.toUpperCase())}</text>`}
+      <text x="26" y="46" class="t-model">${esc(model.name.toUpperCase())}</text>
       <text x="${PW - 26}" y="46" class="t-rar" text-anchor="end" fill="${R.color}" style="filter:drop-shadow(0 0 6px ${R.glow})">${esc(loc(R).toUpperCase())}</text>
       <g clip-path="url(#${fid}cl)">
         <rect x="16" y="${AY}" width="${PW - 32}" height="${AH}" fill="#0a0b10"/>
@@ -240,6 +242,7 @@ function cardFace(skin, card, id, opts) {
       <rect x="16" y="${NY}" width="${PW - 32}" height="${NH}" rx="14" fill="#000" fill-opacity=".38" stroke="${R.color}" stroke-opacity=".35"/>
       <text x="${PW / 2}" y="${NY + 54}" text-anchor="middle" class="t-name" textLength="${Math.min(PW - 70, name.length * 25)}" lengthAdjust="spacingAndGlyphs">${esc(name)}</text>
       <text x="${PW / 2}" y="${NY + 88}" text-anchor="middle" class="t-sub">${esc(model.name)} · <tspan fill="${t1}" font-weight="700">${esc(loc(col))}</tspan></text>
+      ${floatBar}
       <text x="26" y="${PH - 30}" class="t-serial">${card?.serial ? esc(card.serial) : esc(skin.id.toUpperCase())}</text>
       <g transform="translate(${PW - 48} ${PH - 38})">${rarityShape(skin.r, 17)}</g>
     </g>
@@ -303,6 +306,48 @@ function cardWear(card, id, lite) {
   return `<defs>${defs}</defs><g class="wear" pointer-events="none">${s}</g>`;
 }
 
+// ───────── Brillance progressive selon la rareté (remplace les holos), ternie et rendue irrégulière par l'usure
+// commun : satin discret · peu commun : vernis · rare : paillettes fines · ultra : reflets nacrés
+// légendaire : paillettes dorées · mythique : reflets prismatiques · transcendant : irisation complète
+export const GLOSS = [0.1, 0.18, 0.3, 0.42, 0.56, 0.72, 0.9];
+export const glossOf = (r, f = 0) => GLOSS[r] * Math.pow(1 - Math.min(1, f), 1.6);
+function cardGloss(skin, card, id, lite) {
+  const r = skin.r, f = card ? Math.min(1, card.f) : 0;
+  const k = GLOSS[r], keep = Math.pow(1 - f, 1.6);
+  if (k * keep < 0.01) return '';
+  const R = RARITIES[r];
+  const tint = r >= 6 ? '#ffffff' : r >= 4 ? (r === 4 ? '#ffe2a0' : '#ffd0e0') : '#ffffff';
+  let defs = `<linearGradient id="${id}gs" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${tint}" stop-opacity="0"/><stop offset=".3" stop-color="${tint}" stop-opacity=".0"/>
+      <stop offset=".42" stop-color="${tint}" stop-opacity=".55"/><stop offset=".5" stop-color="${tint}" stop-opacity=".15"/>
+      <stop offset=".62" stop-color="${tint}" stop-opacity=".4"/><stop offset=".75" stop-color="${tint}" stop-opacity="0"/></linearGradient>`;
+  let body = `<rect width="${CW}" height="${CH}" fill="url(#${id}gs)" opacity="${(k * 0.55).toFixed(3)}" style="mix-blend-mode:soft-light"/>`;
+  if (r >= 5) {
+    defs += `<linearGradient id="${id}gp" x1="0" y1="1" x2="1" y2="0">${['#ff5f8a', '#ffd25f', '#7dff8a', '#5ff3ff', '#a77bff', '#ff5f8a'].map((c, i) => `<stop offset="${(i / 5).toFixed(2)}" stop-color="${c}"/>`).join('')}</linearGradient>`;
+    body += `<rect width="${CW}" height="${CH}" fill="url(#${id}gp)" opacity="${(r === 6 ? 0.3 : 0.16).toFixed(2)}" style="mix-blend-mode:overlay"/>`;
+  }
+  if (!lite && r >= 2) {
+    const sp = r >= 4 ? (r === 4 ? '1 .85 .45' : '1 .8 .9') : '1 1 1';
+    const [cr, cg, cb] = sp.split(' ');
+    defs += `<filter id="${id}gk" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="${(0.7 - r * 0.04).toFixed(2)}" numOctaves="1" seed="${skin.seed % 97}"/>
+      <feColorMatrix values="0 0 0 0 ${cr}  0 0 0 0 ${cg}  0 0 0 0 ${cb}  ${(30 + r * 4)} 0 0 0 ${(-(30 + r * 4) * (0.84 - r * 0.012)).toFixed(2)}"/></filter>`;
+    body += `<rect width="${CW}" height="${CH}" filter="url(#${id}gk)" opacity="${(0.3 + r * 0.06).toFixed(2)}" style="mix-blend-mode:screen"/>`;
+  }
+  // l'usure ternit la brillance par plaques : plus le float monte, plus les zones mates s'étendent
+  let mask = '';
+  if (card && f > 0.005) {
+    if (lite) body = `<g opacity="${keep.toFixed(3)}">${body}</g>`;
+    else {
+      defs += `<filter id="${id}gw" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .016" numOctaves="3" seed="${(skin.seed + 7) % 97}"/>
+        <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  4 0 0 0 ${(-2 + (1 - f) * 3.6 - 0.6).toFixed(2)}"/></filter>
+        <mask id="${id}gm" maskUnits="userSpaceOnUse" x="0" y="0" width="${CW}" height="${CH}"><rect width="${CW}" height="${CH}" filter="url(#${id}gw)"/></mask>`;
+      mask = ` mask="url(#${id}gm)"`;
+      body = `<g opacity="${Math.max(0.15, keep).toFixed(3)}">${body}</g>`;
+    }
+  }
+  return `<defs>${defs}</defs><g class="gloss" pointer-events="none"${mask}>${body}</g>`;
+}
+
 /**
  * SVG complet d'une carte. skin : entrée du catalogue. card : instance (ou null pour le catalogue).
  * opts.lite : rendu allégé (grilles denses) ; opts.misprintSkin : skin de la 2e moitié.
@@ -322,6 +367,7 @@ export function cardSVG(skin, card = null, opts = {}) {
     <g clip-path="url(#${id}clip)">
       <rect width="${CW}" height="${CH}" fill="#0b0c10"/>
       ${inner}
+      ${cardGloss(skin, card, id, opts.lite)}
       ${card ? cardWear(card, id, opts.lite) : ''}
     </g>
   </svg>`;
@@ -358,12 +404,12 @@ export function cardBack() {
 export function cardHTML(skin, card = null, opts = {}) {
   const R = RARITIES[skin.r];
   const cls = ['card', `r${skin.r}`];
-  if (card?.foil) cls.push('foil');
   if (card?.mp) cls.push('misprint');
   if (opts.small) cls.push('small');
   const svg = cardSVG(skin, card, opts);
-  const html = `<div class="${cls.join(' ')}" style="--rc:${R.color};--rg:${R.glow}" data-tilt>
-    <div class="card-inner">${svg}<div class="card-shine"></div>${card?.foil ? '<div class="card-foil"></div>' : ''}${card?.mp ? `<div class="misprint-tag">${t('ERREUR D’IMPRESSION')}</div>` : ''}</div>
+  const gloss = glossOf(skin.r, card?.f ?? 0);
+  const html = `<div class="${cls.join(' ')}" style="--rc:${R.color};--rg:${R.glow};--gloss:${(0.25 + gloss * 1.2).toFixed(2)}" data-tilt>
+    <div class="card-inner">${svg}<div class="card-shine"></div>${card?.mp ? `<div class="misprint-tag">${t('ERREUR D’IMPRESSION')}</div>` : ''}</div>
   </div>`;
   if (card?.g != null && !opts.noSlab) {
     return `<div class="slab ${card.g >= 10 ? 'pristine' : ''}" style="--rc:${R.color}">

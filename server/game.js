@@ -339,7 +339,6 @@ export function browseMarket(qs, viewerId) {
   const where = ["l.status = 'ACTIVE'"]; const p = [];
   const skinFilter = [];
   if (qs.r !== undefined && qs.r !== '') { where.push('c.rarity = ?'); p.push(Number(qs.r)); }
-  if (qs.foil === '1') where.push('c.foil = 1');
   if (qs.graded === '1') where.push('c.grade IS NOT NULL');
   if (qs.misprint === '1') where.push('c.misprint IS NOT NULL');
   if (qs.tracker === '1') where.push('c.tracker IS NOT NULL');

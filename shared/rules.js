@@ -64,7 +64,6 @@ export function cardValue(card, skin, pop = null) {
   let v = skin.base;
   v *= wear.mult; push(t('Usure {k}', { k: wear.key }), wear.mult);
   if (card.tr != null) { v *= MODIFIERS.tracker.mult; push(t('Traqueur'), MODIFIERS.tracker.mult); }
-  if (card.foil) { v *= MODIFIERS.foil.mult; push(t('Holo'), MODIFIERS.foil.mult); }
   const ex = extremeMult(card.f); v *= ex; push(t('Float extrême'), ex);
   const seed = describeSeed(skin, card.pt);
   if (seed?.tier) { v *= seed.mult; push(`${L(seed, 'tierFr')} (${seed.label})`, seed.mult); }

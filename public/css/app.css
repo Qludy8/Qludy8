@@ -141,24 +141,28 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 /* ───────── Cartes */
 .card {
   --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 50%;
-  position: relative; aspect-ratio: 63 / 88; width: 100%; perspective: 1000px; border-radius: 4.8%/3.4%;
+  position: relative; aspect-ratio: 63 / 88; width: 100%; perspective: 1000px; border-radius: 5.08%/3.64%;
   transition: filter .3s;
 }
 .card-inner {
   position: relative; width: 100%; height: 100%; border-radius: inherit; transform-style: preserve-3d;
-  transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .5s var(--ease), box-shadow .3s;
-  box-shadow: 0 14px 30px -12px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.04);
+  transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .5s var(--ease), filter .3s;
+  /* ombres et lueurs en drop-shadow : elles épousent les coins arrondis du dessin (aucun rectangle visible) */
+  --sh: drop-shadow(0 10px 14px rgba(0,0,0,.55));
+  filter: var(--sh);
 }
-.card.tilting .card-inner { transition: transform .08s linear, box-shadow .3s; }
+.card.tilting .card-inner { transition: transform .08s linear, filter .3s; }
 .card-svg { display: block; width: 100%; height: 100%; border-radius: inherit; }
-.card:hover .card-inner { box-shadow: 0 22px 40px -14px rgba(0,0,0,.9), 0 0 26px -6px var(--rg); }
-.card.r3 .card-inner, .card.r4 .card-inner { box-shadow: 0 14px 30px -12px rgba(0,0,0,.8), 0 0 18px -8px var(--rg); }
-.card.r5 .card-inner, .card.r6 .card-inner { box-shadow: 0 14px 30px -12px rgba(0,0,0,.8), 0 0 30px -6px var(--rg); }
+.card:hover .card-inner { filter: var(--sh) drop-shadow(0 0 10px color-mix(in srgb, var(--rg) 55%, transparent)); }
+.card.r3 .card-inner, .card.r4 .card-inner { filter: var(--sh) drop-shadow(0 0 7px color-mix(in srgb, var(--rg) 45%, transparent)); }
+.card.r5 .card-inner, .card.r6 .card-inner { filter: var(--sh) drop-shadow(0 0 12px color-mix(in srgb, var(--rg) 60%, transparent)); }
 .card.r6 .card-inner { animation: transcGlow 4s linear infinite; }
-@keyframes transcGlow { 0%,100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(40deg); } }
+/* à l'ouverture : pas de lueur ni d'ombre portée sur la carte (la scène a déjà son éclairage) */
+.opening .card-inner, .opening .card:hover .card-inner { filter: none; animation: none; }
+@keyframes transcGlow { 0%,100% { filter: var(--sh) drop-shadow(0 0 12px #5ff3ff99); } 50% { filter: var(--sh) drop-shadow(0 0 14px #ff7ae699); } }
 .card-shine { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
   background: radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,.28), transparent 45%); mix-blend-mode: overlay; }
-.card.tilting .card-shine { opacity: 1; }
+.card.tilting .card-shine { opacity: min(1, var(--gloss, 1)); }
 .card-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; mix-blend-mode: color-dodge; opacity: .55;
   background:
     repeating-linear-gradient(115deg, #ff0080 0%, #ffd000 6%, #00ffa2 12%, #00b3ff 18%, #b200ff 24%, #ff0080 30%) calc(var(--mx) * 1.6) calc(var(--my) * 1.6) / 220% 220%,
@@ -262,9 +266,9 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .opening .stack-card { position: absolute; inset: 0; cursor: pointer; transform-style: preserve-3d; transition: transform .7s var(--spring), opacity .45s; will-change: transform; }
 .opening .stack-card .flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .9s var(--ease); }
 .opening .stack-card.flipped .flip { transform: rotateY(180deg); }
-.opening .stack-card .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 4.8%/3.4%; }
+.opening .stack-card .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 5.08%/3.64%; }
 .opening .stack-card .face.front { transform: rotateY(180deg); }
-.opening .stack-card .face.back { box-shadow: 0 20px 40px -10px #000; border-radius: 4.8%/3.4%; }
+.opening .stack-card .face.back { filter: drop-shadow(0 16px 18px rgba(0,0,0,.6)); border-radius: 5.08%/3.64%; }
 .opening .stack-card.charging .face.back { animation: charge .5s ease-in-out infinite alternate; }
 @keyframes charge { from { box-shadow: 0 0 20px 0 var(--rg), 0 0 0 0 var(--rg); } to { box-shadow: 0 0 70px 14px var(--rg), 0 0 140px 30px color-mix(in srgb, var(--rg) 40%, transparent); } }
 .opening .stack-card.charging.lvl2 .face.back { animation-duration: .28s; }
@@ -457,7 +461,7 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 
 /* liseret animé aux couleurs de la rareté sur le dos des cartes */
 @property --ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-.opening .stack-card .face.back .liseret { position: absolute; inset: -3px; border-radius: 5.2%/3.8%; z-index: -1; pointer-events: none;
+.opening .stack-card .face.back .liseret { position: absolute; inset: -3px; border-radius: 5.6%/4%; z-index: -1; pointer-events: none;
   background: conic-gradient(from var(--ang), transparent 0 55%, var(--rg) 75%, #fff 80%, var(--rg) 85%, transparent 100%);
   animation: lis 2.2s linear infinite; filter: drop-shadow(0 0 8px var(--rg)); }
 .opening .stack-card .face.back { isolation: isolate; }
@@ -490,7 +494,7 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 /* ouverture : transitions de couleur douces */
 @property --glow { syntax: '<color>'; inherits: true; initial-value: #ff4d2e; }
 .opening { transition: --glow 1.4s ease, background .8s; }
-.opening .stack-card:not(.top) .face.back .liseret { display: none; }
+.opening .stack-card:not(.is-top) .face.back .liseret { display: none; }
 
 /* mode admin de test (interrupteur dans l'en-tête) */
 .admin-toggle { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 11px 0 7px; border-radius: 99px; cursor: pointer;
@@ -504,7 +508,7 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .balance.infinite { color: #ff7ae6; text-shadow: 0 0 12px rgba(255, 122, 230, .6); }
 /* résumé d'ouverture : les cartes hors écran ne sont pas rendues (ouvertures ×10) */
 
-.card-ph { aspect-ratio: 63 / 88; width: 100%; border-radius: 4.8%/3.4%; background: linear-gradient(160deg, #1b1d26, #0d0e13); }
+.card-ph { aspect-ratio: 63 / 88; width: 100%; border-radius: 5.08%/3.64%; background: linear-gradient(160deg, #1b1d26, #0d0e13); }
 
 /* sélecteur de langue */
 .lang-btn { display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 4px; border-radius: 99px; cursor: pointer;

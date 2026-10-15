@@ -169,8 +169,8 @@ export const EN_APP = {
   'Float': 'Float',
   'Valeur': 'Value',
   'Probabilité': 'Probability',
-  'Float extrême (&lt; {low} ou &gt; {high}) : {m0} à {m1}. Holo ({fc}, dès Rare) : {fm}. Traqueur ({tc}) : {tm}.':
-    'Extreme float (&lt; {low} or &gt; {high}): {m0} to {m1}. Holo ({fc}, Rare and up): {fm}. Tracker ({tc}): {tm}.',
+  'Float extrême (&lt; {low} ou &gt; {high}) : {m0} à {m1}. Traqueur ({tc}) : {tm}.':
+    'Extreme float (&lt; {low} or &gt; {high}): {m0} to {m1}. Tracker ({tc}): {tm}.',
   'Centrage & cartes erreur': 'Centering & misprints',
   'Comme une vraie carte imprimée, la bordure n’est jamais parfaitement égale. Le centrage (ex. 55/45) est visible sur chaque carte et influence sa valeur, puis sa sous-note de gradation.':
     'Just like a real printed card, the border is never perfectly even. Centering (e.g. 55/45) is shown on every card and affects its value, then its grading sub-grade.',

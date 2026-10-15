@@ -31,7 +31,7 @@ test('les cartes respectent le pool du booster', () => {
       assert.ok(packFilter(p.filter)(s), `${p.key} : ${s.id} hors contenu`);
       assert.ok(c.pt >= 0 && c.pt < 1000);
       assert.ok(p.rates[s.r] > 0, `${p.key} rareté ${s.r} interdite`);
-      if (c.foil) assert.ok(s.r >= 2);
+      assert.equal(c.foil, 0);
     }
   }
 });

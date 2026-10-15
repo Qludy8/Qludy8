@@ -54,7 +54,6 @@ export const COLLECTIONS = [
 
 export const MODIFIERS = {
   tracker: { chance: 0.08, mult: 1.4 },                 // compteur de victimes (cosmétique)
-  foil:    { chance: 0.05, mult: 2.0, minRarity: 2 },   // holo, à partir de Rare
   extreme: { low: 0.001, high: 0.999, mult: [1.5, 3.0] },
 };
 
