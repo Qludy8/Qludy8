@@ -6,14 +6,28 @@ import { styleLabel } from '../art/card.js';
 import { inspector } from '../inspect.js';
 import { api, post, store } from '../api.js';
 import { cardHTML } from '../art/card.js';
+import { inventoryPage } from './inventory.js';
 import { tile, skinTitle, rarityPill, priceChart } from '../common.js';
 import { esc, cr, modal, toast, $ } from '../ui.js';
 import { t, L, fmt } from '/shared/i18n.js';
 
 const PER = 48;
 
-export async function collectionPage({ view, query, stale }) {
+// deux onglets : tout le catalogue, ou les cartes possédées (ancien inventaire : vente, contrat, gradation…)
+const colTabs = (mine) => `<div class="tabs col-tabs"><button data-tab="" class="${mine ? '' : 'on'}">${t('Toutes les cartes')}</button><button data-tab="mine" class="${mine ? 'on' : ''}">${t('Mes cartes')}</button></div>`;
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.col-tabs [data-tab]'); if (!b || b.classList.contains('on')) return;
+  location.hash = b.dataset.tab ? '#/collection?tab=mine' : '#/collection';
+});
+
+export async function collectionPage(ctx) {
+  const { view, query, stale } = ctx;
   const me = store.me;
+  if (me && query.get('tab') === 'mine') {
+    view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>${t('Collection')}</h1></div>${colTabs(true)}</div>`;
+    const sub = document.createElement('div'); view.append(sub);
+    return inventoryPage({ ...ctx, view: sub });
+  }
   const col = me ? await api('/collection') : { owned: {}, discovered: [] };
   if (stale()) return;
   const owned = col.owned;
@@ -23,7 +37,7 @@ export async function collectionPage({ view, query, stale }) {
   const [oAll, tAll] = countFor(() => true);
 
   view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>${t('Collection')}</h1>
-      <p class="muted">${t('{n} cartes existent.', { n: fmt(SKINS.length) })} ${me ? t('Vous en possédez <b>{n}</b> ({pct} %).', { n: oAll, pct: fmt((oAll / tAll) * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }) : t('<a href="#/register" class="grad-text">Créez un compte</a> pour suivre votre progression.')}</p></div></div>
+      <p class="muted">${t('{n} cartes existent.', { n: fmt(SKINS.length) })} ${me ? t('Vous en possédez <b>{n}</b> ({pct} %).', { n: oAll, pct: fmt((oAll / tAll) * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }) : t('<a href="#/register" class="grad-text">Créez un compte</a> pour suivre votre progression.')}</p></div>${me ? colTabs(false) : ''}</div>
     <details class="progress-fold" ${state.model ? 'open' : ''}><summary><span>${t('Progression par arme')}</span><b class="mono">${oAll}/${tAll}</b><div class="bar"><i style="width:${(oAll / tAll) * 100}%"></i></div></summary>
     <div class="collection-progress">
       <div class="model-chip ${state.model === '' ? 'on' : ''}" data-model=""><b>${t('Tous les modèles')}</b><div class="muted small">${oAll}/${tAll}</div><div class="bar" style="margin-top:8px"><i style="width:${(oAll / tAll) * 100}%"></i></div></div>
@@ -34,7 +48,7 @@ export async function collectionPage({ view, query, stale }) {
       <select class="input" data-f="r"><option value="">${t('Toutes raretés')}</option>${RARITIES.map((r, i) => `<option value="${i}">${esc(L(r))}</option>`).join('')}</select>
       <select class="input" data-f="col"><option value="">${t('Toutes collections')}</option>${COLLECTIONS.map((c) => `<option value="${c.key}" ${state.col === c.key ? 'selected' : ''}>${esc(L(c))}</option>`).join('')}</select>
       <select class="input" data-f="st"><option value="">${t('Tous styles')}</option>${Object.entries(STYLES).map(([k, x]) => `<option value="${k}">${esc(L(x))}</option>`).join('')}</select>
-      ${me ? `<select class="input" data-f="own"><option value="">${t('Possédées & manquantes')}</option><option value="1">${t('Possédées')}</option><option value="0">${t('Manquantes')}</option></select>` : ''}
+      ${me ? `<select class="input" data-f="own"><option value="">${t('Possédées & manquantes')}</option><option value="0">${t('Manquantes')}</option></select>` : ''}
       <select class="input" data-f="sort"><option value="rarity">${t('Rareté ↓')}</option><option value="rarity_asc">${t('Rareté ↑')}</option><option value="name">${t('Nom')}</option><option value="value">${t('Valeur ↓')}</option></select>
       <span class="muted small" data-count></span>
     </div>

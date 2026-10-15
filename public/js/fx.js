@@ -178,7 +178,7 @@ function brass(freqs, t, dur = 0.7, vol = 0.03) {
 function thwip(t) { noise(t, 0.09, { type: 'bandpass', from: 2600, to: 900, q: 1.2, vol: 0.06, send: 0.05 }); }
 // signature de rareté, jouée au retournement : chaque rang a son timbre
 //  0 commun : petit clic boisé · 1 peu commun : deux notes pincées · 2 rare : triade de cloches
-//  3 ultra : arpège cristallin · 4 légendaire : accord cuivré + timbale + paillettes
+//  3 épique : arpège cristallin · 4 légendaire : accord cuivré + timbale + paillettes
 //  5 mythique : grave + chœur + arpège ascendant · 6 transcendant : gong + nappe céleste + cascade
 function signature(r, t) {
   if (r <= 0) { pluck(N(-5), t, 0.05, 0.25, 0.1); return; }
@@ -222,11 +222,7 @@ export const sound = {
       const t = actx.currentTime + 0.01;
       if (kind === 'tear') { noise(t, 0.45, { from: 600, to: 3200, vol: 0.09 }); boom(t, 0.12, 110, 60, 0.4); }
       else if (kind === 'flip') { thwip(t); signature(rarity, t + 0.04); }
-      else if (kind === 'charge') {
-        // montée identique pour toutes les cartes (0,42 s) : souffle filtré qui s'ouvre + note tenue
-        noise(t, 0.42, { type: 'bandpass', from: 400, to: 3600, q: 2.5, vol: 0.05, send: 0.4 });
-        pad([N(-12), N(-5)], t, 0.6, 0.012, 1500);
-      } else if (kind === 'rare') {
+      else if (kind === 'rare') {
         signature(rarity, t);      } else if (kind === 'coin') { bell(N(19), t, 0.7, 0.04, 0.3); bell(N(24), t + 0.08, 0.9, 0.035, 0.3); }
       else if (kind === 'click') bell(N(12), t, 0.25, 0.02, 0.1);
     } catch { /* audio indisponible */ }

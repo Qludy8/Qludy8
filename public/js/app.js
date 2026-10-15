@@ -12,7 +12,7 @@ import { openSequence, cardOf } from './opening.js';
 import { skinTitle } from './common.js';
 import { sound } from './fx.js';
 import { collectionPage } from './pages/collection.js';
-import { inventoryPage, cardPage, gradingPage } from './pages/inventory.js';
+import { cardPage, gradingPage } from './pages/inventory.js';
 import { marketPage } from './pages/market.js';
 import { friendsPage, tradesPage, tradePage, newTradePage, profilePage, leaderboardPage } from './pages/social.js';
 
@@ -27,10 +27,6 @@ const pl = (n, one, many) => ((getLang() === 'en' ? n === 1 : n < 2) ? one : man
 const dec2 = (n) => fmt(n, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // ───────────────────────────── En-tête
-const NAV = [
-  ['', t('Boosters')], ['collection', t('Collection')], ['inventory', t('Inventaire')], ['market', t('Marché')],
-  ['trades', t('Échanges'), 'openTrades'], ['friends', t('Amis'), 'friendRequests'], ['leaderboard', t('Classement')], ['patterns', t('Motifs')],
-];
 // sélecteur de langue : bascule FR ⇄ EN (la page se recharge dans la nouvelle langue)
 const langButton = () => {
   const next = LANGS.find((l) => l.key !== getLang());
@@ -38,10 +34,6 @@ const langButton = () => {
 };
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-lang]'); if (b) switchLang(b.dataset.lang); });
 function header(me) {
-  const route = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
-  $('#nav').innerHTML = NAV.map(([k, label, badge]) =>
-    `<a href="#/${k}" class="${route === k ? 'on' : ''}">${label}${badge && me?.[badge] ? `<span class="dot">${me[badge]}</span>` : ''}</a>`).join('')
-    + `<a href="#/shop" class="nav-locked ${route === 'shop' ? 'on' : ''}" title="${t('Bientôt disponible')}">${t('Boutique')} <span aria-hidden="true">🔒</span></a>`;
   const right = $('#top-right');
   if (!me) {
     right.innerHTML = `${langButton()}<a class="btn sm ghost" href="#/login">${t('Connexion')}</a><a class="btn sm primary" href="#/register">${t('Jouer gratuitement')}</a><button class="icon-btn burger" data-burger aria-label="${t('Menu')}">☰</button>`;
@@ -50,10 +42,9 @@ function header(me) {
   }
   if (!right.querySelector('.balance')) {
     right.innerHTML = `
-      <a class="icon-btn" href="#/rewards" title="${t('Récompenses')}">🎁<span class="dot" data-daily hidden>!</span></a>
       <button class="icon-btn" data-notif title="${t('Notifications')}">🔔<span class="dot" data-unread hidden></span></button>
       <a class="balance" href="#/rewards" title="${t('Solde')}"><span data-bal>0</span>${MU}</a>
-      <button class="user-chip" data-menu title="${t('Menu')}">${avatar(me, 30)}</button>`;
+      <button class="user-chip" data-menu title="${t('Menu')}">${avatar(me, 30)}<span class="dot" data-daily hidden>!</span></button>`;
     right.querySelector('[data-notif]').onclick = showNotifications;
     right.querySelector('[data-menu]').onclick = openDrawer;
   }
@@ -80,7 +71,7 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
 
 // ───────────────────────────── Menu latéral (toutes les pages, récompenses, langue, réglages)
 const DRAWER = [
-  ['', 'Boosters', '부'], ['collection', 'Collection', '수'], ['inventory', 'Inventaire', '가'], ['market', 'Marché', '시'],
+  ['', 'Boosters', '부'], ['collection', 'Collection', '수'], ['market', 'Marché', '시'],
   ['trades', 'Échanges', '교', 'openTrades'], ['friends', 'Amis', '친', 'friendRequests'], ['leaderboard', 'Classement', '순'],
   ['patterns', 'Motifs', '무'], ['rewards', 'Récompenses', '보', 'questsReady'], ['grading', 'Gradation', '감', 'gradingReady'],
   ['shop', 'Boutique', '상'], ['settings', 'Paramètres', '설'], ['help', 'Aide & règles', '도'],
@@ -596,7 +587,7 @@ const ROUTES = [
   [/^patterns$/, patternsPage],
   [/^shop$/, shopPage],
   [/^collection$/, collectionPage],
-  [/^inventory$/, inventoryPage, true],
+  [/^inventory$/, () => { location.replace('#/collection?tab=mine'); }],
   [/^card\/([\w-]+)$/, cardPage],
   [/^cert\/([\w-]+)$/, (ctx) => cardPage({ ...ctx, cert: true })],
   [/^market$/, marketPage],

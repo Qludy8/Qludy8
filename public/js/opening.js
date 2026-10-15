@@ -13,7 +13,6 @@ const left = (n) => (n > 1 ? t('Cliquez sur la carte · {n} restantes', { n }) :
 const sleep = (ms) => new Promise((r) => setTimeout(r, reducedMotion() ? Math.min(ms, 60) : ms));
 export const cardOf = (c, opts = {}) => cardHTML(SKIN_BY_ID.get(c.s), c, { ...opts, misprintSkin: c.mp ? SKIN_BY_ID.get(c.mp) : null });
 
-const CHARGE_MS = 420;   // identique pour toutes les raretés
 
 export function openSequence(pack, result, { onAgain } = {}) {
   const cards = result.packs.flatMap((p) => p.cards);
@@ -137,16 +136,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
     const R = RARITIES[c.r];
     const special = c.mp || c.r >= 3;
     hint.textContent = '';
-    if (!quick) {
-      // même temps pour toutes les cartes : une courte charge (la lueur prend la couleur de la rareté), puis le retournement
-      const [x, y] = center();
-      s.classList.add('charging'); if (c.r >= 5 || c.mp) s.classList.add('lvl2');
-      el.style.setProperty('--glow', c.mp ? '#ff2b6a' : R.glow);
-      if (c.r >= 4 || c.mp) fx.swirl(x, y, c.mp ? ['#ff2b6a', '#fff'] : [R.color, R.glow, '#fff'], 18 + (c.r - 4) * 10, { radius: stage.offsetWidth * 0.95, life: CHARGE_MS / 16 });
-      sound.play('charge', c.mp ? 6 : c.r); haptic(c.r >= 4 ? [20, 30, 20] : 15);
-      await sleep(CHARGE_MS);
-      s.classList.remove('charging', 'lvl2');
-    }
+    // retournement immédiat au clic : pas de charge ni de note avant, seul le jingle du retournement
     s.classList.add('flipped', 'revealed');
     // la lueur de fond prend (et garde) la couleur de la dernière carte révélée
     el.style.setProperty('--glow', c.mp ? '#ff2b6a' : R.glow);

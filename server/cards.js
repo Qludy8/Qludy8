@@ -78,7 +78,7 @@ export function rollCard(rarity, filter) {
 }
 
 /**
- * Ouvre un booster. pity = { ultra, legend, trans } : boosters payants consécutifs sans Ultra+ / Légendaire+ / Transcendant.
+ * Ouvre un booster. pity = { ultra, legend, trans } : boosters payants consécutifs sans Épique+ / Légendaire+ / Transcendant.
  * Le compteur Transcendant n'avance que sur les boosters premium (taux Transcendant ≥ PITY.transcendentMinRate).
  * Retourne { cards, pity, pityTriggered }.
  */

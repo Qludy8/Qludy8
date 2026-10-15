@@ -49,6 +49,7 @@ python scripts/render3d/build.py parts.json public/img/weapons [modèle …] --s
 Une image détourée (PNG à fond transparent, canon à droite de préférence) peut remplacer le rendu d’une arme :
 ```
 python scripts/import-weapon.py ak47.png rhoden public/img/weapons [--rotate DEG] [--flip]
+python scripts/weapon-zones.py public/img/weapons [arme]   # zones peintes / atténuées / d'origine (scripts/weapon-zones.json)
 ```
 Le script crée l’image de base, l’éclairage, les reflets et le masque, puis affiche le cadre à reporter dans
 `PHOTO` (`public/js/art/weapons3d.js`). Le skin est multiplié par l’éclairage de la photo : le relief est conservé.
@@ -65,14 +66,14 @@ Le jeu est en français et en anglais (bouton FR/EN dans l’en-tête, ou Param�
 | Styles de skins | Teinte, bicolore, camouflage, motif, fondu, trempe, marbrure, acier damassé, 19 illustrations (dragon, koï, vague, phénix…) |
 | Graines de motif | 0–999 par carte ; fondu / trempe / marbrure : 3 graines légendaires, 15 rares, 40 recherchées par modèle (fiche « Motifs ») |
 | Boutique | Onglet présent mais verrouillé (`SHOP.enabled = false` dans `shared/config.js`) |
-| Raretés | Commun, Peu commun, Rare, Ultra rare, Légendaire, Mythique, **Transcendant** |
+| Raretés | Commun, Peu commun, Rare, Épique, Légendaire, Mythique, **Transcendant** |
 | Catalogue | 15 modèles inventés × 300 skins, 10 collections thématiques |
 | Illustrations | Cartes et boosters en SVG : silhouettes originales peintes avec le motif du skin, cadre de rareté, holo animé |
 | Usure | Float à 6 décimales, 5 états (Immaculée, Peu marquée, Éprouvée, Usée, Ravagée). La peinture s’écaille, se décolore et se tache ; la carte se raye, perd ses couleurs, se plie |
 | Centrage | Bordures gauche/droite et haut/bas réellement décalées sur la carte (ex. 58/42) → ×0,85 à ×1,12 sur la valeur |
 | Carte erreur | 1/2 000 : deux cartes à moitié sur la même feuille, ×40 |
 | Gradation | Économique / Standard / Express ; 4 sous-notes (centrage, coins, bords, surface), note 1–10, slab avec certificat, bonus de faible population, slab cassable |
-| Boosters | 35 boosters payants + booster gratuit toutes les 10 min (réserve de 10), taux publics, garanties Ultra rare+ (15), Légendaire+ (90) et Transcendant (150 boosters premium) |
+| Boosters | 35 boosters payants + booster gratuit toutes les 10 min (réserve de 10), taux publics, garanties Épique+ (15), Légendaire+ (90) et Transcendant (150 boosters premium) |
 | Ouverture | Déchirure (clic ou glisser), cartes empilées, suspense lumineux avant le retournement des cartes rares, rayons, onde de choc, particules, tremblement, sons |
 | Social | Amis (demandes), échanges cartes + crédits (atomiques, invalidés si une carte bouge), profils publics avec vitrine |
 | Économie | Marché (frais 5 %), vente au système (55 %), contrats 10 → 1, connexion quotidienne, missions, niveaux |

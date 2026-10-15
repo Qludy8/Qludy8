@@ -265,9 +265,6 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .opening .stack-card .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 5.08%/3.64%; }
 .opening .stack-card .face.front { transform: rotateY(180deg); }
 .opening .stack-card .face.back { filter: drop-shadow(0 16px 18px rgba(0,0,0,.6)); border-radius: 5.08%/3.64%; }
-.opening .stack-card.charging .face.back { animation: charge .42s ease-in forwards; }
-@keyframes charge { from { filter: drop-shadow(0 16px 18px rgba(0,0,0,.6)); } to { filter: drop-shadow(0 16px 18px rgba(0,0,0,.6)) drop-shadow(0 0 20px var(--rg)) drop-shadow(0 0 40px var(--rg)); } }
-.opening .stack-card.charging.lvl2 .face.back { animation-timing-function: cubic-bezier(.5,0,.2,1); }
 .opening .stack-card.shake { animation: shake .09s linear infinite; }
 @keyframes shake { 0% { translate: 0 0; } 25% { translate: -4px 2px; } 50% { translate: 3px -3px; } 75% { translate: -2px -2px; } 100% { translate: 2px 3px; } }
 .opening .stack-hint { position: absolute; top: -64px; z-index: 30; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
@@ -463,7 +460,6 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .opening .stack-card .face.back { isolation: isolate; }
 .opening .stack-card .face.back .liseret::after { content: ''; position: absolute; inset: 3px; border-radius: inherit; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--rg) 55%, transparent); }
 @keyframes lis { to { --ang: 360deg; } }
-.opening .stack-card.charging .face.back .liseret { animation-duration: .7s; inset: -6px; }
 
 /* monnaie Mu (무) */
 .mu { display: inline-grid; place-items: center; width: 1.85em; height: 1.85em; border-radius: 50%; vertical-align: .05em; margin-left: .2em;
@@ -917,3 +913,5 @@ body.drawer-on { overflow: hidden; }
   .k-swipe-dots i.on { width: 20px; background: var(--accent); }
 }
 .drawer-ver { text-align: center; padding-top: 10px; opacity: .6; }
+.user-chip { position: relative; }
+.user-chip .dot { position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--accent); color: #fff; font-size: 10px; display: grid; place-items: center; padding: 0 4px; }

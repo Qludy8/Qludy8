@@ -36,7 +36,7 @@ test('les cartes respectent le pool du booster', () => {
   }
 });
 
-test('garantie (pity) Ultra rare+', () => {
+test('garantie (pity) Épique+', () => {
   const p = PACKS.find((x) => x.key === 'standard');
   for (let i = 0; i < 200; i++) {
     const r = openPack(p, { ultra: PITY.ultraAfter - 1, legend: 0 });

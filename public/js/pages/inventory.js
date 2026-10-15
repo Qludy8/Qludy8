@@ -57,7 +57,7 @@ async function recycleModal(ctx) {
       const r = await post('/cards/recycle', { count: Number(range.value) });
       sound.play('coin');
       toast(t('{n} doublon(s) recyclé(s) · +{gain}', { n: r.recycled, gain: cr(r.total) }), 'good');
-      m.close(); store.refresh(); inventoryPage(ctx);
+      m.close(); store.refresh(); ctx.rerender();
     } catch (err) { toast(esc(err.message), 'error'); e.target.disabled = false; }
   };
 }
@@ -71,7 +71,7 @@ export async function inventoryPage(ctx) {
   const st = { q: '', r: '', w: '', flag: '', sort: 'new', page: 0, select: false };
   const total = cards.reduce((a, c) => a + c.value, 0);
 
-  view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>${t('Inventaire')}</h1>
+  view.innerHTML = `<div class="section-title" style="margin-top:0"><div>
       <p class="muted">${t('{n} carte(s) · valeur estimée {value}', { n: fmt(cards.length), value: cr(total) })}</p></div>
       <div class="row"><label class="check"><input type="checkbox" data-select> ${t('Sélection multiple')}</label><button class="btn" data-recycle>♻ ${t('Recycler les doublons')}</button><a class="btn" href="#/grading">${t('Gradation')}</a></div></div>
     <div class="filters">
@@ -279,7 +279,7 @@ export async function gradingPage({ view, stale, every, rerender }) {
   const orders = await api('/grading');
   if (stale()) return;
   const pending = orders.filter((o) => o.status === 'PENDING'), done = orders.filter((o) => o.status === 'DONE');
-  view.innerHTML = `<h1>${t('Gradation')}</h1><p class="muted">${t('Sélectionnez des cartes dans votre <a href="#/inventory" class="grad-text">inventaire</a> pour les envoyer.')} ${t('Notes :')} ${GRADING.labels.map(([g]) => `${g}+ ${esc(gradeLabel(g))}`).join(' · ')}.</p>
+  view.innerHTML = `<h1>${t('Gradation')}</h1><p class="muted">${t('Sélectionnez des cartes dans votre <a href="#/collection?tab=mine" class="grad-text">collection</a> pour les envoyer.')} ${t('Notes :')} ${GRADING.labels.map(([g]) => `${g}+ ${esc(gradeLabel(g))}`).join(' · ')}.</p>
     <div class="section-title"><h2>${t('En cours')}</h2></div>
     <div class="grid" style="gap:14px">${pending.length ? pending.map((o) => `<div class="panel"><div class="row between"><div><b>${t('Commande #{id}', { id: o.id })}</b> · ${esc(L(GRADING.services[o.service]))} · ${t('{n} carte(s)', { n: o.cards.length })}</div>
       ${o.ready_at <= Date.now() ? `<button class="btn primary" data-reveal="${o.id}">${t('Révéler les notes')}</button>` : `<span class="pill" data-ready="${o.ready_at}">${t('Prêt dans {time}', { time: dur(o.ready_at - Date.now()) })}</span>`}</div>

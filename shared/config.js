@@ -13,7 +13,7 @@ export const RARITIES = [
   { id: 0, key: 'common',       fr: 'Commun', en: 'Common',       color: '#9aa3ad', glow: '#9aa3ad', base: [4, 10] },
   { id: 1, key: 'uncommon',     fr: 'Peu commun', en: 'Uncommon',   color: '#4ade80', glow: '#4ade80', base: [14, 34] },
   { id: 2, key: 'rare',         fr: 'Rare', en: 'Rare',         color: '#3b9cff', glow: '#3b9cff', base: [50, 130] },
-  { id: 3, key: 'ultra',        fr: 'Ultra rare', en: 'Ultra Rare',   color: '#b266ff', glow: '#b266ff', base: [220, 560] },
+  { id: 3, key: 'ultra',        fr: 'Épique', en: 'Epic',   color: '#b266ff', glow: '#b266ff', base: [220, 560] },
   { id: 4, key: 'legendary',    fr: 'Légendaire', en: 'Legendary',   color: '#ffb020', glow: '#ffb020', base: [900, 2400] },
   { id: 5, key: 'mythic',       fr: 'Mythique', en: 'Mythic',     color: '#ff3d5a', glow: '#ff3d5a', base: [4000, 11000] },
   { id: 6, key: 'transcendent', fr: 'Transcendant', en: 'Transcendent', color: '#5ff3ff', glow: '#ff7ae6', base: [22000, 60000] },
@@ -116,7 +116,7 @@ export const CLASS_SYM = { pistol: '권', revolver: '탄', smg: '속', rifle: '�
 export const COLLECTION_PACK_RATES = [58, 26, 10.5, 4, 1.1, 0.33, 0.07];
 export const MODEL_PACK_RATES = [60, 25, 10, 3.8, 0.9, 0.25, 0.05];
 
-// boosters payants consécutifs sans Ultra+ / Légendaire+ / Transcendant.
+// boosters payants consécutifs sans Épique+ / Légendaire+ / Transcendant.
 // Le compteur Transcendant ne progresse qu'avec les boosters « premium » (taux Transcendant ≥ transcendentMinRate % par carte),
 // sinon la garantie offrirait trop de valeur aux boosters bon marché.
 export const PITY = { ultraAfter: 15, legendaryAfter: 90, transcendentAfter: 150, transcendentMinRate: 0.2 };
@@ -143,7 +143,7 @@ export const QUESTS = {
     { key: 'd_free2', ev: 'open_free', fr: 'Ouvrir 2 boosters gratuits', en: 'Open 2 free packs', target: 2, reward: 30, diff: 'facile' },
     { key: 'd_new3', ev: 'new', fr: 'Découvrir 3 nouveaux skins', en: 'Discover 3 new skins', target: 3, reward: 50, diff: 'facile' },
     { key: 'd_market', ev: 'market', fr: 'Acheter ou vendre sur le marché', en: 'Buy or sell on the market', target: 1, reward: 50, diff: 'moyen' },
-    { key: 'd_ultra', ev: 'drop3', fr: 'Obtenir une carte Ultra rare ou mieux', en: 'Pull an Ultra Rare card or better', target: 1, reward: 90, diff: 'moyen' },
+    { key: 'd_ultra', ev: 'drop3', fr: 'Obtenir une carte Épique ou mieux', en: 'Pull an Epic card or better', target: 1, reward: 90, diff: 'moyen' },
     { key: 'd_open10', ev: 'open', fr: 'Ouvrir 10 boosters', en: 'Open 10 packs', target: 10, reward: 220, diff: 'difficile' },
   ],
   weekly: [

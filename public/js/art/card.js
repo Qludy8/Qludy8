@@ -206,7 +206,7 @@ export const koOutline = (color, width = 2, glow = 6) => `<feMorphology in="Sour
 // ───────── Face d'une carte (style épuré) : fond gris propre à chaque carte, nom en haut,
 // initiale de la rareté dans une pastille claire ; la rareté se lit surtout au bord lumineux (CSS, animé).
 const GRAYS = [['#2a2c31', '#17181b'], ['#313338', '#1b1c20'], ['#36383e', '#1e1f23'], ['#26282c', '#141518'], ['#3b3d43', '#212226'], ['#2e3035', '#191a1d']];
-export const rarityLetter = (r) => (getLang() === 'en' ? ['C', 'U', 'R', 'UR', 'L', 'M', 'T'] : ['C', 'P', 'R', 'U', 'L', 'M', 'T'])[r];
+export const rarityLetter = (r) => (getLang() === 'en' ? ['C', 'U', 'R', 'E', 'L', 'M', 'T'] : ['C', 'P', 'R', 'E', 'L', 'M', 'T'])[r];
 function cardFace(skin, card, id, opts) {
   const R = RARITIES[skin.r];
   const model = MODEL_BY_KEY[skin.m];
@@ -256,7 +256,7 @@ function cardFace(skin, card, id, opts) {
 }
 
 // ───────── Brillance progressive selon la rareté (remplace les holos), ternie et rendue irrégulière par l'usure
-// commun : satin discret · peu commun : vernis · rare : paillettes fines · ultra : reflets nacrés
+// commun : satin discret · peu commun : vernis · rare : paillettes fines · épique : reflets nacrés
 // légendaire : paillettes dorées · mythique : reflets prismatiques · transcendant : irisation complète
 export const GLOSS = [0.1, 0.18, 0.3, 0.42, 0.56, 0.72, 0.9];
 export const glossOf = (r, f = 0) => GLOSS[r] * Math.pow(1 - Math.min(1, f), 1.6);

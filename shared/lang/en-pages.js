@@ -53,6 +53,8 @@ export const EN_PAGES = {
   'Toutes collections': 'All collections',
   'Tous styles': 'All styles',
   'Possédées & manquantes': 'Owned & missing',
+  'Toutes les cartes': 'All cards',
+  'Mes cartes': 'My cards',
   'Possédées': 'Owned',
   'Manquantes': 'Missing',
   'Nom': 'Name',
@@ -160,7 +162,7 @@ export const EN_PAGES = {
   'Annonce publiée': 'Listing posted',
 
   // ── page gradation
-  'Sélectionnez des cartes dans votre <a href="#/inventory" class="grad-text">inventaire</a> pour les envoyer.': 'Select cards in your <a href="#/inventory" class="grad-text">inventory</a> to send them.',
+  'Sélectionnez des cartes dans votre <a href="#/collection?tab=mine" class="grad-text">collection</a> pour les envoyer.': 'Select cards in your <a href="#/collection?tab=mine" class="grad-text">collection</a> to send them.',
   'Notes :': 'Grades:',
   'En cours': 'In progress',
   'Commande #{id}': 'Order #{id}',

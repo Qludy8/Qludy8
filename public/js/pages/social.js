@@ -126,7 +126,7 @@ export async function profilePage({ view, params, stale, rerender }) {
   if (stale()) return;
   const me = store.me;
   const btn = {
-    SELF: `<a class="btn" href="#/settings">${t('Modifier le profil')}</a><a class="btn" href="#/inventory">${t('Choisir la vitrine')}</a>`,
+    SELF: `<a class="btn" href="#/settings">${t('Modifier le profil')}</a><a class="btn" href="#/collection?tab=mine">${t('Choisir la vitrine')}</a>`,
     NONE: `<button class="btn primary" data-friend>${t('Ajouter en ami')}</button>`,
     SENT: `<span class="pill">${t('Demande envoyée')}</span>`,
     RECEIVED: `<a class="btn primary" href="#/friends">${t('Répondre à sa demande')}</a>`,
