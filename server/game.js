@@ -236,6 +236,29 @@ export function sellToSystem(userId, ids) {
     return { total, balance: credit(userId, total, 'SELL_SYSTEM', `${ids.length} carte(s)`) };
   });
 }
+// Doublons : pour chaque skin, on garde un exemplaire (le moins usé, ou un exemplaire protégé :
+// favori, gradé, carte erreur, traqueur, en vente ou en gradation) ; les autres sont recyclables,
+// les plus dégradés d'abord.
+export function duplicatesOf(userId) {
+  const rows = all("SELECT * FROM cards WHERE owner_id = ? AND status != 'BURNED' ORDER BY skin_id, float ASC", userId);
+  const bySkin = new Map();
+  for (const r of rows) { if (!bySkin.has(r.skin_id)) bySkin.set(r.skin_id, []); bySkin.get(r.skin_id).push(r); }
+  const free = (r) => r.status === 'OWNED' && !r.locked && r.grade == null && r.misprint == null && r.tracker == null;
+  const out = [];
+  for (const list of bySkin.values()) {
+    if (list.length < 2) continue;
+    const recyclable = list.filter(free);
+    const keepOne = recyclable.length === list.length;    // aucun exemplaire protégé : on garde le meilleur
+    out.push(...(keepOne ? recyclable.slice(1) : recyclable));
+  }
+  return out.sort((a, b) => b.float - a.float).map((r) => ({ ...cardOut(r), gain: Math.max(1, Math.floor(valueOfRow(r) * ECONOMY.sellToSystemRate)) }));
+}
+export function recycleDuplicates(userId, count) {
+  const list = duplicatesOf(userId);
+  const n = Math.max(0, Math.min(list.length, Math.floor(Number(count) || 0)));
+  if (!n) throw bad('Aucun doublon à recycler');
+  return { ...sellToSystem(userId, list.slice(0, n).map((c) => c.id)), recycled: n };
+}
 export function setLocked(userId, id, locked) {
   ownedCard(userId, Number(id), ['OWNED', 'LISTED', 'GRADING']);
   run('UPDATE cards SET locked = ? WHERE id = ?', locked ? 1 : 0, id);

@@ -280,4 +280,11 @@ export const EN_PAGES = {
   'Les meilleures graines n’affichent que deux couleurs : Braise & Givre (rouge et bleu), puis Nuit profonde et Aurore.': 'The best seeds show only two colors: Ember & Frost (red and blue), then Deep Night and Aurora.',
   'Rendu': 'Look',
   'Rang': 'Rank',
+  'Recycler les doublons': 'Recycle duplicates',
+  'Aucun doublon à recycler : vous gardez déjà un seul exemplaire de chaque skin.': 'No duplicates to recycle: you already keep a single copy of each skin.',
+  'Vous gardez le meilleur exemplaire de chaque skin (le moins usé). Les favoris, cartes gradées, cartes erreur et traqueurs ne sont jamais recyclés.': 'You keep the best copy of each skin (the least worn). Favourites, graded cards, misprints and trackers are never recycled.',
+  'Cartes à recycler, des plus usées aux moins usées': 'Cards to recycle, most worn first',
+  'Gain': 'Gain',
+  'Recycler': 'Recycle',
+  '{n} doublon(s) recyclé(s) · +{gain}': '{n} duplicate(s) recycled · +{gain}',
 };

@@ -98,6 +98,7 @@ export const EN_DATA = {
 
 // Messages fixes du serveur (erreurs, notifications, notes de transactions)
 export const EN_SERVER = {
+  'Aucun doublon à recycler': 'No duplicates to recycle',
   // game.js
   'Solde insuffisant': 'Insufficient balance',
   'Mode admin désactivé': 'Admin mode is disabled',

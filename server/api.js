@@ -70,6 +70,7 @@ export function api() {
     const rows = all("SELECT * FROM cards WHERE owner_id = ? AND status = 'OWNED' ORDER BY rarity DESC, id DESC LIMIT 400", u.id);
     res.json(rows.map((x) => G.cardOut(x)));
   });
+  r.get('/cards/duplicates', requireUser, (req, res) => res.json(G.duplicatesOf(req.user.id)));
   r.get('/cards/:id', (req, res) => res.json(G.cardDetail(req.params.id)));
   r.get('/cert/:cert', (req, res) => res.json(G.certLookup(req.params.cert)));
   r.get('/market', (req, res) => res.json(G.browseMarket(req.query, req.user?.id)));
@@ -104,6 +105,7 @@ export function api() {
     const disc = all('SELECT skin_id FROM discovered WHERE user_id = ?', req.user.id).map((x) => x.skin_id);
     res.json({ owned: Object.fromEntries(owned.map((o) => [o.skin_id, { n: o.n, best: o.best }])), discovered: disc });
   });
+  r.post('/cards/recycle', (req, res) => res.json(G.recycleDuplicates(req.user.id, req.body?.count)));
   r.post('/cards/sell', (req, res) => res.json(G.sellToSystem(req.user.id, req.body?.ids)));
   r.post('/cards/:id/lock', (req, res) => { G.setLocked(req.user.id, req.params.id, !!req.body?.locked); res.json({ ok: true }); });
   r.post('/cards/:id/unslab', (req, res) => res.json(G.unslab(req.user.id, req.params.id)));

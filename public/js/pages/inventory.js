@@ -25,6 +25,41 @@ function partLabel(l) {
 
 const PER = 60;
 
+// Recyclage des doublons : un exemplaire de chaque skin est conservé (le moins usé), les autres
+// partent au système, en commençant par les plus dégradés. Le curseur choisit combien en recycler.
+async function recycleModal(ctx) {
+  const dups = await api('/cards/duplicates');
+  if (!dups.length) return toast(t('Aucun doublon à recycler : vous gardez déjà un seul exemplaire de chaque skin.'));
+  const gainOf = (n) => dups.slice(0, n).reduce((a, c) => a + c.gain, 0);
+  const m = modal(`<h2>♻ ${t('Recycler les doublons')}</h2>
+    <p class="muted">${t('Vous gardez le meilleur exemplaire de chaque skin (le moins usé). Les favoris, cartes gradées, cartes erreur et traqueurs ne sont jamais recyclés.')}</p>
+    <label class="slider-field"><span>${t('Cartes à recycler, des plus usées aux moins usées')} <b data-n>${dups.length}</b> / ${dups.length}</span>
+      <input type="range" class="range" data-c min="1" max="${dups.length}" step="1" value="${dups.length}" style="--fill:100%"></label>
+    <div class="recycle-list" data-list></div>
+    <div class="row between" style="margin-top:14px"><span class="muted">${t('Gain')} : <b data-gain>${cr(gainOf(dups.length))}</b></span>
+      <button class="btn primary" data-go>${t('Recycler')}</button></div>`, { wide: true });
+  const range = m.el.querySelector('[data-c]');
+  const draw = () => {
+    const n = Number(range.value);
+    range.style.setProperty('--fill', `${dups.length > 1 ? ((n - 1) / (dups.length - 1)) * 100 : 100}%`);
+    m.el.querySelector('[data-n]').textContent = n;
+    m.el.querySelector('[data-gain]').innerHTML = cr(gainOf(n));
+    m.el.querySelector('[data-list]').innerHTML = dups.map((c, i) => `<div class="recycle-row ${i < n ? 'on' : ''}">
+      <span style="color:${RARITIES[c.r].color}">${esc(skinTitle(SKIN_BY_ID.get(c.s)))}</span><span class="muted">${wearOf(c.f).key} · ${fmtFloat(c.f)}</span><b>+${cr(c.gain)}</b></div>`).join('');
+  };
+  range.addEventListener('input', draw);
+  draw();
+  m.el.querySelector('[data-go]').onclick = async (e) => {
+    e.target.disabled = true;
+    try {
+      const r = await post('/cards/recycle', { count: Number(range.value) });
+      sound.play('coin');
+      toast(t('{n} doublon(s) recyclé(s) · +{gain}', { n: r.recycled, gain: cr(r.total) }), 'good');
+      m.close(); store.refresh(); inventoryPage(ctx);
+    } catch (err) { toast(esc(err.message), 'error'); e.target.disabled = false; }
+  };
+}
+
 export async function inventoryPage(ctx) {
   const { view, stale } = ctx;
   const cards = await api('/inventory');
@@ -36,7 +71,7 @@ export async function inventoryPage(ctx) {
 
   view.innerHTML = `<div class="section-title" style="margin-top:0"><div><h1>${t('Inventaire')}</h1>
       <p class="muted">${t('{n} carte(s) · valeur estimée {value}', { n: fmt(cards.length), value: cr(total) })}</p></div>
-      <div class="row"><label class="check"><input type="checkbox" data-select> ${t('Sélection multiple')}</label><a class="btn" href="#/grading">${t('Gradation')}</a></div></div>
+      <div class="row"><label class="check"><input type="checkbox" data-select> ${t('Sélection multiple')}</label><button class="btn" data-recycle>♻ ${t('Recycler les doublons')}</button><a class="btn" href="#/grading">${t('Gradation')}</a></div></div>
     <div class="filters">
       <input class="input" placeholder="${t('Rechercher…')}" data-f="q">
       <select class="input" data-f="r"><option value="">${t('Toutes raretés')}</option>${RARITIES.map((r, i) => `<option value="${i}">${esc(L(r))}</option>`).join('')}</select>
@@ -97,6 +132,7 @@ export async function inventoryPage(ctx) {
     if (e.target.matches('[data-select]')) { st.select = e.target.checked; if (!st.select) sel.clear(); draw(); }
   });
   view.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-recycle]')) return recycleModal(ctx);
     const p = e.target.closest('[data-p]');
     if (p) { st.page += Number(p.dataset.p); draw(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const a = e.target.closest('[data-act]');

@@ -208,17 +208,17 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .tile .lock { position: absolute; bottom: 64px; right: 8px; z-index: 3; font-size: 14px; }
 
 /* slab gradé */
-.slab { position: relative; padding: 9% 7% 7%; border-radius: 14px; background: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.05) 40%, rgba(255,255,255,.12));
+.slab { position: relative; padding: 9% 7% 7%; border-radius: 5.5cqw; container-type: inline-size; background: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.05) 40%, rgba(255,255,255,.12));
   border: 1px solid rgba(255,255,255,.35); box-shadow: inset 0 0 0 4px rgba(255,255,255,.04), 0 18px 40px -16px #000; backdrop-filter: blur(6px); }
-.slab-label { position: absolute; top: 2%; left: 5%; right: 5%; height: 14%; display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center;
-  padding: 0 4%; border-radius: 8px; background: linear-gradient(180deg, #f5f3ee, #d9d5cb); color: #16171c; font-size: clamp(7px, .9vw, 11px); }
-.slab-brand { font-family: var(--display); font-weight: 700; letter-spacing: .04em; line-height: 1.15; font-size: .9em; }
+.slab-label { position: absolute; top: 2%; left: 5%; right: 5%; height: 14%; display: grid; grid-template-columns: auto 1fr auto; gap: 2.4cqw; align-items: center;
+  padding: 0 4%; border-radius: 3cqw; background: linear-gradient(180deg, #f5f3ee, #d9d5cb); color: #16171c; font-size: 3.6cqw; overflow: hidden; }
+.slab-brand { font-family: var(--display); font-weight: 700; letter-spacing: .04em; line-height: 1.15; font-size: .9em; white-space: nowrap; }
 .slab-brand small { font-size: .85em; }
 .slab-brand small { display: block; font-weight: 600; opacity: .65; }
-.slab-name { line-height: 1.15; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.slab-name { line-height: 1.15; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
 .slab-grade { text-align: center; line-height: 1; }
-.slab-grade b { display: block; font-family: var(--display); font-size: clamp(16px, 2.2vw, 28px); color: #b3121f; }
-.slab-grade small { font-size: .85em; font-weight: 700; }
+.slab-grade b { display: block; font-family: var(--display); font-size: 8.5cqw; color: #b3121f; }
+.slab-grade small { font-size: .8em; font-weight: 700; white-space: nowrap; }
 .slab-window { margin-top: 12%; }
 .slab.pristine { background: linear-gradient(160deg, #2a2a2a, #0b0b0b 50%, #3a3022); border-color: #e0b54a; box-shadow: 0 0 40px -8px rgba(224,181,74,.6); }
 .slab.pristine .slab-label { background: linear-gradient(180deg, #111, #222); color: #e0b54a; }
@@ -523,3 +523,6 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
   .nav a { padding-left: 10px; padding-right: 10px; }
 }
 @media (max-width: 1360px) { .logo-word { display: none; } .nav a { padding-left: 8px; padding-right: 8px; } }
+.recycle-list { max-height: 300px; overflow: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.recycle-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 7px 12px; font-size: 13px; opacity: .35; border-bottom: 1px solid var(--line); }
+.recycle-row.on { opacity: 1; }
