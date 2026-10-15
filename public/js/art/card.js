@@ -67,7 +67,7 @@ export function weaponSVG(skin, card = null, opts = {}) {
           <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.2 0 0 0 -.55"/></filter>
         <filter id="${id}stf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .02" numOctaves="4" seed="${(ns + 11) % 997}"/>
           <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  5 0 0 0 ${(-3.1 + w * 1.4).toFixed(2)}"/><feGaussianBlur stdDeviation="1.2"/></filter>
-        <mask id="${id}chip" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><g filter="url(#${id}chf)">${PHOTO[skin.m] ? `<image href="/img/weapons/${skin.m}.mask.png?v=${IMG_V}" x="0" y="0" width="1000" height="360" preserveAspectRatio="none"/>` : paint.map((p) => `<path d="${p.d}" fill="#fff" fill-rule="evenodd"/>`).join('')}</g></mask>
+        <mask id="${id}chip" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><g filter="url(#${id}chf)">${PHOTO[skin.m] ? `<image href="/img/weapons/${skin.m}.photo.mask.png?v=${IMG_V}" x="0" y="0" width="1000" height="360" preserveAspectRatio="none"/>` : paint.map((p) => `<path d="${p.d}" fill="#fff" fill-rule="evenodd"/>`).join('')}</g></mask>
         <mask id="${id}chipi" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" fill="#fff"/><rect width="1000" height="360" fill="#000" mask="url(#${id}chip)"/></mask>
         <mask id="${id}loss" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" filter="url(#${id}lsf)"/></mask>
         <mask id="${id}stain" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="360"><rect width="1000" height="360" filter="url(#${id}stf)"/></mask>`;
@@ -83,7 +83,8 @@ export function weaponSVG(skin, card = null, opts = {}) {
 
   // ── armes rendues en 3D (Blender) : image de base + skin multiplié par l'éclairage des zones peintes + reflets
   if (HAS_3D.has(skin.m)) {
-    const src = (k) => `/img/weapons/${skin.m}.${k}?v=${IMG_V}`;
+    // les armes importées depuis une image ont leurs propres fichiers (*.photo.*)
+    const src = (k) => `/img/weapons/${skin.m}${PHOTO[skin.m] ? '.photo' : ''}.${k}?v=${IMG_V}`;
     const img = (k, extra = '') => `<image href="${src(k)}" x="0" y="0" width="1000" height="360" preserveAspectRatio="none" ${extra}/>`;
     const specOp = (0.85 * (1 - 0.6 * Math.min(1, float ?? 0))).toFixed(3);
     return `<g class="weapon w3d">

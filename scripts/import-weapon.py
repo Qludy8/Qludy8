@@ -1,9 +1,9 @@
 # Importe une image d'arme (PNG détouré, fond transparent) dans le moteur de rendu du jeu.
 # Produit, dans l'espace 1000 × 360 des skins (×2 : 2000 × 720) :
-#   <arme>.base.webp   l'image d'origine (visible là où la peinture du skin s'écaille)
-#   <arme>.light.webp  éclairage tiré de la photo (multiplié par la texture du skin)
-#   <arme>.spec.webp   reflets (les zones les plus claires de la photo)
-#   <arme>.mask.png    zones peintes par le skin (ici toute la silhouette)
+#   <arme>.photo.base.webp   l'image d'origine (visible là où la peinture du skin s'écaille)
+#   <arme>.photo.light.webp  éclairage tiré de la photo (multiplié par la texture du skin)
+#   <arme>.photo.spec.webp   reflets (les zones les plus claires de la photo)
+#   <arme>.photo.mask.png    zones peintes par le skin (ici toute la silhouette)
 # et affiche les cadres à reporter dans public/js/art/weapons3d.js.
 #
 # usage : python import-weapon.py image.png <arme> <dossier_sortie> [--rotate DEG] [--flip]
@@ -44,12 +44,12 @@ p90, p995 = np.percentile(lum[inside], [88, 99.5])
 spec = np.clip((lum - p90) / max(p995 - p90, 1e-3), 0, 1) ** 1.4
 
 def save(arr, name, mode='RGBA'):
-    Image.fromarray((np.clip(arr, 0, 1) * 255 + 0.5).astype(np.uint8), mode).save(f'{out}/{key}.{name}', 'WEBP' if name.endswith('webp') else 'PNG', quality=90)
-canvas.save(f'{out}/{key}.base.webp', 'WEBP', quality=90, method=6)
+    Image.fromarray((np.clip(arr, 0, 1) * 255 + 0.5).astype(np.uint8), mode).save(f'{out}/{key}.photo.{name}', 'WEBP' if name.endswith('webp') else 'PNG', quality=90)
+canvas.save(f'{out}/{key}.photo.base.webp', 'WEBP', quality=90, method=6)
 save(np.dstack([light, light, light, alpha]), 'light.webp')
 save(np.dstack([spec, spec, spec, alpha]), 'spec.webp')
 mask = Image.fromarray((np.dstack([np.ones_like(alpha)] * 3 + [alpha]) * 255).astype(np.uint8), 'RGBA')
-mask.save(f'{out}/{key}.mask.png', optimize=True)
+mask.save(f'{out}/{key}.photo.mask.png', optimize=True)
 
 ys, xs = np.nonzero(inside)
 box = [round(xs.min() / S, 1), round(ys.min() / S, 1), round((xs.max() - xs.min()) / S, 1), round((ys.max() - ys.min()) / S, 1)]

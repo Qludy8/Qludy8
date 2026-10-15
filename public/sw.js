@@ -1,7 +1,7 @@
 // Service worker Mugigo : rend le site installable comme une application.
 // Fichiers du jeu : réseau d'abord (toujours la dernière version), cache en secours hors ligne.
 // Images des armes : cache d'abord (lourdes et stables). L'API n'est jamais mise en cache.
-const CACHE = 'mugigo-v3';
+const CACHE = 'mugigo-v4';
 const SHELL = ['/', '/index.html', '/css/app.css', '/js/app.js', '/manifest.json', '/icons/icon-192.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
