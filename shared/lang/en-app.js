@@ -74,8 +74,8 @@ export const EN_APP = {
   'Ciblez votre modèle préféré.': 'Target your favorite model.',
   '{n} cartes · {p} boosters': '{n} cards · {p} packs',
   'Collectionnez l’<span class="grad-text">arsenal</span> le plus rare.': 'Collect the rarest <span class="grad-text">arsenal</span>.',
-  'Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les cartes les mieux centrées et les <b style="color:#ff5a8a">cartes erreur</b> (1 sur {n}). Échangez avec vos amis et dominez le classement.':
-    'Hunt for perfect floats, <b style="color:#ffd76a">rare seeds</b>, the best-centered cards and <b style="color:#ff5a8a">misprints</b> (1 in {n}). Trade with your friends and rule the leaderboard.',
+  'Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les armes les mieux conservées et les <b style="color:#ff5a8a">cartes erreur</b> (1 sur {n}). Échangez avec vos amis et dominez le classement.':
+    'Hunt for perfect floats, <b style="color:#ffd76a">rare seeds</b>, the best-preserved weapons and <b style="color:#ff5a8a">misprints</b> (1 in {n}). Trade with your friends and rule the leaderboard.',
   'Ouvrir un booster gratuit ({n})': 'Open a free pack ({n})',
   'Récompense du jour +{r} {mu}': 'Daily reward +{r} {mu}',
   'Commencer – {start} {mu} + {packs} boosters offerts': 'Start – {start} {mu} + {packs} free packs',

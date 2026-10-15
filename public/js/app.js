@@ -148,6 +148,18 @@ function rateSliders(p) {
       <div class="rate-row rate-total"><span class="rate-name">${t('Total')}</span><div></div><span class="rate-val">${pct(dec2(shown.reduce((a, b) => a + b, 0)))}</span></div></div>`;
 }
 function bindPacks(root) {
+  // inclinaison 3D du booster qui suit la souris
+  root.addEventListener('pointermove', (e) => {
+    const tile = e.target.closest('.pack-tile'); if (!tile || e.pointerType === 'touch') return;
+    const art = tile.querySelector('.pack-art'), r = art.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    art.style.setProperty('--ry', `${(x * 22).toFixed(1)}deg`); art.style.setProperty('--rx', `${(-y * 18).toFixed(1)}deg`);
+    art.style.setProperty('--mx', `${((x + 0.5) * 100).toFixed(0)}%`); art.style.setProperty('--my', `${((y + 0.5) * 100).toFixed(0)}%`);
+  });
+  root.addEventListener('pointerout', (e) => {
+    const tile = e.target.closest('.pack-tile'); if (!tile || tile.contains(e.relatedTarget)) return;
+    const art = tile.querySelector('.pack-art'); art.style.setProperty('--rx', '0deg'); art.style.setProperty('--ry', '0deg');
+  });
   root.addEventListener('click', (e) => {
     const o = e.target.closest('[data-open]');
     if (o) { e.stopPropagation(); return openPack(o.dataset.open, 1); }
@@ -230,7 +242,7 @@ async function home({ token }) {
       <div>
         <div class="pill" style="margin-bottom:12px">⚡ ${t('{n} cartes · {p} boosters', { n: `<b class="glow-text" style="--gc:#ffb020">${fmt(stats.skins)}</b>`, p: PACKS.length })}</div>
         <h1>${t('Collectionnez l’<span class="grad-text">arsenal</span> le plus rare.')}</h1>
-        <p>${t('Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les cartes les mieux centrées et les <b style="color:#ff5a8a">cartes erreur</b> (1 sur {n}). Échangez avec vos amis et dominez le classement.', { n: fmt(Math.round(1 / MISPRINT.chance)) })}</p>
+        <p>${t('Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les armes les mieux conservées et les <b style="color:#ff5a8a">cartes erreur</b> (1 sur {n}). Échangez avec vos amis et dominez le classement.', { n: fmt(Math.round(1 / MISPRINT.chance)) })}</p>
         <div class="row" style="margin-top:18px">
           ${me ? `<button class="btn primary xl" data-quick-free>${t('Ouvrir un booster gratuit ({n})', { n: me.free.stock })}</button>${me.daily.available ? `<button class="btn xl" data-daily>🎁 ${t('Récompense du jour +{r} {mu}', { r: fmt(me.daily.reward), mu: MU })}</button>` : ''}`
     : `<a class="btn primary xl" href="#/register">${t('Commencer – {start} {mu} + {packs} boosters offerts', { start: fmt(ECONOMY.startBalance), mu: MU, packs: ECONOMY.welcomePacks })}</a><a class="btn xl" href="#/collection">${t('Voir la collection')}</a>`}
@@ -240,13 +252,29 @@ async function home({ token }) {
       <div class="hero-cards">${showcase.map((s, i) => cardHTML(s, { f: [0.012, 0.0004, 0.09][i], cx: 50, cy: 50, tr: null, mp: null, g: null, pt: 7, serial: 'MG-VITRINE' })).join('')}</div>
     </section>
     <div class="home-grid">
-      <div>${groups.map(([g, title, ko, sub]) => `
-        <div class="section-title"><div><span class="eyebrow">${ko}</span><h2>${title}</h2><div class="muted small">${sub}</div></div></div>
-        <div class="packs" data-packs>${PACKS.filter((p) => p.group === g).sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0)).map((p, i) => packTile(p, me, i)).join('')}</div>`).join('')}</div>
+      <div>
+        <div class="pack-tabs" role="tablist">${groups.map(([g, title, ko]) => `<button role="tab" data-tab="${g}"><span class="ko">${ko}</span>${title}<small>${PACKS.filter((p) => p.group === g).length}</small></button>`).join('')}</div>
+        <p class="muted small" data-tabsub></p>
+        <div class="packs" data-packs></div>
+      </div>
       <aside class="feed-col"><div class="section-title"><h2>${t('Drops en direct')}</h2><span class="pill"><span class="online on"></span> live</span></div>
         <div class="panel feed" data-feed>${feed.map(feedItem).join('') || `<div class="empty">${t('Aucun drop pour l’instant')}</div>`}</div></aside>
     </div>`;
-  view.querySelectorAll('[data-packs]').forEach(bindPacks);
+  // trois catégories de boosters en onglets (l'onglet choisi est mémorisé)
+  const grid = $('[data-packs]', view);
+  const showTab = (g) => {
+    const grp = groups.find((x) => x[0] === g) || groups[0];
+    try { localStorage.setItem('mugigo.packTab', grp[0]); } catch { /* stockage indisponible */ }
+    view.querySelectorAll('[data-tab]').forEach((b) => { b.classList.toggle('on', b.dataset.tab === grp[0]); b.setAttribute('aria-selected', b.dataset.tab === grp[0]); });
+    $('[data-tabsub]', view).textContent = grp[3];
+    grid.innerHTML = PACKS.filter((p) => p.group === grp[0]).sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0)).map((p, i) => packTile(p, me, i)).join('');
+    grid.classList.remove('tab-in'); void grid.offsetWidth; grid.classList.add('tab-in');
+  };
+  let tab0 = 'base';
+  try { tab0 = localStorage.getItem('mugigo.packTab') || 'base'; } catch { /* stockage indisponible */ }
+  view.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  showTab(tab0);
+  bindPacks(grid);
   $('[data-quick-free]', view)?.addEventListener('click', () => openPack('free', 1));
   $('[data-daily]', view)?.addEventListener('click', claimDaily);
   let last = feed[0]?.at || 0;

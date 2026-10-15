@@ -48,6 +48,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
   const stage = $('.stage', el), packEl = $('.pack-big', el), info = $('.reveal-info', el), hint = $('.stack-hint', el);
   const stack = [...el.querySelectorAll('.stack-card')];
   let idx = 0, busy = false, torn = false, closed = false;
+  const fitGridRef = { fn: () => {} };
 
   // rendu paresseux : seules les cartes proches du sommet de la pile existent dans le DOM
   // (une ouverture ×10 = 50 cartes, chacune avec ses filtres d'usure → trop lourd en une fois)
@@ -71,7 +72,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
   const center = () => { const r = stage.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
   const close = () => {
     if (closed) return; closed = true;
-    fx.destroy(); el.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey);
+    fx.destroy(); el.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); removeEventListener('resize', fitGridRef.fn);
     store.refresh();
   };
 
@@ -210,7 +211,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
         </div>
       </div>
       <div class="summary-grid">${sorted.map((c, i) => `<div class="tile" style="--i:${Math.min(i, 12)}">${i < EAGER ? cardOf(c) : `<div class="card-ph" data-ph="${i}"></div>`}
-        <div class="meta"><span class="pill r" style="--rc:${RARITIES[c.r].color}">${L(RARITIES[c.r])}</span>${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span>` : ''}<b>${cr(c.value)}</b></div></div>`).join('')}</div>`;
+        <div class="meta">${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span>` : ''}<b>${cr(c.value)}</b></div></div>`).join('')}</div>`;
     // les cartes suivantes sont dessinées quand elles approchent de l'écran
     const io = new IntersectionObserver((entries) => entries.forEach((e) => {
       if (!e.isIntersecting) return;
@@ -218,6 +219,46 @@ export function openSequence(pack, result, { onAgain } = {}) {
       e.target.outerHTML = cardOf(sorted[Number(e.target.dataset.ph)]);
     }), { root: sum, rootMargin: '400px 0px' });
     sum.querySelectorAll('[data-ph]').forEach((x) => io.observe(x));
+    // taille des cartes calculée pour que tout le résumé tienne à l'écran (mobile compris)
+    const gridEl = sum.querySelector('.summary-grid');
+    const fitGrid = () => {
+      const head = sum.querySelector('.summary-head');
+      const cs = getComputedStyle(sum);
+      const W = sum.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const H = sum.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - head.offsetHeight - 20;
+      const n = sorted.length, gap = innerWidth < 600 ? 8 : 14, meta = innerWidth < 600 ? 22 : 30;
+      let best = 0, cols = 1;
+      for (let c = 1; c <= n; c++) {
+        const w = Math.min(230, (W - (c - 1) * gap) / c), rows = Math.ceil(n / c);
+        if (rows * (w * 88 / 63 + meta) + (rows - 1) * gap <= H && w > best) { best = w; cols = c; }
+      }
+      if (!best) { cols = Math.max(1, Math.floor((W + gap) / (64 + gap))); best = (W - (cols - 1) * gap) / cols; }
+      gridEl.style.gridTemplateColumns = `repeat(${cols}, ${Math.floor(best)}px)`;
+      gridEl.style.gap = `${gap}px`;
+      gridEl.classList.toggle('compact', best < 120);
+    };
+    fitGrid();
+    fitGridRef.fn = fitGrid;
+    addEventListener('resize', fitGrid);
+    // inspection : clic sur une carte du résumé → la carte s'agrandit en tournant, inclinable à la souris
+    gridEl.addEventListener('click', (e) => {
+      const tile = e.target.closest('.tile'); if (!tile) return;
+      const c = sorted[[...gridEl.children].indexOf(tile)]; if (!c) return;
+      const R = RARITIES[c.r], skin = SKIN_BY_ID.get(c.s), w = wearOf(c.f);
+      const r0 = tile.getBoundingClientRect();
+      const z = document.createElement('div');
+      z.className = 'zoom-inspect';
+      z.innerHTML = `<div class="zoom-card" style="--fx:${r0.left + r0.width / 2 - innerWidth / 2}px;--fy:${r0.top + r0.height / 2 - innerHeight / 2}px;--fs:${(r0.width / Math.min(380, innerWidth * 0.8)).toFixed(3)}">${cardOf(c)}</div>
+        <div class="zoom-info"><div class="big" style="color:${R.color}">${esc(MODEL_BY_KEY[skin.m].name)} | ${esc(L(skin, 'n'))}</div>
+          <div class="muted small">${esc(L(R))} · ${w.key} ${fmtFloat(c.f)}${c.tr != null ? ` · ${t('Traqueur')}` : ''}</div>
+          <div style="margin-top:6px">${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span> ` : ''}<span class="pill">${cr(c.value)}</span></div>
+          <div class="muted small" style="margin-top:10px">${t('Cliquez n’importe où pour fermer')}</div></div>`;
+      el.append(z);
+      sound.play('flip', 0);
+      const shut = () => { z.classList.add('out'); setTimeout(() => z.remove(), 300); };
+      z.addEventListener('click', (ev) => { if (!ev.target.closest('.zoom-card')) shut(); });
+      z.querySelector('.zoom-card').addEventListener('dblclick', shut);
+    });
     sum.querySelector('[data-close2]').onclick = close;
     sum.querySelector('[data-again]')?.addEventListener('click', () => { close(); onAgain(); });
     sum.querySelector('[data-sell-low]')?.addEventListener('click', async (e) => {
@@ -231,6 +272,8 @@ export function openSequence(pack, result, { onAgain } = {}) {
   }
 
   const onKey = (e) => {
+    const z = el.querySelector('.zoom-inspect:not(.out)');
+    if (e.key === 'Escape' && z) { z.click(); return; }
     if (e.key === 'Escape') close();
     else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!el.classList.contains('done')) next(); }
   };

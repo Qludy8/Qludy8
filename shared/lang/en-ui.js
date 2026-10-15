@@ -106,4 +106,5 @@ export const EN_UI = {
   'Serpent': 'Serpent',
   'Phénix': 'Phoenix',
   'Flammes': 'Flames',
+  'Cliquez n’importe où pour fermer': 'Click anywhere to close',
 };

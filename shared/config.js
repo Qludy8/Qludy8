@@ -107,8 +107,8 @@ export const BASE_PACKS = [
     cards: 7, rates: [0, 34, 38, 19, 6.5, 2, 0.5], theme: ['#2bd9ff', '#8b5cff'], evTarget: 0.85 },
   { key: 'royal',     fr: 'Arsenal royal', en: 'Royal Arsenal', ko: '왕실', sym: '왕', tag: '10 cartes, à partir de Rare', tagEn: '10 cards, Rare or better', filter: {},
     cards: 10, rates: [0, 0, 52, 31, 12, 4, 1], theme: ['#e0b54a', '#c8102e'], evTarget: 0.82 },
-  { key: 'free',      fr: 'Booster gratuit', en: 'Free Pack', ko: '선물', sym: '선', tag: 'Toutes les 10 minutes', tagEn: 'Every 10 minutes', filter: {}, free: true,
-    price: 0, cards: 3, rates: [78, 17.5, 3.6, 0.75, 0.12, 0.025, 0.005], theme: ['#9aa3ad', '#ffffff'] },
+  { key: 'free',      fr: 'Booster gratuit', en: 'Free Pack', ko: '무료 부스터', sym: '공', tag: 'Toutes les 10 minutes', tagEn: 'Every 10 minutes', filter: {}, free: true,
+    price: 0, cards: 3, rates: [78, 17.5, 3.6, 0.75, 0.12, 0.025, 0.005], theme: ['#22c7a9', '#8ef0ff'] },
 ];
 // symbole des boosters « par arme » selon la famille
 export const CLASS_SYM = { pistol: '권', revolver: '탄', smg: '속', rifle: '총', dmr: '정', sniper: '저', shotgun: '산', lmg: '포', knife: '검' };
