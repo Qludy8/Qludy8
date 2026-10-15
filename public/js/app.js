@@ -123,7 +123,9 @@ function fillDrawer() {
       ${me?.adminToggle ? `<div class="drawer-row"><span>${t('Mode admin')}</span><button class="admin-toggle ${me.admin ? 'on' : ''}" data-admin><i></i><span>Admin</span></button></div>` : ''}
       <div class="drawer-row" data-install-row ${installPrompt || isIOS() ? '' : 'hidden'}><span>${t('Application')}</span><button class="btn sm" data-install>${t('Installer')}</button></div>
     </div>
-    ${me ? `<button class="btn danger" data-logout style="margin-top:auto">${t('Déconnexion')}</button>` : ''}`;
+    ${me ? `<button class="btn danger" data-logout style="margin-top:auto">${t('Déconnexion')}</button>` : ''}
+    <div class="muted small drawer-ver" data-ver></div>`;
+  api('/version').then((v) => { const el = panel.querySelector('[data-ver]'); if (el) el.textContent = `Mugigo v${v.version}`; }).catch(() => {});
 }
 async function showNotifications() {
   const list = await api('/notifications');

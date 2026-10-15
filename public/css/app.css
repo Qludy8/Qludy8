@@ -916,3 +916,4 @@ body.drawer-on { overflow: hidden; }
   .k-swipe-dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line3); transition: width .25s, background .25s; }
   .k-swipe-dots i.on { width: 20px; background: var(--accent); }
 }
+.drawer-ver { text-align: center; padding-top: 10px; opacity: .6; }

@@ -15,7 +15,7 @@ Prérequis : **Node.js ≥ 22.9** (SQLite est intégré à Node, aucune base à 
 ```bash
 npm install
 cp .env.example .env        # facultatif
-npm start                   # http://localhost:3000
+npm start                   # http://localhost:4747
 npm test                    # 24 tests (taux, tirages, gradation, marché, échanges, invariants du portefeuille)
 npm run calibrate           # simulation Monte-Carlo de la valeur espérée de chaque booster
 ```

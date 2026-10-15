@@ -2,6 +2,7 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { loadUser } from './auth.js';
 import { api } from './api.js';
 import { startBots } from './bots.js';
@@ -16,6 +17,7 @@ app.use((_req, res, next) => {
   next();
 });
 app.use(loadUser);
+app.get('/api/version', (_req, res) => res.json({ version }));
 app.use('/api', api());
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Route inconnue' }));
 // le service worker doit toujours être relu (sinon les mises à jour du jeu tardent)
@@ -35,12 +37,13 @@ app.use((err, _req, res, _next) => {
 });
 
 if (process.env.BOTS !== '0') startBots();
-const port = Number(process.env.PORT || 3000);
-app.listen(port, () => console.log(`Mugigo prêt sur http://localhost:${port}`)).on('error', (e) => {
+const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const port = Number(process.env.PORT || 4747);
+app.listen(port, () => console.log(`Mugigo v${version} prêt sur http://localhost:${port}`)).on('error', (e) => {
   if (e.code !== 'EADDRINUSE') throw e;
   console.error(`\nLe port ${port} est déjà utilisé : un autre serveur (sans doute une ancienne version de Mugigo) tourne encore.
   → Fermez sa fenêtre ou faites Ctrl+C dedans, puis relancez npm start.
   → Ou arrêtez-le sous Windows (PowerShell) : Stop-Process -Id (Get-NetTCPConnection -LocalPort ${port}).OwningProcess -Force
-  → Ou lancez celui-ci sur un autre port : $env:PORT=3001; npm start   (puis ouvrez http://localhost:3001)\n`);
+  → Ou lancez celui-ci sur un autre port : $env:PORT=4848; npm start   (puis ouvrez http://localhost:4848)\n`);
   process.exit(1);
 });
