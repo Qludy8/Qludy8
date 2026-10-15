@@ -36,6 +36,15 @@ vérification simulée pour tester en local.
 Un interrupteur **Admin** dans l’en-tête (sans mot de passe) donne des Mu illimités (les dépenses ne débitent plus le solde)
 et rend les gradations instantanées. À couper avant l’ouverture au public : `ADMIN_TOGGLE = false` dans `shared/config.js`.
 
+### Armes en 3D
+Les armes sont reconstruites en volume et rendues avec Blender (Cycles) par `scripts/render3d/build.py`
+(module Python `bpy`, plus `numpy`, `scipy`, `pillow`). Pour chaque arme, 4 images dans `public/img/weapons/` :
+rendu de base, éclairage et reflets des zones peintes, masque. Le navigateur y applique le skin et l’usure.
+```
+node --input-type=module -e "import { WEAPON_ART } from './public/js/art/weapons.js'; import { MODELS } from './shared/catalog.js'; import fs from 'node:fs'; fs.writeFileSync('parts.json', JSON.stringify(Object.fromEntries(MODELS.map((m) => [m.key, { cls: m.cls, box: WEAPON_ART[m.key].box, parts: WEAPON_ART[m.key].parts }]))))"
+python scripts/render3d/build.py parts.json public/img/weapons [modèle …] --samples 64 --scale 1.5
+```
+
 ### Langues
 Le jeu est en français et en anglais (bouton FR/EN dans l’en-tête, ou Paramètres). Le français sert de clé :
 `t('Texte')` dans le code, traductions dans `shared/lang/en-*.js`, champs `en`/`…En` dans les données.
