@@ -36,4 +36,11 @@ app.use((err, _req, res, _next) => {
 
 if (process.env.BOTS !== '0') startBots();
 const port = Number(process.env.PORT || 3000);
-app.listen(port, () => console.log(`Mugigo prêt sur http://localhost:${port}`));
+app.listen(port, () => console.log(`Mugigo prêt sur http://localhost:${port}`)).on('error', (e) => {
+  if (e.code !== 'EADDRINUSE') throw e;
+  console.error(`\nLe port ${port} est déjà utilisé : un autre serveur (sans doute une ancienne version de Mugigo) tourne encore.
+  → Fermez sa fenêtre ou faites Ctrl+C dedans, puis relancez npm start.
+  → Ou arrêtez-le sous Windows (PowerShell) : Stop-Process -Id (Get-NetTCPConnection -LocalPort ${port}).OwningProcess -Force
+  → Ou lancez celui-ci sur un autre port : $env:PORT=3001; npm start   (puis ouvrez http://localhost:3001)\n`);
+  process.exit(1);
+});
