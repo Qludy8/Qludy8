@@ -522,3 +522,81 @@ h1, h2 { text-shadow: 0 0 22px rgba(255, 140, 60, .12); }
 .recycle-list { max-height: 300px; overflow: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; }
 .recycle-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 7px 12px; font-size: 13px; opacity: .35; border-bottom: 1px solid var(--line); }
 .recycle-row.on { opacity: 1; }
+
+/* ═════════ Thème « Arsenal » (inspiré du site de référence) : bleu nuit, corail, or, vert d'eau ;
+   Poppins pour les titres et le texte, DM Mono en petites capitales espacées pour les étiquettes. */
+:root {
+  --bg: #0e1015; --bg2: #11141b;
+  --panel: #141821; --panel-solid: #161a24; --navy: #232a40; --navy2: #1b2133;
+  --line: rgba(150, 165, 200, .14); --line2: rgba(150, 165, 200, .24);
+  --text: #f2f4f8; --muted: #a3abbd;
+  --accent: #dc604a; --accent-d: #9a3b2b; --accent2: #f0c35a; --teal: #48937f; --good: #4cce81; --bad: #e85a5a;
+  --radius: 18px;
+  --font: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --display: 'Poppins', system-ui, sans-serif;
+  --mono: 'DM Mono', ui-monospace, Menlo, monospace;
+}
+body { font-size: 14.5px; }
+body::before { background: radial-gradient(1200px 600px at 50% -15%, rgba(35, 42, 64, .55), transparent 70%), linear-gradient(var(--bg), var(--bg2)); }
+body::after { display: none; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -.01em; font-weight: 700; }
+h1 { font-weight: 800; }
+.section-title h2 { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--text); text-shadow: none; }
+.section-title { margin: 40px 0 16px; }
+.eyebrow, .t th, .slider-field > span, .filters .check { font-family: var(--mono); }
+.eyebrow { display: block; font-size: 11px; letter-spacing: .32em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; font-weight: 500; }
+.t th { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 500; }
+.muted { color: var(--muted); }
+
+/* en-tête */
+.top { background: rgba(14, 16, 21, .92); border-bottom: 1px solid var(--line); }
+.logo-mark { width: 42px; height: 42px; border-radius: 12px; background: var(--navy); color: var(--accent2); font-family: var(--kodisp);
+  box-shadow: 3px 3px 0 var(--accent), inset 0 0 0 1px var(--line2); }
+.logo-word { font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: .02em; }
+.logo-word small { font-family: var(--ko); color: var(--muted); letter-spacing: .4em; font-size: 10px; font-weight: 500; }
+.nav { gap: 6px; }
+.nav a { border-radius: 999px; padding: 8px 15px; font-weight: 600; font-size: 13.5px; color: var(--text); background: var(--panel); border: 1px solid transparent; }
+.nav a:hover { background: var(--navy2); }
+.nav a.on { background: var(--navy); border-color: var(--line2); }
+.nav a.on::after { display: none; }
+.balance { background: var(--panel); border: 1px solid var(--line2); font-family: var(--display); }
+.icon-btn, .user-chip, .lang-btn, .admin-toggle { background: var(--panel); border-color: var(--line2); }
+
+/* panneaux et tuiles : liserés fins + lignes en biais décoratives */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); backdrop-filter: none; }
+.pack-tile { background: var(--panel); border: 1px solid var(--line); border-radius: 22px;
+  background-image: linear-gradient(135deg, transparent calc(78% - 1px), var(--line2) 78%, transparent calc(78% + 1px)),
+                    linear-gradient(45deg, transparent calc(88% - 1px), var(--line) 88%, transparent calc(88% + 1px)); }
+.pack-tile::before { opacity: .12; }
+.pack-tile .price { font-family: var(--mono); font-weight: 500; }
+.hero { background: var(--navy) !important; border: 1px solid var(--line2);
+  background-image: linear-gradient(135deg, transparent calc(70% - 1px), rgba(240, 195, 90, .18) 70%, transparent calc(70% + 1px)),
+                    linear-gradient(45deg, transparent calc(85% - 1px), rgba(150, 165, 200, .16) 85%, transparent calc(85% + 1px)) !important; }
+.hero h1 .grad-text, .grad-text { background: none; color: var(--accent2); -webkit-background-clip: initial; background-clip: initial; }
+.hero p { color: #c9cfdc; }
+
+/* boutons : pilules ; principal corail en relief, secondaire or */
+.btn { border-radius: 999px; font-family: var(--display); font-weight: 600; background: var(--panel-solid); border: 1px solid var(--line2); }
+.btn:hover { transform: translateY(-1px); background: var(--navy2); }
+.btn::after { display: none; }
+.btn.primary { background: var(--accent); color: #fff; border: 0; border-bottom: 3px solid var(--accent-d); box-shadow: 0 8px 22px -12px rgba(220, 96, 74, .9); }
+.btn.primary:hover { background: #e46d57; }
+.btn.primary:active { transform: translateY(1px); border-bottom-width: 1px; }
+.btn.gold { background: var(--accent2); color: #171b26; border: 0; border-bottom: 3px solid #b38a30; }
+.btn.sm { border-radius: 999px; }
+.btn.xl { border-radius: 999px; }
+.input, select.input, textarea.input { background: #0f121a; border-color: var(--line2); border-radius: 12px; }
+.input:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(240, 195, 90, .15); }
+.check { border-radius: 999px; }
+.check:has(input:checked) { border-color: var(--accent2); background: rgba(240, 195, 90, .08); }
+.tabs { background: var(--panel); border-radius: 999px; }
+.tabs button { border-radius: 999px; }
+.tabs button.on { background: var(--navy); }
+.pill { font-family: var(--mono); font-weight: 500; letter-spacing: .04em; background: var(--panel-solid); border-color: var(--line2); }
+.tag-new { background: var(--accent2); color: #171b26; }
+.modal { background: var(--panel-solid); border: 1px solid var(--line2); border-radius: 22px; }
+footer.legal { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; color: var(--muted); border-top: 1px solid var(--line); }
+.range { accent-color: var(--accent); }
+.nav { gap: 4px; }
+.nav a { padding: 7px 12px; font-size: 13px; }
+@media (max-width: 1500px) { .nav a { padding: 6px 10px; } .top { gap: 12px; } }

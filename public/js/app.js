@@ -241,7 +241,7 @@ async function home({ token }) {
     </section>
     <div class="home-grid">
       <div>${groups.map(([g, title, ko, sub]) => `
-        <div class="section-title"><div><h2>${title} <span class="ko">${ko}</span></h2><div class="muted small">${sub}</div></div></div>
+        <div class="section-title"><div><span class="eyebrow">${ko}</span><h2>${title}</h2><div class="muted small">${sub}</div></div></div>
         <div class="packs" data-packs>${PACKS.filter((p) => p.group === g).sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0)).map((p, i) => packTile(p, me, i)).join('')}</div>`).join('')}</div>
       <aside class="feed-col"><div class="section-title"><h2>${t('Drops en direct')}</h2><span class="pill"><span class="online on"></span> live</span></div>
         <div class="panel feed" data-feed>${feed.map(feedItem).join('') || `<div class="empty">${t('Aucun drop pour l’instant')}</div>`}</div></aside>
