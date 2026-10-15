@@ -55,7 +55,7 @@ Le jeu est en français et en anglais (bouton FR/EN dans l’en-tête, ou Param�
 | Centrage | Bordures gauche/droite et haut/bas réellement décalées sur la carte (ex. 58/42) → ×0,85 à ×1,12 sur la valeur |
 | Carte erreur | 1/2 000 : deux cartes à moitié sur la même feuille, ×40 |
 | Gradation | Économique / Standard / Express ; 4 sous-notes (centrage, coins, bords, surface), note 1–10, slab avec certificat, bonus de faible population, slab cassable |
-| Boosters | 35 boosters payants + colis gratuit toutes les 10 min (réserve de 10), taux publics, garanties Ultra rare+ (15), Légendaire+ (90) et Transcendant (150 boosters premium) |
+| Boosters | 35 boosters payants + booster gratuit toutes les 10 min (réserve de 10), taux publics, garanties Ultra rare+ (15), Légendaire+ (90) et Transcendant (150 boosters premium) |
 | Ouverture | Déchirure (clic ou glisser), cartes empilées, suspense lumineux avant le retournement des cartes rares, rayons, onde de choc, particules, tremblement, sons |
 | Social | Amis (demandes), échanges cartes + crédits (atomiques, invalidés si une carte bouge), profils publics avec vitrine |
 | Économie | Marché (frais 5 %), vente au système (55 %), contrats 10 → 1, connexion quotidienne, missions, niveaux |
@@ -65,7 +65,7 @@ Le jeu est en français et en anglais (bouton FR/EN dans l’en-tête, ou Param�
 Tout est dans `shared/config.js`. Les prix des boosters sont **calculés automatiquement** (`shared/packs.js`) pour que la valeur moyenne d’un booster vaille
 environ 87 % de son prix : la revente immédiate au système ne rend qu’environ 45–50 %, donc impossible de « farmer »
 des crédits en boucle, mais les gros tirages (Mythique, Transcendant, cartes erreur, gradés 10) restent très rentables.
-Les sources de revenus réguliers sont les colis gratuits, la connexion quotidienne, les missions et le commerce.
+Les sources de revenus réguliers sont les boosters gratuits, la connexion quotidienne, les missions et le commerce.
 
 ## Architecture
 

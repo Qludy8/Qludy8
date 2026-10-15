@@ -54,7 +54,7 @@ export const EN_APP = {
   '{n} cartes': '{n} cards',
   '{n} skins possibles': '{n} possible skins',
   'Taux par carte': 'Odds per card',
-  'Un colis toutes les {m} min, jusqu’à {max} en réserve.': 'One free parcel every {m} min, up to {max} stocked.',
+  'Un booster toutes les {m} min, jusqu’à {max} en réserve.': 'One free pack every {m} min, up to {max} stocked.',
   'Simulateur': 'Simulator',
   'Si j’ouvre {n} boosters…': 'If I open {n} packs…',
   'Nombre de boosters': 'Number of packs',
@@ -76,7 +76,7 @@ export const EN_APP = {
   'Collectionnez l’<span class="grad-text">arsenal</span> le plus rare.': 'Collect the rarest <span class="grad-text">arsenal</span>.',
   'Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les cartes les mieux centrées et les <b style="color:#ff5a8a">cartes erreur</b> (1 sur {n}). Échangez avec vos amis et dominez le classement.':
     'Hunt for perfect floats, <b style="color:#ffd76a">rare seeds</b>, the best-centered cards and <b style="color:#ff5a8a">misprints</b> (1 in {n}). Trade with your friends and rule the leaderboard.',
-  'Ouvrir un colis gratuit ({n})': 'Open a free parcel ({n})',
+  'Ouvrir un booster gratuit ({n})': 'Open a free pack ({n})',
   'Récompense du jour +{r} {mu}': 'Daily reward +{r} {mu}',
   'Commencer – {start} {mu} + {packs} boosters offerts': 'Start – {start} {mu} + {packs} free packs',
   'Voir la collection': 'Browse the collection',
@@ -99,8 +99,8 @@ export const EN_APP = {
   'Mot de passe': 'Password',
   'Créer mon compte · {n} {mu} offerts': 'Create my account · {n} {mu} free',
   'Se connecter': 'Log in',
-  'Vous recevez {start} {mu}, {packs} Caisses Standard et 2 colis gratuits. Liez Discord ensuite pour débloquer le marché et les échanges (+{bonus} {mu}).':
-    'You get {start} {mu}, {packs} Standard Crates and 2 free parcels. Then link Discord to unlock the market and trading (+{bonus} {mu}).',
+  'Vous recevez {start} {mu}, {packs} Caisses Standard et {free} boosters gratuits. Liez Discord ensuite pour débloquer le marché et les échanges (+{bonus} {mu}).':
+    'You get {start} {mu}, {packs} Standard Crates and {free} free packs. Then link Discord to unlock the market and trading (+{bonus} {mu}).',
   'Bienvenue sur Mugigo !': 'Welcome to Mugigo!',
   'Connecté': 'Logged in',
 
@@ -119,7 +119,7 @@ export const EN_APP = {
   'Réclamer +{r} {mu}': 'Claim +{r} {mu}',
   'Revenez demain': 'Come back tomorrow',
   'Comment gagner des Mu ?': 'How to earn Mu?',
-  'Colis gratuit toutes les {m} min (réserve de {max})': 'Free parcel every {m} min (stock of {max})',
+  'Booster gratuit toutes les {m} min (réserve de {max})': 'Free pack every {m} min (stock of {max})',
   'Connexion quotidienne et quêtes ci-dessous (certaines offrent des Caisses Mugigo)': 'Daily login and the quests below (some award Mugigo Crates)',
   'Vente au marché, vente au système, contrats et cartes rares': 'Market sales, system sales, trade-up contracts and rare cards',
   '{n} caisse': '{n} crate',
@@ -189,7 +189,7 @@ export const EN_APP = {
     'Services: {list} (+{rate} of the value, max {max} {mu}). Low population = bonus: {pop}.',
   'Économie': 'Economy',
   'Départ : {start} {mu} + {packs} Caisses Standard.': 'Start: {start} {mu} + {packs} Standard Crates.',
-  'Colis gratuit toutes les {m} min (réserve max {max}).': 'Free parcel every {m} min (max stock {max}).',
+  'Booster gratuit toutes les {m} min (réserve max {max}).': 'Free pack every {m} min (max stock {max}).',
   'Connexion quotidienne : {list} {mu}. Missions du jour et vérification Discord (+{bonus} {mu}).':
     'Daily login: {list} {mu}. Daily quests and Discord verification (+{bonus} {mu}).',
   'Vente au système : {rate} de la valeur. Marché entre joueurs : frais {fee}.': 'Sell to the system: {rate} of the value. Player market: {fee} fee.',

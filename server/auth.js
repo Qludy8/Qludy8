@@ -28,7 +28,7 @@ export function createUser({ username, email = null, password = null, isBot = fa
   return tx(() => {
     const res = run(`INSERT INTO users (username, email, pass_hash, is_bot, avatar_hue, welcome_packs, free_stock, free_at, created_at, last_seen)
       VALUES (?,?,?,?,?,?,?,?,?,?)`, username, email || null, password ? hashPassword(password) : null, isBot ? 1 : 0,
-    Math.floor(Math.random() * 360), isBot ? 0 : ECONOMY.welcomePacks, isBot ? 0 : 2, now(), now(), now());
+    Math.floor(Math.random() * 360), isBot ? 0 : ECONOMY.welcomePacks, isBot ? 0 : ECONOMY.free.maxStock, now(), now(), now());
     const id = Number(res.lastInsertRowid);
     credit(id, isBot ? 5_000_000 : ECONOMY.startBalance, 'BONUS', 'Bienvenue');
     return id;

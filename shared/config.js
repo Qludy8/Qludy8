@@ -107,7 +107,7 @@ export const BASE_PACKS = [
     cards: 7, rates: [0, 34, 38, 19, 6.5, 2, 0.5], theme: ['#2bd9ff', '#8b5cff'], evTarget: 0.85 },
   { key: 'royal',     fr: 'Arsenal royal', en: 'Royal Arsenal', ko: '왕실', sym: '왕', tag: '10 cartes, à partir de Rare', tagEn: '10 cards, Rare or better', filter: {},
     cards: 10, rates: [0, 0, 52, 31, 12, 4, 1], theme: ['#e0b54a', '#c8102e'], evTarget: 0.82 },
-  { key: 'free',      fr: 'Colis gratuit', en: 'Free Parcel', ko: '선물', sym: '선', tag: 'Toutes les 10 minutes', tagEn: 'Every 10 minutes', filter: {}, free: true,
+  { key: 'free',      fr: 'Booster gratuit', en: 'Free Pack', ko: '선물', sym: '선', tag: 'Toutes les 10 minutes', tagEn: 'Every 10 minutes', filter: {}, free: true,
     price: 0, cards: 3, rates: [78, 17.5, 3.6, 0.75, 0.12, 0.025, 0.005], theme: ['#9aa3ad', '#ffffff'] },
 ];
 // symbole des boosters « par arme » selon la famille
@@ -140,7 +140,7 @@ export const QUEST_DIFF = { facile: { fr: 'Facile', en: 'Easy', color: '#4ade80'
 export const QUESTS = {
   daily: [
     { key: 'd_open3', ev: 'open', fr: 'Ouvrir 3 boosters', en: 'Open 3 packs', target: 3, reward: 60, diff: 'facile' },
-    { key: 'd_free2', ev: 'open_free', fr: 'Ouvrir 2 colis gratuits', en: 'Open 2 free parcels', target: 2, reward: 30, diff: 'facile' },
+    { key: 'd_free2', ev: 'open_free', fr: 'Ouvrir 2 boosters gratuits', en: 'Open 2 free packs', target: 2, reward: 30, diff: 'facile' },
     { key: 'd_new3', ev: 'new', fr: 'Découvrir 3 nouveaux skins', en: 'Discover 3 new skins', target: 3, reward: 50, diff: 'facile' },
     { key: 'd_market', ev: 'market', fr: 'Acheter ou vendre sur le marché', en: 'Buy or sell on the market', target: 1, reward: 50, diff: 'moyen' },
     { key: 'd_ultra', ev: 'drop3', fr: 'Obtenir une carte Ultra rare ou mieux', en: 'Pull an Ultra Rare card or better', target: 1, reward: 90, diff: 'moyen' },

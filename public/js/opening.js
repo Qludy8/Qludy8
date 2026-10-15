@@ -13,6 +13,8 @@ const left = (n) => (n > 1 ? t('Cliquez sur la carte · {n} restantes', { n }) :
 const sleep = (ms) => new Promise((r) => setTimeout(r, reducedMotion() ? Math.min(ms, 60) : ms));
 export const cardOf = (c, opts = {}) => cardHTML(SKIN_BY_ID.get(c.s), c, { ...opts, misprintSkin: c.mp ? SKIN_BY_ID.get(c.mp) : null });
 
+const CHARGE_MS = 420;   // identique pour toutes les raretés
+
 export function openSequence(pack, result, { onAgain } = {}) {
   const cards = result.packs.flatMap((p) => p.cards);
   // la carte la plus rare est révélée en dernier (suspense), les erreurs encore après
@@ -21,7 +23,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
   el.className = 'opening';
   el.style.setProperty('--glow', pack.theme[0]);
   el.innerHTML = `
-    <div class="rays"></div><canvas class="fx"></canvas>
+    <canvas class="fx"></canvas>
     <div class="flash-screen"></div><div class="shockwave"></div><div class="rarity-burst"></div>
     <div class="controls">
       <button class="btn sm ghost" data-sound title="${t('Son')}">${sound.on ? '🔊' : '🔇'}</button>
@@ -41,6 +43,8 @@ export function openSequence(pack, result, { onAgain } = {}) {
   document.body.append(el);
   document.body.style.overflow = 'hidden';
   const fx = new Particles(el.querySelector('canvas.fx'));
+  // particules qui remontent du bas de l'écran, à la couleur courante de la scène
+  fx.ambient(() => el.style.getPropertyValue('--glow') || pack.theme[0]);
   const stage = $('.stage', el), packEl = $('.pack-big', el), info = $('.reveal-info', el), hint = $('.stack-hint', el);
   const stack = [...el.querySelectorAll('.stack-card')];
   let idx = 0, busy = false, torn = false, closed = false;
@@ -120,7 +124,6 @@ export function openSequence(pack, result, { onAgain } = {}) {
       if (tray.children.length > 12) tray.firstElementChild.remove();
       idx++;
       prep();
-      el.classList.remove('rays-on');
       stack[idx]?.classList.add('is-top');
       hint.textContent = idx < stack.length ? left(stack.length - idx) : '';
       await sleep(260);
@@ -133,23 +136,24 @@ export function openSequence(pack, result, { onAgain } = {}) {
     const R = RARITIES[c.r];
     const special = c.mp || c.r >= 3;
     hint.textContent = '';
-    if (special && !quick) {
-      // suspense : le dos pulse à la couleur de la rareté avant de se retourner
+    if (!quick) {
+      // même temps pour toutes les cartes : une courte charge (la lueur prend la couleur de la rareté), puis le retournement
+      const [x, y] = center();
       s.classList.add('charging'); if (c.r >= 5 || c.mp) s.classList.add('lvl2');
-      if (c.r >= 4 || c.mp) { s.classList.add('shake'); el.classList.add('rays-on'); }
-      el.style.setProperty('--glow', R.glow);
-      sound.play('charge', c.mp ? 6 : c.r); haptic([20, 40, 20]);
-      await sleep(c.mp ? 2200 : c.r >= 5 ? 2000 : c.r === 4 ? 1500 : 900);
-      s.classList.remove('charging', 'lvl2', 'shake');
+      el.style.setProperty('--glow', c.mp ? '#ff2b6a' : R.glow);
+      if (c.r >= 4 || c.mp) fx.swirl(x, y, c.mp ? ['#ff2b6a', '#fff'] : [R.color, R.glow, '#fff'], 40 + (c.r - 4) * 30, { radius: stage.offsetWidth * 0.95, life: CHARGE_MS / 16 });
+      sound.play('charge', c.mp ? 6 : c.r); haptic(c.r >= 4 ? [20, 30, 20] : 15);
+      await sleep(CHARGE_MS);
+      s.classList.remove('charging', 'lvl2');
     }
     s.classList.add('flipped', 'revealed');
     // la lueur de fond prend (et garde) la couleur de la dernière carte révélée
     el.style.setProperty('--glow', c.mp ? '#ff2b6a' : R.glow);
-    sound.play('flip', c.r);
+    sound.play('flip', c.mp ? 6 : c.r);
     if (quick) return;
     const [x, y] = center();
     if (special) {
-      sound.play('rare', c.r); haptic(c.r >= 5 ? [60, 40, 120] : 50);
+      haptic(c.r >= 5 ? [60, 40, 120] : 50);
       const burst = $('.rarity-burst', el);
       burst.style.setProperty('--rg', c.mp ? '#ff2b6a' : R.glow);
       burst.textContent = c.mp ? t('CARTE ERREUR !') : t('{r} !', { r: L(R).toUpperCase() });
@@ -157,6 +161,7 @@ export function openSequence(pack, result, { onAgain } = {}) {
       const wave = $('.shockwave', el);
       wave.style.setProperty('--rg', R.glow); wave.classList.remove('go'); void wave.offsetWidth; wave.classList.add('go');
       fx.burst(x, y, [R.color, R.glow, '#fff'], 40 + c.r * 25, { speed: 6 + c.r, size: 3 });
+      if (c.r >= 4 || c.mp) fx.stars(x, y, c.r === 6 || c.mp ? ['#5ff3ff', '#ff7ae6', '#ffe46b', '#fff'] : [R.color, '#fff'], 14 + (c.r - 4) * 12, { speed: 7 + c.r });
       if (c.r >= 4 || c.mp) { const f = $('.flash-screen', el); f.style.background = '#fff'; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
       if (c.r >= 5 || c.mp) {
         el.classList.remove('quake'); void el.offsetWidth; el.classList.add('quake');
@@ -164,7 +169,6 @@ export function openSequence(pack, result, { onAgain } = {}) {
       }
     } else {
       fx.burst(x, y, R.color, 14, { speed: 4, size: 2 });
-      if (c.r === 2) sound.play('rare', 2);
     }
     const skin = SKIN_BY_ID.get(c.s);
     const w = wearOf(c.f);
@@ -189,7 +193,6 @@ export function openSequence(pack, result, { onAgain } = {}) {
   const EAGER = 10;
   function summary() {
     el.classList.add('done');
-    el.classList.remove('rays-on');
     const total = cards.reduce((a, c) => a + c.value, 0);
     const lows = cards.filter((c) => c.r <= 1 && !c.mp && c.g == null);
     const lowGain = lows.reduce((a, c) => a + Math.max(1, Math.floor(c.value * ECONOMY.sellToSystemRate)), 0);

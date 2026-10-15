@@ -248,10 +248,6 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .opening { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; overflow: hidden; overflow: clip;
   background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--glow, #ff4d2e) 22%, #07080c) 0%, #040406 70%); transition: background .8s var(--ease); }
 .opening canvas.fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
-.opening .rays { position: absolute; left: 50%; top: 46%; width: 160vmax; height: 160vmax; transform: translate(-50%, -50%); opacity: 0; pointer-events: none;
-  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--glow) 40%, transparent) 0deg 6deg, transparent 6deg 18deg);
-  mask-image: radial-gradient(circle, #000 0%, transparent 55%); transition: opacity .6s; animation: spin 30s linear infinite; }
-.opening.rays-on .rays { opacity: .55; }
 @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 .opening .stage { position: relative; width: min(330px, 70vw); aspect-ratio: 63 / 88; z-index: 3; }
 .opening .pack-big { position: absolute; inset: -6% -2%; cursor: pointer; z-index: 10; animation: breathe 3s ease-in-out infinite; transition: transform .6s var(--ease), opacity .5s; }
@@ -264,14 +260,14 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .opening .pack-big.torn .pack-top { transform: translate(40px, -140px) rotate(28deg); opacity: 0; }
 .opening .pack-big.gone { transform: translateY(120%) scale(.9); opacity: 0; }
 .opening .stack-card { position: absolute; inset: 0; cursor: pointer; transform-style: preserve-3d; transition: transform .7s var(--spring), opacity .45s; will-change: transform; }
-.opening .stack-card .flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .9s var(--ease); }
+.opening .stack-card .flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .6s var(--ease); }
 .opening .stack-card.flipped .flip { transform: rotateY(180deg); }
 .opening .stack-card .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 5.08%/3.64%; }
 .opening .stack-card .face.front { transform: rotateY(180deg); }
 .opening .stack-card .face.back { filter: drop-shadow(0 16px 18px rgba(0,0,0,.6)); border-radius: 5.08%/3.64%; }
-.opening .stack-card.charging .face.back { animation: charge .5s ease-in-out infinite alternate; }
-@keyframes charge { from { box-shadow: 0 0 20px 0 var(--rg), 0 0 0 0 var(--rg); } to { box-shadow: 0 0 70px 14px var(--rg), 0 0 140px 30px color-mix(in srgb, var(--rg) 40%, transparent); } }
-.opening .stack-card.charging.lvl2 .face.back { animation-duration: .28s; }
+.opening .stack-card.charging .face.back { animation: charge .42s ease-in forwards; }
+@keyframes charge { from { filter: drop-shadow(0 16px 18px rgba(0,0,0,.6)); } to { filter: drop-shadow(0 16px 18px rgba(0,0,0,.6)) drop-shadow(0 0 20px var(--rg)) drop-shadow(0 0 40px var(--rg)); } }
+.opening .stack-card.charging.lvl2 .face.back { animation-timing-function: cubic-bezier(.5,0,.2,1); }
 .opening .stack-card.shake { animation: shake .09s linear infinite; }
 @keyframes shake { 0% { translate: 0 0; } 25% { translate: -4px 2px; } 50% { translate: 3px -3px; } 75% { translate: -2px -2px; } 100% { translate: 2px 3px; } }
 .opening .stack-hint { position: absolute; top: -44px; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }

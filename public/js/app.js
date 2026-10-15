@@ -178,7 +178,7 @@ function packModal(key) {
       <div>
         <h2 style="margin-bottom:4px">${esc(L(p))}</h2><p class="muted" style="margin-top:0">${esc(L(p, 'tag'))} · ${t('{n} cartes', { n: p.cards })} · <b class="glow-text" style="--gc:${p.theme[1]}">${t('{n} skins possibles', { n: fmt(pool.length) })}</b></p>
         <h3>${t('Taux par carte')}</h3>${rateSliders(p)}
-        ${p.free ? `<p class="muted small">${t('Un colis toutes les {m} min, jusqu’à {max} en réserve.', { m: ECONOMY.free.intervalMs / 60e3, max: ECONOMY.free.maxStock })}</p>` : `
+        ${p.free ? `<p class="muted small">${t('Un booster toutes les {m} min, jusqu’à {max} en réserve.', { m: ECONOMY.free.intervalMs / 60e3, max: ECONOMY.free.maxStock })}</p>` : `
         <h3 style="margin-top:18px">${t('Simulateur')}</h3>
         <label class="slider-field"><span>${t('Si j’ouvre {n} boosters…', { n: '<b data-sim-n class="glow-text" style="--gc:#ffb020">10</b>' })}</span>
           <input type="range" class="range" min="1" max="100" value="10" data-sim style="--fill:9%" aria-label="${t('Nombre de boosters')}"></label>
@@ -232,7 +232,7 @@ async function home({ token }) {
         <h1>${t('Collectionnez l’<span class="grad-text">arsenal</span> le plus rare.')}</h1>
         <p>${t('Traquez les floats parfaits, les <b style="color:#ffd76a">graines rares</b>, les cartes les mieux centrées et les <b style="color:#ff5a8a">cartes erreur</b> (1 sur {n}). Échangez avec vos amis et dominez le classement.', { n: fmt(Math.round(1 / MISPRINT.chance)) })}</p>
         <div class="row" style="margin-top:18px">
-          ${me ? `<button class="btn primary xl" data-quick-free>${t('Ouvrir un colis gratuit ({n})', { n: me.free.stock })}</button>${me.daily.available ? `<button class="btn xl" data-daily>🎁 ${t('Récompense du jour +{r} {mu}', { r: fmt(me.daily.reward), mu: MU })}</button>` : ''}`
+          ${me ? `<button class="btn primary xl" data-quick-free>${t('Ouvrir un booster gratuit ({n})', { n: me.free.stock })}</button>${me.daily.available ? `<button class="btn xl" data-daily>🎁 ${t('Récompense du jour +{r} {mu}', { r: fmt(me.daily.reward), mu: MU })}</button>` : ''}`
     : `<a class="btn primary xl" href="#/register">${t('Commencer – {start} {mu} + {packs} boosters offerts', { start: fmt(ECONOMY.startBalance), mu: MU, packs: ECONOMY.welcomePacks })}</a><a class="btn xl" href="#/collection">${t('Voir la collection')}</a>`}
         </div>
         <div class="stats"><div><b style="color:#5ff3ff">${fmt(stats.players)}</b>${t('joueurs')}</div><div><b style="color:#b266ff">${fmt(stats.cards)}</b>${t('cartes en circulation')}</div><div><b style="color:#4ade80">${fmt(stats.listings)}</b>${t('annonces au marché')}</div></div>
@@ -286,7 +286,7 @@ function authPage(mode) {
     : `<label class="field">${t('Pseudo ou e-mail')}<input class="input" name="login" required autocomplete="username"></label>`}
       <label class="field">${t('Mot de passe')}<input class="input" name="password" type="password" required minlength="${mode === 'register' ? 8 : 1}" autocomplete="${mode === 'register' ? 'new-password' : 'current-password'}"></label>
       <button class="btn primary xl">${mode === 'register' ? t('Créer mon compte · {n} {mu} offerts', { n: fmt(ECONOMY.startBalance), mu: MU }) : t('Se connecter')}</button>
-      ${mode === 'register' ? `<p class="muted small">${t('Vous recevez {start} {mu}, {packs} Caisses Standard et 2 colis gratuits. Liez Discord ensuite pour débloquer le marché et les échanges (+{bonus} {mu}).', { start: fmt(ECONOMY.startBalance), mu: MU, packs: ECONOMY.welcomePacks, bonus: fmt(DISCORD.verifyBonus) })}</p>` : ''}
+      ${mode === 'register' ? `<p class="muted small">${t('Vous recevez {start} {mu}, {packs} Caisses Standard et {free} boosters gratuits. Liez Discord ensuite pour débloquer le marché et les échanges (+{bonus} {mu}).', { start: fmt(ECONOMY.startBalance), mu: MU, packs: ECONOMY.welcomePacks, free: ECONOMY.free.maxStock, bonus: fmt(DISCORD.verifyBonus) })}</p>` : ''}
     </form></div>`;
   $$('[data-m]', view).forEach((b) => { b.onclick = () => { location.hash = `#/${b.dataset.m}`; }; });
   $('form', view).onsubmit = async (e) => {
@@ -319,7 +319,7 @@ async function rewardsPage({ token }) {
           <button class="btn primary" data-daily ${d.available ? '' : 'disabled'}>${d.available ? t('Réclamer +{r} {mu}', { r: fmt(d.reward), mu: MU }) : t('Revenez demain')}</button></div>
       </div>
       <div class="panel"><h2>${t('Comment gagner des Mu ?')}</h2><ul class="muted" style="line-height:1.9;padding-left:18px;margin:0">
-        <li>${t('Colis gratuit toutes les {m} min (réserve de {max})', { m: ECONOMY.free.intervalMs / 60e3, max: ECONOMY.free.maxStock })}</li>
+        <li>${t('Booster gratuit toutes les {m} min (réserve de {max})', { m: ECONOMY.free.intervalMs / 60e3, max: ECONOMY.free.maxStock })}</li>
         <li>${t('Connexion quotidienne et quêtes ci-dessous (certaines offrent des Caisses Mugigo)')}</li>
         <li>${t('Vente au marché, vente au système, contrats et cartes rares')}</li></ul></div>
     </div>
@@ -401,7 +401,7 @@ function helpPage() {
     pop: GRADING.popBonus.map(([p, m]) => `≤${fmt(p)} → ${x(m)}`).join(', ') })}</p></div>
       <div class="panel"><h2>${t('Économie')}</h2><ul class="muted" style="line-height:1.8;padding-left:18px">
         <li>${t('Départ : {start} {mu} + {packs} Caisses Standard.', { start: fmt(ECONOMY.startBalance), mu: MU, packs: ECONOMY.welcomePacks })}</li>
-        <li>${t('Colis gratuit toutes les {m} min (réserve max {max}).', { m: ECONOMY.free.intervalMs / 60e3, max: ECONOMY.free.maxStock })}</li>
+        <li>${t('Booster gratuit toutes les {m} min (réserve max {max}).', { m: ECONOMY.free.intervalMs / 60e3, max: ECONOMY.free.maxStock })}</li>
         <li>${t('Connexion quotidienne : {list} {mu}. Missions du jour et vérification Discord (+{bonus} {mu}).', { list: ECONOMY.dailyStreak.map((v) => fmt(v)).join(' → '), mu: MU, bonus: fmt(DISCORD.verifyBonus) })}</li>
         <li>${t('Vente au système : {rate} de la valeur. Marché entre joueurs : frais {fee}.', { rate: pct(fmt(ECONOMY.sellToSystemRate * 100)), fee: pct(fmt(ECONOMY.marketFee * 100)) })}</li>
         <li>${t('Contrat : {n} cartes de même rareté → 1 carte de la rareté supérieure ({cost} {mu}).', { n: TRADE_UP.inputCount, cost: fmt(TRADE_UP.cost), mu: MU })}</li>

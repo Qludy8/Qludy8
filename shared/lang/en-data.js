@@ -108,7 +108,7 @@ export const EN_SERVER = {
   'Déjà réclamée': 'Already claimed',
   'Récompense déjà réclamée aujourd’hui': 'Reward already claimed today',
   'Booster inconnu': 'Unknown pack',
-  'Plus de colis gratuit disponible': 'No free parcels left',
+  'Plus de booster gratuit disponible': 'No free packs left',
   'Aucune carte': 'No cards selected',
   'Toutes les cartes doivent avoir la même rareté': 'All cards must have the same rarity',
   'Rareté maximale atteinte': 'Maximum rarity reached',

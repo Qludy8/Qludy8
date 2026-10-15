@@ -161,7 +161,7 @@ export function claimDaily(userId) {
   });
 }
 
-// ───────────────────────────── Colis gratuits (stock qui se recharge)
+// ───────────────────────────── Booster gratuits (stock qui se recharge)
 export function syncFree(userId) {
   const u = one('SELECT free_stock, free_at FROM users WHERE id = ?', userId);
   const { intervalMs, maxStock } = ECONOMY.free;
@@ -184,7 +184,7 @@ export function openPacks(userId, key, count = 1) {
     let welcomeUsed = 0;
     if (pack.free) {
       const f = syncFree(userId);
-      if (f.stock < count) throw bad('Plus de colis gratuit disponible');
+      if (f.stock < count) throw bad('Plus de booster gratuit disponible');
       // si le stock était plein, le compte à rebours démarre maintenant
       run('UPDATE users SET free_stock = free_stock - ?, free_at = CASE WHEN free_stock >= ? THEN ? ELSE free_at END WHERE id = ?',
         count, f.max, now(), userId);
