@@ -20,8 +20,11 @@ app.use('/api', api());
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Route inconnue' }));
 // le service worker doit toujours être relu (sinon les mises à jour du jeu tardent)
 app.get('/sw.js', (_req, res) => { res.set('Cache-Control', 'no-cache'); res.sendFile(join(root, 'public', 'sw.js')); });
-app.use('/shared', express.static(join(root, 'shared'), { maxAge: '1h' }));
-app.use(express.static(join(root, 'public'), { maxAge: '1h' }));
+// code du jeu (JS, CSS, HTML) : revalidé à chaque chargement, pour toujours servir la dernière version ;
+// images d'armes : adresses versionnées (?v=…), donc gardées longtemps en cache
+const fresh = { setHeaders: (res, path) => res.set('Cache-Control', /\/img\//.test(path) ? 'public, max-age=604800' : 'no-cache') };
+app.use('/shared', express.static(join(root, 'shared'), fresh));
+app.use(express.static(join(root, 'public'), fresh));
 app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(join(root, 'public', 'index.html')));
 
 app.use((err, _req, res, _next) => {
