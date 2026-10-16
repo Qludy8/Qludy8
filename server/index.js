@@ -3,6 +3,7 @@ import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
+import { networkInterfaces } from 'node:os';
 import { loadUser } from './auth.js';
 import { api } from './api.js';
 import { startBots } from './bots.js';
@@ -39,7 +40,12 @@ app.use((err, _req, res, _next) => {
 if (process.env.BOTS !== '0') startBots();
 const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const port = Number(process.env.PORT || 4747);
-app.listen(port, () => console.log(`Mugigo v${version} prêt sur http://localhost:${port}`)).on('error', (e) => {
+// adresses du PC sur le réseau local : à ouvrir depuis un téléphone connecté au même Wi-Fi
+const lan = Object.values(networkInterfaces()).flat().filter((a) => a && a.family === 'IPv4' && !a.internal).map((a) => `http://${a.address}:${port}`);
+app.listen(port, () => {
+  console.log(`Mugigo v${version} prêt sur http://localhost:${port}`);
+  if (lan.length) console.log(`Sur téléphone (même Wi-Fi) : ${lan.join('  ou  ')}`);
+}).on('error', (e) => {
   if (e.code !== 'EADDRINUSE') throw e;
   console.error(`\nLe port ${port} est déjà utilisé : un autre serveur (sans doute une ancienne version de Mugigo) tourne encore.
   → Fermez sa fenêtre ou faites Ctrl+C dedans, puis relancez npm start.
