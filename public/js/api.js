@@ -1,22 +1,24 @@
-// Client HTTP minimal + état global du joueur connecté.
-import { tr } from '/shared/i18n.js';
-export async function api(path, { method = 'GET', body } = {}) {
-  const res = await fetch(`/api${path}`, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : {},
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: 'same-origin',
-  });
-  const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
-  if (!res.ok) throw new Error(tr(data?.error) || tr(`Erreur ${res.status}`));
+// Appels à l'API du serveur.
+export class ApiError extends Error {
+  constructor(status, message, code) { super(message); this.status = status; this.code = code; }
+}
+async function req(method, url, body) {
+  let res;
+  try {
+    res = await fetch('/api' + url, {
+      method, credentials: 'same-origin',
+      headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new ApiError(0, 'Le serveur ne répond pas. Vérifie ta connexion et réessaie.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, data.error || 'Une erreur est survenue.', data.code);
   return data;
 }
-export const post = (path, body = {}) => api(path, { method: 'POST', body });
-
-export const store = {
-  me: null,
-  listeners: new Set(),
-  set(me) { this.me = me; this.listeners.forEach((f) => f(me)); },
-  async refresh() { try { this.set(await api('/me')); } catch { /* hors-ligne */ } return this.me; },
-  on(f) { this.listeners.add(f); return () => this.listeners.delete(f); },
+export const api = {
+  get: (u) => req('GET', u),
+  post: (u, b = {}) => req('POST', u, b),
+  del: (u) => req('DELETE', u),
 };

@@ -1,94 +1,89 @@
-# Mugigo (무기고) — cartes d’armes à collectionner
+# Gēmu (ゲーム) — boosters de cartes de jeux vidéo
 
-> Nouveau : **[Gēmu (ゲーム)](gemu/README.md)**, la version jeu vidéo — 7 114 vrais jeux de Commune à Mythique,
-> avec leur affiche officielle. Lancement : `cd gemu`, `npm install`, `npm start` → http://localhost:4848
+Jeu web de cartes à collectionner dans l’esprit de **kyara.games**, mais sur le thème du jeu vidéo :
+**7 114 jeux réels**, classés de **Commune** à **Mythique** selon leur popularité et la qualité de leurs avis.
+Chaque carte montre une image qui vient **du jeu lui-même** : son affiche officielle (capsule 600×900 de sa page Steam)
+ou, pour les jeux absents de Steam, la jaquette officielle de son article Wikipédia. Aucune image n’est créée ni retouchée.
 
-Jeu web de cartes à collectionner (dans l’esprit de kyara.games) dont les cartes sont des **armes imaginaires** :
-**36 boosters** (dont des boosters de 7 et 10 cartes, par collection, par arme), chacun avec son symbole coréen, **5 100 skins** procéduraux sur 17 armes inventées aux silhouettes réalistes (dont 7 formes de couteaux), monnaie **Mu (무)**, quêtes quotidiennes / hebdomadaires / exploits, usure par **float** (0 → 1, paliers IM / PM / EP / US / RV), **graines de motif** avec graines rares, **centrage** des cartes,
-**cartes erreur** ultra-rares, **gradation** façon PSA, marché entre joueurs, **amis & échanges**, collection complète,
-classements, missions et vérification de compte par **Discord**.
-
-> Jeu 100 % fictif : aucune monnaie réelle, aucun achat. Tous les noms de modèles, de skins et tous les visuels sont
-> inventés et générés procéduralement (aucune marque d’arme réelle, aucun skin sous licence).
+> Projet de fan non officiel, gratuit, sans argent réel ni achat. Les jeux, noms et visuels appartiennent à leurs éditeurs.
 
 ## Démarrage
 
-Prérequis : **Node.js ≥ 22.9** (SQLite est intégré à Node, aucune base à installer).
+Prérequis : **Node.js ≥ 22.9** (SQLite est intégré à Node).
 
 ```bash
+
 npm install
-cp .env.example .env        # facultatif
-npm start                   # http://localhost:4747
-npm test                    # 24 tests (taux, tirages, gradation, marché, échanges, invariants du portefeuille)
-npm run calibrate           # simulation Monte-Carlo de la valeur espérée de chaque booster
+npm start            # http://localhost:4848 (l’adresse pour un téléphone sur le même Wi-Fi s’affiche aussi)
+npm test             # 16 tests : catalogue, tirages, garanties, recyclage, marché, échanges, missions, portefeuille
 ```
 
-Au premier lancement, 16 bots marchands sont créés : ils ouvrent des boosters, alimentent le flux de drops et le marché.
+Variables facultatives (fichier `.env`, voir `.env.example`) : `PORT`, `DB_FILE`, `BOTS=0` pour couper les collectionneurs automatiques.
 
-### Vérification Discord
-1. Créez une application sur <https://discord.com/developers/applications> → OAuth2.
-2. Ajoutez la redirection `PUBLIC_URL/api/discord/callback`.
-3. Renseignez `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` et `PUBLIC_URL` dans `.env`.
+## Ce qu’on retrouve de kyara
 
-Une fois configurée, la vérification est **obligatoire** pour vendre sur le marché, envoyer des demandes d’ami et échanger
-(liste dans `DISCORD.gated`). Un compte Discord doit avoir au moins 7 jours et ne peut être lié qu’à un seul joueur
-(+150 ¢ offerts). Sans configuration, ces fonctions restent ouvertes ; `DISCORD_DEV_MOCK=1` affiche un bouton de
-vérification simulée pour tester en local.
-
-### Mode admin de test
-Un interrupteur **Admin** dans l’en-tête (sans mot de passe) donne des Mu illimités (les dépenses ne débitent plus le solde)
-et rend les gradations instantanées. À couper avant l’ouverture au public : `ADMIN_TOGGLE = false` dans `shared/config.js`.
-
-### Images des armes
-Chaque arme vient d’une image détourée (PNG à fond transparent, canon ou lame à droite), importée ainsi :
-```
-python scripts/import-weapon.py ak47.png rhoden public/img/weapons [--rotate DEG] [--flip]
-python scripts/weapon-zones.py public/img/weapons [arme]   # zones peintes / atténuées / d'origine (scripts/weapon-zones.json)
-```
-Le script crée l’image de base, l’éclairage, les reflets et le masque, puis affiche le cadre à reporter dans
-`PHOTO` (`public/js/art/weapons3d.js`). Le skin est multiplié par l’éclairage de la photo : le relief est conservé.
-
-### Langues
-Le jeu est en français et en anglais (bouton FR/EN dans l’en-tête, ou Paramètres). Le français sert de clé :
-`t('Texte')` dans le code, traductions dans `shared/lang/en-*.js`, champs `en`/`…En` dans les données.
-`node scripts/i18n-check.js` liste les textes sans traduction.
-
-## Ce qu’il y a dedans
-
-| Fonction | Détails |
+| Kyara | Gēmu |
 |---|---|
-| Styles de skins | Teinte, bicolore, camouflage, motif, fondu, trempe, marbrure, acier damassé, 19 illustrations (dragon, koï, vague, phénix…) |
-| Graines de motif | 0–999 par carte ; fondu / trempe / marbrure : 3 graines légendaires, 15 rares, 40 recherchées par modèle (fiche « Motifs ») |
-| Boutique | Onglet présent mais verrouillé (`SHOP.enabled = false` dans `shared/config.js`) |
-| Raretés | Commun, Peu commun, Rare, Épique, Légendaire, Mythique, **Transcendant** |
-| Catalogue | 15 modèles inventés × 300 skins, 10 collections thématiques |
-| Illustrations | Cartes et boosters en SVG : silhouettes originales peintes avec le motif du skin, cadre de rareté, holo animé |
-| Usure | Float à 6 décimales, 5 états (Immaculée, Peu marquée, Éprouvée, Usée, Ravagée). La peinture s’écaille, se décolore et se tache ; la carte se raye, perd ses couleurs, se plie |
-| Centrage | Bordures gauche/droite et haut/bas réellement décalées sur la carte (ex. 58/42) → ×0,85 à ×1,12 sur la valeur |
-| Carte erreur | 1/2 000 : deux cartes à moitié sur la même feuille, ×40 |
-| Gradation | Économique / Standard / Express ; 4 sous-notes (centrage, coins, bords, surface), note 1–10, slab avec certificat, bonus de faible population, slab cassable |
-| Boosters | 35 boosters payants + booster gratuit toutes les 10 min (réserve de 10), taux publics, garanties Épique+ (15), Légendaire+ (90) et Transcendant (150 boosters premium) |
-| Ouverture | Déchirure (clic ou glisser), cartes empilées, suspense lumineux avant le retournement des cartes rares, rayons, onde de choc, particules, tremblement, sons |
-| Social | Amis (demandes), échanges cartes + crédits (atomiques, invalidés si une carte bouge), profils publics avec vitrine |
-| Économie | Marché (frais 5 %), vente au système (55 %), contrats 10 → 1, connexion quotidienne, missions, niveaux |
-| Collection | Les 3 600 cartes visibles, progression par modèle et par rareté, fiche skin avec annonces et historique de prix |
+| Cartes 5/7 : nom, gemme de rareté, image, numéro `#0006/6736`, univers, POW / AURA | Nom du jeu, gemme, affiche du jeu, numéro `#0006/7114`, univers (série ou studio), **POP** (popularité) / **NOTE** (% d’avis positifs) |
+| Raretés Commune → Mythique : top 3 % Mythique, 3–10 % Légendaire, 10–25 % Épique, 25–50 % Rare, 50–75 % Peu commune | Identique, sur le classement des jeux (nombre d’avis × qualité) |
+| Cadres : gris mat, vert à filet lumineux, bleu à halo, violet holo, or brossé, **arc-en-ciel animé** pour la Mythique | Identique : stries holographiques, paillettes, reflet qui suit le doigt, cadre conique tournant pour la Mythique |
+| « Bouge la souris ou le doigt pour l’incliner · touche la carte pour la retourner » | Inclinaison souris / doigt / gyroscope, verso = fiche du jeu (capture en jeu, studio, année, stats) |
+| Taux par carte 62 / 25 / 11,4 / 1,4 / 0,15 / 0,025 %, 5 cartes par booster | Identique |
+| Boosters gratuits : 1 toutes les 10 min, stock de 10 | Identique, + boosters bonus (série de connexion, missions) |
+| Booster doré (Épique+), booster divin (Mythique garantie), pitié Mythique à 250 | Identique (doré 1 sur 10, divin 1 sur 800) |
+| Pack du jour gratuit, thème du jour, Épique garantie | Identique (thème = un genre différent chaque jour) |
+| Ouverture : déchirer le haut du sachet, cartes empilées, suspense lumineux, rayons, retournement, « Tout révéler », passer à la prochaine Épique, espace / maintenir | Identique, avec sons synthétisés, particules, onde de choc, vibrations |
+| Collection : Univers / Tous, Cartes / Possédées, Tri, emplacements grisés, albums par univers | Identique (+ Manquantes, Doublons, Envies, Verrouillées, filtre de genre) |
+| Recyclage des doublons en chakra (1/1/3/10/40/150), on garde 1 exemplaire | Recyclage en **jetons ◆**, mêmes valeurs |
+| Wiki des personnages débloqué à l’obtention | Fiche du jeu débloquée à l’obtention : présentation, captures en jeu, tags, lien Steam / Wikipédia |
+| Marché, tableau des échanges, envies, cartes verrouillées, vitrine, classement, missions jour / semaine, succès, série de connexion, notifications, application installable | Tout est là |
 
-### Équilibrage
-Tout est dans `shared/config.js`. Les prix des boosters sont **calculés automatiquement** (`shared/packs.js`) pour que la valeur moyenne d’un booster vaille
-environ 87 % de son prix : la revente immédiate au système ne rend qu’environ 45–50 %, donc impossible de « farmer »
-des crédits en boucle, mais les gros tirages (Mythique, Transcendant, cartes erreur, gradés 10) restent très rentables.
-Les sources de revenus réguliers sont les boosters gratuits, la connexion quotidienne, les missions et le commerce.
+Non repris : amis et messagerie, guildes, parrainage, enchères et ordres d’achat, abonnement.
+
+## Boosters
+
+* **Gratuits** (stock gratuit, sinon 100 ◆) : Standard, Rétro (avant 2006), 2006–2015, Nouvelle génération (2020+),
+  et un booster par genre : Action, Aventure, RPG, Tir & FPS, Stratégie, Simulation & gestion, Horreur, Indé, Plateforme,
+  Course & sport, Survie & craft, Roguelike, Combat, Multijoueur, Anime, Casse-tête.
+* **Boutique** (jetons) : Consoles Nintendo, Exclus PlayStation, Arcade & cartouches, Mobile & free-to-play, Grandes sagas,
+  Édition prestige (Rare ou mieux partout).
+* **Du jour** : pack du jour gratuit.
+
+## Le catalogue
+
+`catalog/games.json` (une ligne par jeu) et `catalog/details.json` (descriptions, captures, tags) sont produits par
+`scripts/build-catalog.py` :
+
+1. **SteamSpy** donne les ~10 000 jeux Steam les plus possédés et leurs avis.
+2. L’**API publique du magasin Steam** donne pour chacun : l’affiche officielle, les captures d’écran en jeu, le studio,
+   la série, la date de sortie, les tags et le nombre d’avis. Les contenus pour adultes, outils, démos et serveurs sont écartés,
+   et les rééditions (GOTY, Definitive, Remastered, VR…) ne comptent qu’une fois.
+3. **`scripts/hors-steam.txt`** liste ~350 grands jeux absents de Steam (Zelda, Mario, Pokémon, Halo, Bloodborne, Minecraft,
+   League of Legends, Fortnite, jeux d’arcade et mobiles…) avec une audience estimée ; leur jaquette vient de leur article Wikipédia.
+   Quand Wikipédia limite les requêtes pendant la construction, c’est le navigateur du joueur qui récupère la jaquette depuis l’article.
+4. Score = 2 × log₁₀(avis) + (pourcentage d’avis positifs lissé − 80) / 7 → classement `#0001…` → rareté par tranches.
+
+```bash
+npm run catalog                       # télécharge ce qui manque (cache dans .cache/) puis reconstruit
+python3 scripts/build-catalog.py      # reconstruit depuis le cache seulement   (Windows : py scripts\build-catalog.py)
+```
+
+Les collections sont enregistrées par identifiant de jeu (appid Steam), pas par numéro : reconstruire le catalogue
+ne fait perdre aucune carte aux joueurs.
 
 ## Architecture
 
 ```
-shared/        config.js (équilibrage), catalog.js (catalogue déterministe), rules.js (usure, centrage, valeur)
-server/        index.js (Express), api.js (routes), game.js (services), cards.js (tirages crypto), db.js (SQLite),
-               auth.js (scrypt + sessions), discord.js (OAuth2), bots.js (marchands)
-public/        index.html, css/app.css, js/app.js (routeur), js/opening.js, js/art/ (cartes, armes, motifs, boosters), js/pages/
-tests/         node:test
-scripts/       calibrate.js
+shared/    config.js (raretés, taux, boosters, missions), pools.js (réserves des boosters), rules.js (cote, jours de Paris)
+server/    index.js (Express), api.js (routes), game.js (boosters, collection, marché, échanges, missions), catalog.js,
+           db.js (SQLite), auth.js (invité + pseudo/mot de passe, scrypt), bots.js (collectionneurs automatiques)
+public/    index.html, css/app.css, js/main.js (routeur), card.js (cartes, holo, inclinaison, inspection), opening.js (ouverture),
+           pack.js (sachets), fx.js (particules, sons), pages/ (accueil, boosters, collection, fiche, marché, missions, classement, profil, raretés)
+catalog/   games.json, details.json
+scripts/   build-catalog.py, hors-steam.txt
+tests/     node:test
 ```
 
-Toute la logique aléatoire et économique est côté serveur ; chaque mutation est une transaction SQLite et chaque
-mouvement de crédits est journalisé (`solde = somme des transactions`, vérifié par les tests).
+Tout le hasard et toute l’économie sont côté serveur (tirages par `crypto.randomInt`), chaque action est une transaction
+SQLite et chaque mouvement de jetons est inscrit au registre (`solde = somme du registre`, vérifié par les tests).
+Au premier lancement, 16 collectionneurs automatiques ouvrent des boosters, alimentent le fil « En direct », le marché et les échanges.

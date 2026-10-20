@@ -1,672 +1,535 @@
-// Services de jeu : portefeuille, cartes, boosters, marché, amis, échanges, gradation, missions.
-// Toute mutation passe par tx() → atomique. Les routes HTTP (server/api.js) ne font qu'appeler ces fonctions.
-import {
-  ADMIN_TOGGLE, ECONOMY, QUESTS, LEVELS, GRADING, TRADES, TRADE_UP, RARITIES, DISCORD,
-} from '../shared/config.js';
-import { SKIN_BY_ID, SKINS, MODEL_BY_KEY } from '../shared/catalog.js';
-import { PACK_BY_KEY } from '../shared/packs.js';
-import { cardValue, wearOf } from '../shared/rules.js';
-import { db, tx, one, all, run, now, today } from './db.js';
-import { openPack, gradeCard, gradingFee, newSerial, rand, rollCard } from './cards.js';
+// Logique du jeu : boosters, collection, recyclage, missions, succès, marché, échanges, classement.
+// Toute mutation passe par une transaction ; chaque mouvement de jetons est inscrit au registre (ledger).
 import { randomInt } from 'node:crypto';
+import { db, one, all, run, tx, now } from './db.js';
+import { GAMES, TOTAL, UNIVERS, game, gameById, idOf, nOf, poolFor, boosterSize } from './catalog.js';
+import { RARITY, RARITIES, rarityIndex, ECONOMY, BOOSTERS, boosterById, dailyTheme, MISSIONS, ACHIEVEMENTS, GENRES, rankFor } from '../shared/config.js';
+import { baseValue, dayKey, weekKey, previousDay } from '../shared/rules.js';
 
 export class HttpError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, code) { super(message); this.status = status; this.code = code; }
 }
-const bad = (msg) => new HttpError(400, msg);
 
-// ───────────────────────────── Portefeuille
-export function credit(userId, amount, type, note = null) {
-  amount = Math.round(amount);
-  const u = one('SELECT balance, admin_mode FROM users WHERE id = ?', userId);
-  // mode admin : les dépenses ne débitent pas le solde (Mu illimités)
-  const after = amount < 0 && isAdmin(u) ? u.balance : u.balance + amount;
-  if (after < 0) throw bad('Solde insuffisant');
-  run('UPDATE users SET balance = ? WHERE id = ?', after, userId);
-  run('INSERT INTO transactions (user_id, type, amount, balance_after, note, at) VALUES (?,?,?,?,?,?)',
-    userId, type, amount, after, note, now());
-  return after;
+// Table des cartes (rareté, points, univers) pour les classements en SQL
+db.exec('DROP TABLE IF EXISTS cards_meta');
+db.exec('CREATE TABLE cards_meta (id TEXT PRIMARY KEY, n INTEGER NOT NULL, r TEXT NOT NULL, pts INTEGER NOT NULL, u TEXT NOT NULL)');
+tx(() => {
+  const ins = db.prepare('INSERT INTO cards_meta (id, n, r, pts, u) VALUES (?,?,?,?,?)');
+  for (const g of GAMES) ins.run(g.id, g.n, g.r, RARITY[g.r].points, g.u);
+});
+
+// Numéro de carte reçu de l'API → identifiant stable du jeu (erreur si la carte n'existe pas)
+function cardId(n) {
+  const id = idOf(n);
+  if (!id) throw new HttpError(404, 'Cette carte n’existe pas.');
+  return id;
 }
-export const isAdmin = (u) => ADMIN_TOGGLE && !!u?.admin_mode;
-export function setAdminMode(userId, on) {
-  if (!ADMIN_TOGGLE) throw new HttpError(403, 'Mode admin désactivé');
-  run('UPDATE users SET admin_mode = ? WHERE id = ?', on ? 1 : 0, userId);
-  // les gradations en cours deviennent prêtes tout de suite
-  if (on) run("UPDATE grading_orders SET ready_at = ? WHERE user_id = ? AND status = 'PENDING' AND ready_at > ?", now(), userId, now());
-  return !!on;
+db.exec(`CREATE TABLE IF NOT EXISTS univers_meta (u TEXT PRIMARY KEY, total INTEGER NOT NULL)`);
+tx(() => {
+  run('DELETE FROM univers_meta');
+  const ins = db.prepare('INSERT INTO univers_meta (u, total) VALUES (?,?)');
+  for (const [u, n] of UNIVERS) ins.run(u, n);
+});
+
+const rnd = () => randomInt(0, 2 ** 32) / 2 ** 32;
+const pick = (arr) => arr[randomInt(0, arr.length)];
+
+// --- jetons ------------------------------------------------------------------------------------
+export function credit(userId, amount, reason) {
+  return tx(() => {
+    const u = one('SELECT jetons FROM users WHERE id = ?', userId);
+    if (!u) throw new HttpError(404, 'Joueur introuvable');
+    const after = u.jetons + amount;
+    if (after < 0) throw new HttpError(400, 'Pas assez de jetons.', 'no_jetons');
+    run('UPDATE users SET jetons = ? WHERE id = ?', after, userId);
+    run('INSERT INTO ledger (user_id, amount, balance_after, reason, at) VALUES (?,?,?,?,?)', userId, amount, after, reason, now());
+    return after;
+  });
 }
-export function addXp(userId, xp) { run('UPDATE users SET xp = xp + ? WHERE id = ?', xp, userId); }
-export function levelOf(xp) {
-  let lvl = 1;
-  for (let i = 0; i < LEVELS.length; i++) if (xp >= LEVELS[i]) lvl = i + 1;
-  const cur = LEVELS[lvl - 1] ?? 0; const next = LEVELS[lvl] ?? null;
-  return { level: lvl, xp, cur, next };
+
+// --- boosters gratuits ------------------------------------------------------------------------
+const REGEN = ECONOMY.free.regenMinutes * 60_000;
+export function refreshFree(userId) {
+  const u = one('SELECT free_stock, free_at FROM users WHERE id = ?', userId);
+  let { free_stock: stock, free_at: at } = u;
+  const t = now();
+  if (stock >= ECONOMY.free.max) {
+    if (at !== t) run('UPDATE users SET free_at = ? WHERE id = ?', t, userId);
+    return { stock, next: null };
+  }
+  const gained = Math.floor((t - at) / REGEN);
+  if (gained > 0) {
+    stock = Math.min(ECONOMY.free.max, stock + gained);
+    at = stock >= ECONOMY.free.max ? t : at + gained * REGEN;
+    run('UPDATE users SET free_stock = ?, free_at = ? WHERE id = ?', stock, at, userId);
+  }
+  return { stock, next: stock >= ECONOMY.free.max ? null : at + REGEN };
 }
+
+// --- statistiques (missions & succès) ----------------------------------------------------------
+export function addStat(userId, stat, v = 1) {
+  if (!v) return;
+  const t = now();
+  for (const period of [dayKey(t), weekKey(t), 'all']) {
+    run(`INSERT INTO stats (user_id, period, stat, value) VALUES (?,?,?,?)
+         ON CONFLICT(user_id, period, stat) DO UPDATE SET value = value + excluded.value`, userId, period, stat, v);
+  }
+}
+const statOf = (userId, period, stat) => one('SELECT value FROM stats WHERE user_id = ? AND period = ? AND stat = ?', userId, period, stat)?.value || 0;
+
+// --- profil -------------------------------------------------------------------------------------
+export function collectionSummary(userId) {
+  return one(`SELECT COUNT(*) AS uniq, COALESCE(SUM(m.pts),0) AS points, COALESCE(SUM(c.qty),0) AS copies,
+      SUM(CASE WHEN m.r = 'M' THEN 1 ELSE 0 END) AS mythics, SUM(CASE WHEN m.r = 'L' THEN 1 ELSE 0 END) AS legends
+    FROM collection c JOIN cards_meta m ON m.id = c.card WHERE c.user_id = ? AND c.qty > 0`, userId);
+}
+export function universDone(userId) {
+  return one(`SELECT COUNT(*) AS n FROM (SELECT m.u, COUNT(*) AS have FROM collection c JOIN cards_meta m ON m.id = c.card
+    WHERE c.user_id = ? AND c.qty > 0 GROUP BY m.u) x JOIN univers_meta um ON um.u = x.u WHERE x.have >= um.total AND um.total >= 2`, userId).n;
+}
+
+export function me(userId) {
+  const free = refreshFree(userId);
+  const u = one('SELECT * FROM users WHERE id = ?', userId);
+  const sum = collectionSummary(userId);
+  const today = dayKey();
+  return {
+    id: u.id, username: u.username, guest: !!u.guest, hue: u.hue, bio: u.bio,
+    jetons: u.jetons, freePacks: free.stock, freePacksMax: ECONOMY.free.max, nextFreeAt: free.next, bonusPacks: u.bonus_packs,
+    packsOpened: u.packs_opened, pityM: u.pity_m, pityThreshold: ECONOMY.pityMythic,
+    goldenIn: ECONOMY.goldenEvery - (u.packs_opened % ECONOMY.goldenEvery),
+    dailyAvailable: u.daily_pack !== today, dailyTheme: dailyTheme(today),
+    streak: u.streak, unique: sum.uniq, points: sum.points, rank: rankFor(sum.points)[1], total: TOTAL,
+    claimable: claimableCount(userId),
+    unread: one('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND seen = 0', userId).n,
+  };
+}
+
+// Récompense de connexion quotidienne (série de 7 jours)
+export function dailyLogin(userId) {
+  return tx(() => {
+    const u = one('SELECT last_login, streak FROM users WHERE id = ?', userId);
+    const today = dayKey();
+    if (u.last_login === today) return null;
+    const streak = u.last_login === previousDay(today) ? u.streak + 1 : 1;
+    const step = ((streak - 1) % 7) + 1;
+    const jetons = ECONOMY.streak[step - 1];
+    const packs = step === ECONOMY.streakBoosterDay ? 1 : 0;
+    run('UPDATE users SET last_login = ?, streak = ?, bonus_packs = bonus_packs + ? WHERE id = ?', today, streak, packs, userId);
+    credit(userId, jetons, 'Connexion du jour');
+    addStat(userId, 'login');
+    return { streak, step, jetons, packs, table: ECONOMY.streak };
+  });
+}
+
+// --- tirage -------------------------------------------------------------------------------------
+function drawRarity(min) {
+  const allowed = RARITIES.filter((r) => rarityIndex(r) >= rarityIndex(min || 'C'));
+  const total = allowed.reduce((s, r) => s + RARITY[r].drop, 0);
+  let x = rnd() * total;
+  for (const r of allowed) { x -= RARITY[r].drop; if (x < 0) return r; }
+  return allowed[allowed.length - 1];
+}
+
+export function rollPack(booster, { theme, golden, divine, pityHit } = {}) {
+  const pool = poolFor(booster, theme);
+  const size = ECONOMY.packSize;
+  const mins = [...(booster.slots || Array(size).fill(null))];
+  if (golden) mins[size - 1] = maxR(mins[size - 1], 'E');
+  if (divine) {
+    for (let i = 0; i < size; i++) mins[i] = maxR(mins[i], 'R');
+    mins[randomInt(0, size)] = 'M';
+  }
+  let rarities = mins.map((m) => drawRarity(m));
+  if (pityHit && !rarities.includes('M')) rarities[size - 1] = 'M';
+  // aucun doublon dans un même booster
+  const picked = new Set();
+  const cards = rarities.map((r) => {
+    let n, tries = 0;
+    do { n = pick(pool[r]); } while (picked.has(n) && ++tries < 20);
+    picked.add(n);
+    return n;
+  });
+  // les meilleures cartes à la fin : le suspense monte
+  return cards.map((n) => ({ n, r: game(n).r })).sort((a, b) => rarityIndex(a.r) - rarityIndex(b.r));
+}
+const maxR = (a, b) => (!a ? b : rarityIndex(a) >= rarityIndex(b) ? a : b);
+
+export function boosterInfo() {
+  return BOOSTERS.map((b) => ({
+    id: b.id, cat: b.cat, name: b.name, sub: b.sub, kanji: b.kanji, color: b.color, price: b.price,
+    usesFree: !!b.usesFree, daily: !!b.daily, slots: b.slots || null, size: boosterSize(b),
+  }));
+}
+
+// Ouvre `count` boosters d'un coup. pay : 'free' (stock gratuit puis boosters bonus) ou 'jetons'.
+export function openBooster(userId, boosterId, { pay = 'free', count = 1, bot = false } = {}) {
+  const booster = boosterById(boosterId);
+  if (!booster) throw new HttpError(404, "Ce booster n'existe pas ou n'est plus disponible.");
+  count = Math.max(1, Math.min(10, Math.floor(Number(count) || 1)));
+  if (booster.daily) count = 1;
+  return tx(() => {
+    const t = now();
+    const today = dayKey(t);
+    if (!bot) {
+      if (booster.daily) {
+        const u = one('SELECT daily_pack FROM users WHERE id = ?', userId);
+        if (u.daily_pack === today) throw new HttpError(400, 'Déjà ouvert aujourd’hui, reviens demain.', 'daily_limit');
+        run('UPDATE users SET daily_pack = ? WHERE id = ?', today, userId);
+      } else if (pay === 'free' && booster.usesFree) {
+        const { stock } = refreshFree(userId);
+        const u = one('SELECT bonus_packs FROM users WHERE id = ?', userId);
+        if (stock + u.bonus_packs < count) throw new HttpError(400, 'Plus assez de boosters gratuits.', 'no_free');
+        const fromStock = Math.min(stock, count);
+        const wasFull = stock >= ECONOMY.free.max;
+        run('UPDATE users SET free_stock = free_stock - ?, bonus_packs = bonus_packs - ? WHERE id = ?', fromStock, count - fromStock, userId);
+        if (wasFull && fromStock > 0) run('UPDATE users SET free_at = ? WHERE id = ?', t, userId); // la recharge repart maintenant
+      } else {
+        if (!booster.price) throw new HttpError(400, 'Ce booster s’obtient seulement en récompense.');
+        credit(userId, -booster.price * count, `Booster ${booster.name}${count > 1 ? ` ×${count}` : ''}`);
+      }
+    }
+    const theme = booster.daily ? dailyTheme(today) : null;
+    const packs = [];
+    for (let k = 0; k < count; k++) {
+      const u = one('SELECT packs_opened, pity_m FROM users WHERE id = ?', userId);
+      const golden = (u.packs_opened + 1) % ECONOMY.goldenEvery === 0;
+      const divine = !golden && rnd() < ECONOMY.divineChance;
+      const pityHit = u.pity_m + 1 >= ECONOMY.pityMythic;
+      const cards = rollPack(booster, { theme, golden, divine, pityHit });
+      const gotM = cards.some((c) => c.r === 'M');
+      run('UPDATE users SET packs_opened = packs_opened + 1, pity_m = ? WHERE id = ?', gotM ? 0 : u.pity_m + 1, userId);
+      const out = [];
+      for (const c of cards) {
+        const id = idOf(c.n);
+        const prev = one('SELECT qty FROM collection WHERE user_id = ? AND card = ?', userId, id);
+        run(`INSERT INTO collection (user_id, card, qty, first_at, last_at) VALUES (?,?,1,?,?)
+             ON CONFLICT(user_id, card) DO UPDATE SET qty = qty + 1, last_at = excluded.last_at`, userId, id, t, t);
+        out.push({ n: c.n, r: c.r, isNew: !prev || prev.qty === 0, qty: (prev?.qty || 0) + 1 });
+      }
+      const best = cards.reduce((b, c) => (rarityIndex(c.r) > rarityIndex(b) ? c.r : b), 'C');
+      const kind = divine ? 'divine' : golden ? 'golden' : 'normal';
+      run('INSERT INTO pulls (user_id, booster, kind, cards, best, at) VALUES (?,?,?,?,?,?)', userId, booster.id, kind, JSON.stringify(cards.map((c) => idOf(c.n))), best, t);
+      if (!bot) {
+        addStat(userId, 'open');
+        if (booster.daily) addStat(userId, 'dailyPack');
+        addStat(userId, 'rarePlus', cards.filter((c) => rarityIndex(c.r) >= 2).length);
+        addStat(userId, 'epicPlus', cards.filter((c) => rarityIndex(c.r) >= 3).length);
+        addStat(userId, 'legendPlus', cards.filter((c) => rarityIndex(c.r) >= 4).length);
+        addStat(userId, 'mythic', cards.filter((c) => c.r === 'M').length);
+        addStat(userId, 'newCards', out.filter((c) => c.isNew).length);
+        notifyWishes(userId, out);
+      }
+      packs.push({ cards: out, kind, golden, divine, pityHit: pityHit && gotM, theme });
+    }
+    return { booster: booster.id, packs, user: bot ? null : me(userId) };
+  });
+}
+
+// une envie obtenue quitte la liste d'envies
+function notifyWishes(userId, cards) {
+  for (const c of cards) if (c.isNew) run('DELETE FROM wishes WHERE user_id = ? AND card = ?', userId, idOf(c.n));
+}
+
+// --- collection ---------------------------------------------------------------------------------
+export function collectionOf(userId) {
+  return all('SELECT card, qty, reserved, locked, first_at FROM collection WHERE user_id = ? AND qty > 0', userId)
+    .filter((c) => nOf(c.card)).map((c) => [nOf(c.card), c.qty, c.reserved, c.locked, c.first_at]);
+}
+
+export function setLock(userId, n, locked) {
+  const card = cardId(n);
+  const r = run('UPDATE collection SET locked = ? WHERE user_id = ? AND card = ? AND qty > 0', locked ? 1 : 0, userId, card);
+  if (!r.changes) throw new HttpError(404, 'Tu n’as pas cette carte.');
+}
+
+export function toggleWish(userId, n, on) {
+  const card = cardId(n);
+  if (on) {
+    const n = one('SELECT COUNT(*) AS n FROM wishes WHERE user_id = ?', userId).n;
+    if (n >= ECONOMY.wishMax) throw new HttpError(400, `Ta liste d’envies est pleine (${ECONOMY.wishMax} jeux).`);
+    run('INSERT OR IGNORE INTO wishes (user_id, card, at) VALUES (?,?,?)', userId, card, now());
+  } else run('DELETE FROM wishes WHERE user_id = ? AND card = ?', userId, card);
+}
+export const wishesOf = (userId) => all('SELECT card FROM wishes WHERE user_id = ? ORDER BY at DESC', userId).map((w) => nOf(w.card)).filter(Boolean);
+
+// Recycle des doublons : on garde toujours 1 exemplaire ; jamais les cartes verrouillées ni réservées.
+export function recycle(userId, { card: n = null, qty = null, rarities = null } = {}) {
+  const card = n ? cardId(n) : null;
+  return tx(() => {
+    let rows;
+    if (card) rows = all('SELECT card, qty, reserved, locked FROM collection WHERE user_id = ? AND card = ?', userId, card);
+    else rows = all('SELECT card, qty, reserved, locked FROM collection WHERE user_id = ? AND qty > 1', userId);
+    const allowed = new Set(rarities && rarities.length ? rarities : RARITIES);
+    let gain = 0, count = 0;
+    for (const c of rows) {
+      const g = gameById(c.card);
+      if (!g || c.locked || !allowed.has(g.r)) continue;
+      const free = c.qty - 1 - c.reserved;
+      const k = card && qty ? Math.min(free, Math.max(0, Math.floor(qty))) : free;
+      if (k <= 0) continue;
+      run('UPDATE collection SET qty = qty - ? WHERE user_id = ? AND card = ?', k, userId, c.card);
+      gain += k * RARITY[g.r].recycle;
+      count += k;
+    }
+    if (card && !count) throw new HttpError(400, 'Aucun doublon libre à recycler pour cette carte.');
+    if (count) {
+      credit(userId, gain, `Recyclage de ${count} doublon${count > 1 ? 's' : ''}`);
+      addStat(userId, 'recycled', count);
+    }
+    return { count, gain, user: me(userId) };
+  });
+}
+
+// --- missions et succès -------------------------------------------------------------------------
+function achievementValue(userId, a) {
+  if (a.stat === 'unique') return collectionSummary(userId).uniq;
+  if (a.stat === 'universDone') return universDone(userId);
+  if (a.stat === 'streak') return one('SELECT streak FROM users WHERE id = ?', userId).streak;
+  return statOf(userId, 'all', a.stat);
+}
+export function missions(userId) {
+  const d = dayKey(), w = weekKey();
+  const claimed = (id, p) => !!one('SELECT 1 FROM claims WHERE user_id = ? AND mission = ? AND period = ?', userId, id, p);
+  const mk = (list, period) => list.map((m) => {
+    const value = statOf(userId, period, m.stat);
+    return { ...m, value: Math.min(value, m.goal), done: value >= m.goal, claimed: claimed(m.id, period) };
+  });
+  const ach = ACHIEVEMENTS.map((a) => {
+    const value = achievementValue(userId, a);
+    return { ...a, value: Math.min(value, a.goal), done: value >= a.goal, claimed: claimed(a.id, 'all') };
+  });
+  const u = one('SELECT streak, last_login FROM users WHERE id = ?', userId);
+  return { daily: mk(MISSIONS.daily, d), weekly: mk(MISSIONS.weekly, w), achievements: ach, streak: u.streak, streakTable: ECONOMY.streak };
+}
+function claimableCount(userId) {
+  const m = missions(userId);
+  return [...m.daily, ...m.weekly, ...m.achievements].filter((x) => x.done && !x.claimed).length;
+}
+export function claim(userId, id) {
+  return tx(() => {
+    const m = missions(userId);
+    const list = [['daily', dayKey()], ['weekly', weekKey()], ['achievements', 'all']];
+    const ids = id === 'all' ? null : [id];
+    let jetons = 0, packs = 0, n = 0;
+    for (const [k, period] of list) {
+      for (const x of m[k]) {
+        if ((ids && !ids.includes(x.id)) || !x.done || x.claimed) continue;
+        run('INSERT INTO claims (user_id, mission, period, at) VALUES (?,?,?,?)', userId, x.id, period, now());
+        jetons += x.reward || 0;
+        packs += x.freePacks || 0;
+        n++;
+      }
+    }
+    if (!n) throw new HttpError(400, 'Rien à réclamer pour le moment.');
+    if (jetons) credit(userId, jetons, 'Missions et succès');
+    if (packs) run('UPDATE users SET bonus_packs = bonus_packs + ? WHERE id = ?', packs, userId);
+    return { jetons, packs, n, user: me(userId) };
+  });
+}
+
+// --- fil des gros tirages & classements ---------------------------------------------------------
+export function feed(limit = 30) {
+  const rows = all(`SELECT p.id, p.cards, p.kind, p.at, p.booster, u.username, u.hue FROM pulls p JOIN users u ON u.id = p.user_id
+    WHERE p.best IN ('L','M') ORDER BY p.id DESC LIMIT ?`, limit);
+  return rows.map((p) => ({
+    id: p.id, user: p.username, hue: p.hue, at: p.at, kind: p.kind, booster: p.booster,
+    cards: JSON.parse(p.cards).map(nOf).filter((n) => n && ['L', 'M'].includes(game(n).r)),
+  }));
+}
+
+// Classement des joueurs (les collectionneurs automatiques n'y figurent pas)
+export function leaderboard(kind = 'points', limit = 50) {
+  const order = { points: 'points DESC, mythics DESC', mythics: 'mythics DESC, points DESC', unique: 'uniq DESC, points DESC' }[kind] || 'points DESC';
+  return all(`SELECT u.id, u.username, u.hue, COUNT(*) AS uniq, SUM(m.pts) AS points, SUM(CASE WHEN m.r = 'M' THEN 1 ELSE 0 END) AS mythics
+    FROM collection c JOIN users u ON u.id = c.user_id JOIN cards_meta m ON m.id = c.card
+    WHERE c.qty > 0 AND u.is_bot = 0 GROUP BY u.id ORDER BY ${order} LIMIT ?`, limit)
+    .map((r) => ({ ...r, rank: rankFor(r.points)[1] }));
+}
+
+export function stats() {
+  return {
+    players: one('SELECT COUNT(*) AS n FROM users WHERE is_bot = 0').n,
+    packs: one('SELECT COALESCE(SUM(packs_opened),0) AS n FROM users').n,
+    cards: one('SELECT COALESCE(SUM(qty),0) AS n FROM collection').n,
+    mythics: one("SELECT COUNT(*) AS n FROM pulls WHERE best = 'M'").n,
+  };
+}
+
+// --- profils ---------------------------------------------------------------------------------------
+export function profile(username) {
+  const u = one('SELECT id, username, hue, bio, showcase, created_at, packs_opened, streak, is_bot FROM users WHERE username = ?', username);
+  if (!u) throw new HttpError(404, 'Ce collectionneur est introuvable.');
+  const sum = collectionSummary(u.id);
+  let show = JSON.parse(u.showcase || '[]').filter((id) => nOf(id) && one('SELECT 1 FROM collection WHERE user_id = ? AND card = ? AND qty > 0', u.id, id)).map(nOf);
+  if (!show.length) {
+    show = all(`SELECT m.n FROM collection c JOIN cards_meta m ON m.id = c.card WHERE c.user_id = ? AND c.qty > 0
+      ORDER BY CASE m.r WHEN 'M' THEN 0 WHEN 'L' THEN 1 WHEN 'E' THEN 2 WHEN 'R' THEN 3 WHEN 'U' THEN 4 ELSE 5 END, m.n LIMIT 8`, u.id).map((r) => r.n);
+  }
+  const byRarity = Object.fromEntries(all(`SELECT m.r, COUNT(*) AS n FROM collection c JOIN cards_meta m ON m.id = c.card
+    WHERE c.user_id = ? AND c.qty > 0 GROUP BY m.r`, u.id).map((r) => [r.r, r.n]));
+  return {
+    username: u.username, hue: u.hue, bio: u.bio, since: u.created_at, packsOpened: u.packs_opened, bot: !!u.is_bot,
+    unique: sum.uniq, points: sum.points, mythics: sum.mythics, rank: rankFor(sum.points)[1], showcase: show, byRarity,
+    universDone: universDone(u.id), total: TOTAL,
+  };
+}
+export function updateProfile(userId, { bio, hue, showcase }) {
+  if (bio !== undefined) run('UPDATE users SET bio = ? WHERE id = ?', String(bio).slice(0, 160), userId);
+  if (hue !== undefined) run('UPDATE users SET hue = ? WHERE id = ?', Math.max(0, Math.min(359, Math.floor(Number(hue) || 0))), userId);
+  if (showcase !== undefined) {
+    const list = [...new Set((Array.isArray(showcase) ? showcase : []).map(idOf).filter(Boolean))].slice(0, ECONOMY.showcaseMax);
+    run('UPDATE users SET showcase = ? WHERE id = ?', JSON.stringify(list), userId);
+  }
+  return me(userId);
+}
+
+// --- notifications -------------------------------------------------------------------------------
 export function notify(userId, text, link = null) {
   run('INSERT INTO notifications (user_id, text, link, at) VALUES (?,?,?,?)', userId, text, link, now());
 }
-
-// ───────────────────────────── Cartes
-function popOf(skinId, grade) {
-  return one("SELECT COUNT(*) n FROM cards WHERE skin_id = ? AND grade = ? AND status != 'BURNED'", skinId, grade).n;
-}
-export const rowToCard = (r) => ({ f: r.float, cx: r.cx, cy: r.cy, tr: r.tracker, foil: r.foil, mp: r.misprint, g: r.grade, pt: r.pattern });
-export function valueOfRow(r) {
-  const skin = SKIN_BY_ID.get(r.skin_id);
-  return cardValue(rowToCard(r), skin, r.grade != null ? popOf(r.skin_id, r.grade) : null).value;
-}
-export function cardOut(r, extra = {}) {
-  const skin = SKIN_BY_ID.get(r.skin_id);
-  const card = rowToCard(r);
-  const v = cardValue(card, skin, r.grade != null ? popOf(r.skin_id, r.grade) : null);
-  return {
-    id: r.id, serial: r.serial, s: r.skin_id, r: r.rarity, ...card,
-    subs: r.subgrades ? JSON.parse(r.subgrades) : null, cert: r.cert,
-    status: r.status, locked: !!r.locked, origin: r.origin, created_at: r.created_at,
-    owner_id: r.owner_id, value: v.value, parts: v.parts, ...extra,
-  };
-}
-export function insertCard(ownerId, c, origin) {
-  const skin = SKIN_BY_ID.get(c.s);
-  const res = run(`INSERT INTO cards (serial, skin_id, rarity, owner_id, float, cx, cy, tracker, foil, misprint, pattern, origin, created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, newSerial(), c.s, skin.r, ownerId, c.f, c.cx, c.cy, c.tr, c.foil, c.mp, c.pt ?? null, origin, now());
-  const id = Number(res.lastInsertRowid);
-  run('INSERT INTO ownership (card_id, from_id, to_id, reason, at) VALUES (?,?,?,?,?)', id, null, ownerId, origin, now());
-  return id;
-}
-function ownedCard(userId, cardId, statuses = ['OWNED']) {
-  const r = one('SELECT * FROM cards WHERE id = ?', cardId);
-  if (!r || r.owner_id !== userId) throw bad('Carte introuvable');
-  if (!statuses.includes(r.status)) throw bad(`Carte indisponible (${r.status})`);
-  return r;
-}
-function transferCard(cardId, fromId, toId, reason, price = null) {
-  run("UPDATE cards SET owner_id = ?, status = 'OWNED', locked = 0 WHERE id = ?", toId, cardId);
-  run('INSERT INTO ownership (card_id, from_id, to_id, reason, price, at) VALUES (?,?,?,?,?,?)', cardId, fromId, toId, reason, price, now());
-  const r = one('SELECT skin_id FROM cards WHERE id = ?', cardId);
-  discover(toId, r.skin_id);
-  // une carte qui bouge invalide les échanges ouverts qui la contiennent
-  for (const t of all("SELECT t.id FROM trades t JOIN trade_items i ON i.trade_id = t.id WHERE i.card_id = ? AND t.status = 'OPEN'", cardId)) {
-    run("UPDATE trades SET status = 'FAILED', updated_at = ? WHERE id = ?", now(), t.id);
-  }
-}
-function discover(userId, skinId) {
-  const r = run('INSERT OR IGNORE INTO discovered (user_id, skin_id, at) VALUES (?,?,?)', userId, skinId, now());
-  return r.changes > 0;
+export function notifications(userId) {
+  const list = all('SELECT id, text, link, seen, at FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 40', userId);
+  run('UPDATE notifications SET seen = 1 WHERE user_id = ? AND seen = 0', userId);
+  return list;
 }
 
-// ───────────────────────────── Quêtes & connexion quotidienne
-const isoWeek = (d = new Date()) => {
-  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
-  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
-  return `${t.getUTCFullYear()}-W${String(Math.ceil(((t - y0) / 864e5 + 1) / 7)).padStart(2, '0')}`;
-};
-const periodOf = (group) => (group === 'daily' ? today() : group === 'weekly' ? isoWeek() : 'exploit');
-const QUEST_LIST = Object.entries(QUESTS).flatMap(([group, list]) => list.map((q) => ({ ...q, group })));
-const EV_ALIAS = { market_buy: ['market'], market_sell: ['market', 'market_sell'] };
-// Avance toutes les quêtes liées à un évènement
-export function bumpEvent(userId, ev, n = 1) {
-  if (!n) return;
-  const evs = new Set([ev, ...(EV_ALIAS[ev] || [])]);
-  for (const q of QUEST_LIST) {
-    if (!evs.has(q.ev)) continue;
-    run(`INSERT INTO missions (user_id, day, key, progress) VALUES (?,?,?,?)
-         ON CONFLICT(user_id, day, key) DO UPDATE SET progress = progress + excluded.progress`, userId, periodOf(q.group), q.key, n);
-  }
+// --- marché -------------------------------------------------------------------------------------
+function reserveCopy(userId, card, { keepOne = false } = {}) {
+  const c = one('SELECT qty, reserved, locked FROM collection WHERE user_id = ? AND card = ?', userId, card);
+  if (!c || c.qty <= 0) throw new HttpError(400, 'Tu n’as pas cette carte.');
+  if (c.locked) throw new HttpError(400, 'Carte verrouillée : déverrouille-la pour la vendre ou l’échanger.');
+  if (c.qty - c.reserved - (keepOne ? 1 : 0) <= 0) throw new HttpError(400, 'Aucun exemplaire libre de cette carte.');
+  run('UPDATE collection SET reserved = reserved + 1 WHERE user_id = ? AND card = ?', userId, card);
 }
-export const bumpMission = bumpEvent;
-export function questsOf(userId) {
-  const out = {};
-  for (const [group, list] of Object.entries(QUESTS)) {
-    const rows = Object.fromEntries(all('SELECT key, progress, claimed FROM missions WHERE user_id = ? AND day = ?', userId, periodOf(group)).map((r) => [r.key, r]));
-    out[group] = list.map((q) => ({ ...q, progress: Math.min(q.target, rows[q.key]?.progress ?? 0), claimed: !!rows[q.key]?.claimed }));
-  }
-  return out;
+function releaseCopy(userId, card) {
+  run('UPDATE collection SET reserved = MAX(0, reserved - 1) WHERE user_id = ? AND card = ?', userId, card);
 }
-export const missionsOf = questsOf;
-export function questsReady(userId) {
-  const q = questsOf(userId);
-  return Object.values(q).flat().filter((x) => !x.claimed && x.progress >= x.target).length;
-}
-export function claimMission(userId, key) {
-  return tx(() => {
-    const q = QUEST_LIST.find((x) => x.key === key);
-    if (!q) throw bad('Quête inconnue');
-    const period = periodOf(q.group);
-    const r = one('SELECT progress, claimed FROM missions WHERE user_id = ? AND day = ? AND key = ?', userId, period, key);
-    if (!r || r.progress < q.target) throw bad('Quête non terminée');
-    if (r.claimed) throw bad('Déjà réclamée');
-    run('UPDATE missions SET claimed = 1 WHERE user_id = ? AND day = ? AND key = ?', userId, period, key);
-    addXp(userId, ECONOMY.xp.mission * (q.group === 'daily' ? 1 : q.group === 'weekly' ? 3 : 6));
-    if (q.packs) run('UPDATE users SET welcome_packs = welcome_packs + ? WHERE id = ?', q.packs, userId);
-    return credit(userId, q.reward, 'QUEST', q.fr);
-  });
-}
-const yesterday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
-export function dailyState(u) {
-  const available = u.last_daily !== today();
-  const nextStreak = u.last_daily === yesterday() ? u.streak + 1 : (available ? 1 : u.streak);
-  const reward = ECONOMY.dailyStreak[Math.min(nextStreak, ECONOMY.dailyStreak.length) - 1];
-  return { available, streak: available && u.last_daily !== yesterday() ? 0 : u.streak, nextStreak, reward, table: ECONOMY.dailyStreak };
-}
-export function claimDaily(userId) {
-  return tx(() => {
-    const u = one('SELECT * FROM users WHERE id = ?', userId);
-    const d = dailyState(u);
-    if (!d.available) throw bad('Récompense déjà réclamée aujourd’hui');
-    run('UPDATE users SET streak = ?, last_daily = ? WHERE id = ?', d.nextStreak, today(), userId);
-    bumpEvent(userId, 'daily');
-    return { balance: credit(userId, d.reward, 'DAILY', `Jour ${d.nextStreak}`), reward: d.reward, streak: d.nextStreak };
-  });
+function moveCopy(fromId, toId, card) {
+  const t = now();
+  run('UPDATE collection SET qty = qty - 1, reserved = MAX(0, reserved - 1) WHERE user_id = ? AND card = ?', fromId, card);
+  run(`INSERT INTO collection (user_id, card, qty, first_at, last_at) VALUES (?,?,1,?,?)
+       ON CONFLICT(user_id, card) DO UPDATE SET qty = qty + 1, last_at = excluded.last_at`, toId, card, t, t);
 }
 
-// ───────────────────────────── Booster gratuits (stock qui se recharge)
-export function syncFree(userId) {
-  const u = one('SELECT free_stock, free_at FROM users WHERE id = ?', userId);
-  const { intervalMs, maxStock } = ECONOMY.free;
-  let stock = u.free_stock, at = u.free_at || now();
-  if (stock >= maxStock) { at = now(); } else {
-    const gained = Math.floor((now() - at) / intervalMs);
-    if (gained > 0) { stock = Math.min(maxStock, stock + gained); at = stock >= maxStock ? now() : at + gained * intervalMs; }
-  }
-  run('UPDATE users SET free_stock = ?, free_at = ? WHERE id = ?', stock, at, userId);
-  return { stock, max: maxStock, nextAt: stock >= maxStock ? null : at + intervalMs };
+export function marketList({ card: n = null, seller = null, limit = 200 } = {}) {
+  const card = n ? idOf(n) : null;
+  let sql = `SELECT l.id, l.card, l.price, l.created_at, u.username AS seller, u.hue FROM listings l JOIN users u ON u.id = l.seller_id WHERE l.status = 'ACTIVE'`;
+  const p = [];
+  if (card) { sql += ' AND l.card = ?'; p.push(card); }
+  if (seller) { sql += ' AND l.seller_id = ?'; p.push(seller); }
+  sql += card ? ' ORDER BY l.price ASC' : ' ORDER BY l.id DESC';
+  sql += ' LIMIT ?'; p.push(limit);
+  return all(sql, ...p).map((l) => ({ ...l, card: nOf(l.card) })).filter((l) => l.card);
 }
-
-// ───────────────────────────── Boosters
-export function openPacks(userId, key, count = 1) {
-  const pack = PACK_BY_KEY[key];
-  if (!pack) throw bad('Booster inconnu');
-  count = Math.max(1, Math.min(10, Math.floor(Number(count) || 1)));
-  return tx(() => {
-    let u = one('SELECT * FROM users WHERE id = ?', userId);
-    let welcomeUsed = 0;
-    if (pack.free) {
-      const f = syncFree(userId);
-      if (f.stock < count) throw bad('Plus de booster gratuit disponible');
-      // si le stock était plein, le compte à rebours démarre maintenant
-      run('UPDATE users SET free_stock = free_stock - ?, free_at = CASE WHEN free_stock >= ? THEN ? ELSE free_at END WHERE id = ?',
-        count, f.max, now(), userId);
-    } else {
-      if (key === 'standard') welcomeUsed = Math.min(count, u.welcome_packs);
-      const toPay = (count - welcomeUsed) * pack.price;
-      if (welcomeUsed) run('UPDATE users SET welcome_packs = welcome_packs - ? WHERE id = ?', welcomeUsed, userId);
-      if (toPay) credit(userId, -toPay, 'PACK', `${count - welcomeUsed} × ${pack.fr}`);
-    }
-    const packsOut = [];
-    let pity = { ultra: u.pity_ultra, legend: u.pity_legend, trans: u.pity_trans };
-    let newSkins = 0;
-    for (let i = 0; i < count; i++) {
-      const res = openPack(pack, pity, !pack.free);
-      pity = res.pity;
-      const cards = res.cards.map((c) => {
-        const id = insertCard(userId, c, `PACK:${key}`);
-        const isNew = discover(userId, c.s);
-        if (isNew) newSkins++;
-        const row = one('SELECT * FROM cards WHERE id = ?', id);
-        if (row.rarity >= 3 || row.misprint) run('INSERT INTO feed (user_id, card_id, at) VALUES (?,?,?)', userId, id, now());
-        return cardOut(row, { isNew });
-      });
-      packsOut.push({ cards, pityTriggered: res.pityTriggered });
-    }
-    run('UPDATE users SET pity_ultra = ?, pity_legend = ?, pity_trans = ?, packs_opened = packs_opened + ? WHERE id = ?', pity.ultra, pity.legend, pity.trans, count, userId);
-    addXp(userId, ECONOMY.xp.pack * count);
-    bumpEvent(userId, pack.free ? 'open_free' : 'open', count);
-    bumpEvent(userId, 'new', newSkins);
-    const all5 = packsOut.flatMap((p) => p.cards);
-    for (const r of [3, 4, 5, 6]) bumpEvent(userId, `drop${r}`, all5.filter((c) => c.r >= r).length);
-    bumpEvent(userId, 'misprint', all5.filter((c) => c.mp).length);
-    u = one('SELECT balance, welcome_packs, pity_ultra, pity_legend, pity_trans FROM users WHERE id = ?', userId);
-    return { packs: packsOut, balance: u.balance, welcomePacks: u.welcome_packs, pity: { ultra: u.pity_ultra, legend: u.pity_legend, trans: u.pity_trans }, welcomeUsed };
-  });
+export function priceInfo(n) {
+  const card = cardId(n);
+  const g = game(n);
+  const since = now() - 30 * 864e5;
+  const sales = all(`SELECT price, closed_at FROM listings WHERE card = ? AND status = 'SOLD' AND closed_at > ? ORDER BY closed_at DESC LIMIT 50`, card, since);
+  const sorted = sales.map((s) => s.price).sort((a, b) => a - b);
+  const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null;
+  const cheapest = one(`SELECT MIN(price) AS p FROM listings WHERE card = ? AND status = 'ACTIVE'`, card).p;
+  const owners = one('SELECT COUNT(*) AS n FROM collection WHERE card = ? AND qty > 0', card).n;
+  const copies = one('SELECT COALESCE(SUM(qty),0) AS n FROM collection WHERE card = ?', card).n;
+  return { base: baseValue(g.n, g.r, TOTAL), median, cheapest, sales: sales.slice(0, 10), owners, copies, recycle: RARITY[g.r].recycle };
 }
-
-// ───────────────────────────── Inventaire
-export function sellToSystem(userId, ids) {
-  if (!Array.isArray(ids) || !ids.length) throw bad('Aucune carte');
-  return tx(() => {
-    let total = 0;
-    for (const id of ids) {
-      const r = ownedCard(userId, Number(id));
-      total += Math.max(1, Math.floor(valueOfRow(r) * ECONOMY.sellToSystemRate));
-      run("UPDATE cards SET status = 'BURNED' WHERE id = ?", r.id);
-      run('INSERT INTO ownership (card_id, from_id, to_id, reason, at) VALUES (?,?,?,?,?)', r.id, userId, null, 'SYSTEM_SELL', now());
-    }
-    return { total, balance: credit(userId, total, 'SELL_SYSTEM', `${ids.length} carte(s)`) };
-  });
-}
-// Doublons : pour chaque skin, on garde un exemplaire (le moins usé, ou un exemplaire protégé :
-// favori, gradé, carte erreur, traqueur, en vente ou en gradation) ; les autres sont recyclables,
-// les plus dégradés d'abord.
-export function duplicatesOf(userId) {
-  const rows = all("SELECT * FROM cards WHERE owner_id = ? AND status != 'BURNED' ORDER BY skin_id, float ASC", userId);
-  const bySkin = new Map();
-  for (const r of rows) { if (!bySkin.has(r.skin_id)) bySkin.set(r.skin_id, []); bySkin.get(r.skin_id).push(r); }
-  const free = (r) => r.status === 'OWNED' && !r.locked && r.grade == null && r.misprint == null && r.tracker == null;
-  const out = [];
-  for (const list of bySkin.values()) {
-    if (list.length < 2) continue;
-    const recyclable = list.filter(free);
-    const keepOne = recyclable.length === list.length;    // aucun exemplaire protégé : on garde le meilleur
-    out.push(...(keepOne ? recyclable.slice(1) : recyclable));
-  }
-  return out.sort((a, b) => b.float - a.float).map((r) => ({ ...cardOut(r), gain: Math.max(1, Math.floor(valueOfRow(r) * ECONOMY.sellToSystemRate)) }));
-}
-export function recycleDuplicates(userId, count) {
-  const list = duplicatesOf(userId);
-  const n = Math.max(0, Math.min(list.length, Math.floor(Number(count) || 0)));
-  if (!n) throw bad('Aucun doublon à recycler');
-  return { ...sellToSystem(userId, list.slice(0, n).map((c) => c.id)), recycled: n };
-}
-export function setLocked(userId, id, locked) {
-  ownedCard(userId, Number(id), ['OWNED', 'LISTED', 'GRADING']);
-  run('UPDATE cards SET locked = ? WHERE id = ?', locked ? 1 : 0, id);
-}
-export function setShowcase(userId, ids) {
-  ids = (ids || []).slice(0, 6).map(Number);
-  for (const id of ids) ownedCard(userId, id, ['OWNED', 'LISTED', 'GRADING']);
-  run('UPDATE users SET showcase = ? WHERE id = ?', JSON.stringify(ids), userId);
-}
-export function cardDetail(id) {
-  const r = one('SELECT * FROM cards WHERE id = ? OR serial = ?', Number(id) || -1, String(id));
-  if (!r) throw new HttpError(404, 'Carte introuvable');
-  const owner = one('SELECT id, username, avatar_hue FROM users WHERE id = ?', r.owner_id);
-  const history = all(`SELECT o.reason, o.price, o.at, f.username AS from_name, t.username AS to_name FROM ownership o
-    LEFT JOIN users f ON f.id = o.from_id LEFT JOIN users t ON t.id = o.to_id WHERE o.card_id = ? ORDER BY o.id DESC LIMIT 30`, r.id);
-  const listing = one("SELECT id, price FROM listings WHERE card_id = ? AND status = 'ACTIVE'", r.id);
-  const sales = all('SELECT price, at FROM sales WHERE skin_id = ? ORDER BY at DESC LIMIT 40', r.skin_id).reverse();
-  const population = all("SELECT grade, COUNT(*) n FROM cards WHERE skin_id = ? AND grade IS NOT NULL AND status != 'BURNED' GROUP BY grade ORDER BY grade DESC", r.skin_id);
-  const copies = one("SELECT COUNT(*) n FROM cards WHERE skin_id = ? AND status != 'BURNED'", r.skin_id).n;
-  return { card: cardOut(r), owner, history, listing, sales, population, copies };
-}
-
-// ───────────────────────────── Trade-up (contrat) : 10 cartes de rareté N → 1 carte N+1
-export function tradeUp(userId, ids) {
-  ids = [...new Set((ids || []).map(Number))];
-  if (ids.length !== TRADE_UP.inputCount) throw bad(`Il faut exactement ${TRADE_UP.inputCount} cartes`);
-  return tx(() => {
-    const rows = ids.map((id) => ownedCard(userId, id));
-    const r = rows[0].rarity;
-    if (rows.some((x) => x.rarity !== r)) throw bad('Toutes les cartes doivent avoir la même rareté');
-    if (r > TRADE_UP.maxInputRarity) throw bad('Rareté maximale atteinte');
-    if (rows.some((x) => x.grade != null)) throw bad('Les cartes gradées ne peuvent pas entrer dans un contrat');
-    credit(userId, -TRADE_UP.cost, 'TRADE_UP', 'Contrat');
-    for (const x of rows) {
-      run("UPDATE cards SET status = 'BURNED' WHERE id = ?", x.id);
-      run('INSERT INTO ownership (card_id, from_id, to_id, reason, at) VALUES (?,?,?,?,?)', x.id, userId, null, 'TRADE_UP', now());
-    }
-    const src = SKIN_BY_ID.get(rows[randomInt(0, rows.length)].skin_id);
-    const c = rollCard(r + 1, { classes: [src.cls] });
-    const skin = SKIN_BY_ID.get(c.s);
-    const avg = rows.reduce((a, x) => a + x.float, 0) / rows.length;
-    c.f = Math.round((skin.fmin + avg * (skin.fmax - skin.fmin)) * 1e6) / 1e6;
-    const id = insertCard(userId, c, 'TRADE_UP');
-    discover(userId, c.s);
-    addXp(userId, 20);
-    bumpEvent(userId, 'tradeup');
-    if (r + 1 >= 3) run('INSERT INTO feed (user_id, card_id, at) VALUES (?,?,?)', userId, id, now());
-    return cardOut(one('SELECT * FROM cards WHERE id = ?', id));
-  });
-}
-
-// ───────────────────────────── Marché
-export function createListing(userId, cardId, price) {
+export function createListing(userId, n, price) {
+  const card = cardId(n);
   price = Math.floor(Number(price));
+  if (!(price >= ECONOMY.minPrice && price <= ECONOMY.maxPrice)) throw new HttpError(400, 'Prix invalide.');
   return tx(() => {
-    const r = ownedCard(userId, Number(cardId));
-    const v = valueOfRow(r);
-    const min = Math.max(1, Math.floor(v * ECONOMY.priceFloorMult));
-    const max = Math.max(10, Math.ceil(v * ECONOMY.priceCapMult));
-    if (!(price >= min && price <= max)) throw bad(`Prix autorisé : ${min} – ${max}`);
-    const n = one("SELECT COUNT(*) n FROM listings WHERE seller_id = ? AND status = 'ACTIVE'", userId).n;
-    if (n >= ECONOMY.maxListings) throw bad(`Maximum ${ECONOMY.maxListings} annonces actives`);
-    run("UPDATE cards SET status = 'LISTED' WHERE id = ?", r.id);
-    const res = run('INSERT INTO listings (card_id, seller_id, price, created_at) VALUES (?,?,?,?)', r.id, userId, price, now());
-    for (const t of all("SELECT t.id FROM trades t JOIN trade_items i ON i.trade_id = t.id WHERE i.card_id = ? AND t.status = 'OPEN'", r.id)) {
-      run("UPDATE trades SET status = 'FAILED', updated_at = ? WHERE id = ?", now(), t.id);
-    }
-    return Number(res.lastInsertRowid);
+    const n = one(`SELECT COUNT(*) AS n FROM listings WHERE seller_id = ? AND status = 'ACTIVE'`, userId).n;
+    if (n >= ECONOMY.maxListings) throw new HttpError(400, 'Tu as atteint le nombre maximum d’annonces actives.');
+    reserveCopy(userId, card);
+    const r = run('INSERT INTO listings (seller_id, card, price, created_at) VALUES (?,?,?,?)', userId, card, price, now());
+    return { id: Number(r.lastInsertRowid) };
   });
 }
-export function cancelListing(userId, listingId) {
+export function cancelListing(userId, id) {
   return tx(() => {
-    const l = one("SELECT * FROM listings WHERE id = ? AND status = 'ACTIVE'", Number(listingId));
-    if (!l || l.seller_id !== userId) throw bad('Annonce introuvable');
-    run("UPDATE listings SET status = 'CANCELLED' WHERE id = ?", l.id);
-    run("UPDATE cards SET status = 'OWNED' WHERE id = ?", l.card_id);
+    const l = one(`SELECT * FROM listings WHERE id = ? AND status = 'ACTIVE'`, id);
+    if (!l || l.seller_id !== userId) throw new HttpError(404, 'Cette annonce est terminée.');
+    run(`UPDATE listings SET status = 'CANCELLED', closed_at = ? WHERE id = ?`, now(), id);
+    releaseCopy(userId, l.card);
+    return { ok: true };
   });
 }
-export function buyListing(userId, listingId) {
+export function buyListing(userId, id) {
   return tx(() => {
-    const l = one("SELECT * FROM listings WHERE id = ? AND status = 'ACTIVE'", Number(listingId));
-    if (!l) throw bad('Annonce déjà vendue ou retirée');
-    if (l.seller_id === userId) throw bad('C’est votre propre annonce');
-    credit(userId, -l.price, 'MARKET_BUY', `Annonce #${l.id}`);
+    const l = one(`SELECT * FROM listings WHERE id = ? AND status = 'ACTIVE'`, id);
+    if (!l) throw new HttpError(404, 'Cette annonce est terminée.');
+    if (l.seller_id === userId) throw new HttpError(400, 'C’est ta propre annonce.');
+    const g = gameById(l.card);
+    if (!g) throw new HttpError(410, 'Ce jeu n’est plus au catalogue.');
+    credit(userId, -l.price, `Achat au marché : ${g.t}`);
     const fee = Math.ceil(l.price * ECONOMY.marketFee);
-    credit(l.seller_id, l.price - fee, 'MARKET_SELL', `Annonce #${l.id} (frais ${fee})`);
-    run("UPDATE listings SET status = 'SOLD', buyer_id = ?, sold_at = ? WHERE id = ?", userId, now(), l.id);
-    transferCard(l.card_id, l.seller_id, userId, 'MARKET', l.price);
-    const card = one('SELECT * FROM cards WHERE id = ?', l.card_id);
-    run('INSERT INTO sales (skin_id, price, at) VALUES (?,?,?)', card.skin_id, l.price, now());
-    addXp(userId, ECONOMY.xp.sale); addXp(l.seller_id, ECONOMY.xp.sale);
-    bumpEvent(userId, 'market_buy'); bumpEvent(l.seller_id, 'market_sell');
-    const buyer = one('SELECT username FROM users WHERE id = ?', userId);
-    notify(l.seller_id, `${buyer.username} a acheté ${skinName(card.skin_id)} pour ${l.price} Mu (vous recevez ${l.price - fee} Mu)`, `#/card/${card.id}`);
-    return cardOut(card);
-  });
-}
-export const skinName = (id) => { const s = SKIN_BY_ID.get(id); return `${MODEL_BY_KEY[s.m].name} | ${s.n}`; };
-
-export function browseMarket(qs, viewerId) {
-  const where = ["l.status = 'ACTIVE'"]; const p = [];
-  const skinFilter = [];
-  if (qs.r !== undefined && qs.r !== '') { where.push('c.rarity = ?'); p.push(Number(qs.r)); }
-  if (qs.graded === '1') where.push('c.grade IS NOT NULL');
-  if (qs.misprint === '1') where.push('c.misprint IS NOT NULL');
-  if (qs.tracker === '1') where.push('c.tracker IS NOT NULL');
-  if (qs.fmin) { where.push('c.float >= ?'); p.push(Number(qs.fmin)); }
-  if (qs.fmax) { where.push('c.float <= ?'); p.push(Number(qs.fmax)); }
-  if (qs.pmin) { where.push('l.price >= ?'); p.push(Number(qs.pmin)); }
-  if (qs.pmax) { where.push('l.price <= ?'); p.push(Number(qs.pmax)); }
-  if (qs.mine === '1') { where.push('l.seller_id = ?'); p.push(viewerId); }
-  if (qs.model || qs.cls || qs.q) {
-    const needle = (qs.q || '').toLowerCase();
-    for (const s of SKINS) {
-      if (qs.model && s.m !== qs.model) continue;
-      if (qs.cls && s.cls !== qs.cls) continue;
-      if (needle && !`${MODEL_BY_KEY[s.m].name} ${s.n}`.toLowerCase().includes(needle)) continue;
-      skinFilter.push(s.id);
-    }
-    if (!skinFilter.length) return { items: [], total: 0 };
-    where.push(`c.skin_id IN (${skinFilter.map(() => '?').join(',')})`); p.push(...skinFilter);
-  }
-  const order = { price_asc: 'l.price ASC', price_desc: 'l.price DESC', float: 'c.float ASC', rarity: 'c.rarity DESC, l.price DESC' }[qs.sort] || 'l.id DESC';
-  const page = Math.max(0, Number(qs.page) || 0); const per = 36;
-  const sql = `FROM listings l JOIN cards c ON c.id = l.card_id JOIN users u ON u.id = l.seller_id WHERE ${where.join(' AND ')}`;
-  const total = db.prepare(`SELECT COUNT(*) n ${sql}`).get(...p).n;
-  const rows = db.prepare(`SELECT c.*, l.id AS listing_id, l.price, l.created_at AS listed_at, u.username AS seller, u.is_bot ${sql} ORDER BY ${order} LIMIT ? OFFSET ?`)
-    .all(...p, per, page * per);
-  return {
-    total, per,
-    items: rows.map((r) => cardOut(r, { listing: { id: r.listing_id, price: r.price, at: r.listed_at, seller: r.seller, sellerId: r.owner_id } })),
-  };
-}
-
-// ───────────────────────────── Amis
-const pair = (x, y) => (x < y ? [x, y] : [y, x]);
-export function friendStatus(me, other) {
-  const [a, b] = pair(me, other);
-  const f = one('SELECT * FROM friends WHERE a = ? AND b = ?', a, b);
-  if (!f) return 'NONE';
-  if (f.status === 'ACCEPTED') return 'FRIENDS';
-  return f.requester === me ? 'SENT' : 'RECEIVED';
-}
-export function requestFriend(me, username) {
-  const o = one('SELECT id, username, is_bot FROM users WHERE username = ?', String(username || '').trim());
-  if (!o) throw bad('Joueur introuvable');
-  if (o.id === me) throw bad('C’est vous !');
-  if (o.is_bot) throw bad('Ce joueur n’accepte pas les demandes');
-  return tx(() => {
-    const st = friendStatus(me, o.id);
-    if (st === 'FRIENDS') throw bad('Déjà amis');
-    if (st === 'SENT') throw bad('Demande déjà envoyée');
-    const [a, b] = pair(me, o.id);
-    if (st === 'RECEIVED') { run("UPDATE friends SET status = 'ACCEPTED' WHERE a = ? AND b = ?", a, b); bumpEvent(me, 'friend'); bumpEvent(o.id, 'friend'); return 'FRIENDS'; }
-    run('INSERT INTO friends (a, b, requester, created_at) VALUES (?,?,?,?)', a, b, me, now());
-    const meName = one('SELECT username FROM users WHERE id = ?', me).username;
-    notify(o.id, `${meName} vous a envoyé une demande d’ami`, '#/friends');
-    return 'SENT';
-  });
-}
-export function respondFriend(me, otherId, accept) {
-  otherId = Number(otherId);
-  const [a, b] = pair(me, otherId);
-  const f = one('SELECT * FROM friends WHERE a = ? AND b = ?', a, b);
-  if (!f) throw bad('Aucune demande');
-  if (accept) {
-    if (f.status !== 'PENDING' || f.requester === me) throw bad('Rien à accepter');
-    run("UPDATE friends SET status = 'ACCEPTED' WHERE a = ? AND b = ?", a, b);
-    bumpEvent(me, 'friend'); bumpEvent(otherId, 'friend');
-    const meName = one('SELECT username FROM users WHERE id = ?', me).username;
-    notify(otherId, `${meName} a accepté votre demande d’ami`, '#/friends');
-  } else {
-    run('DELETE FROM friends WHERE a = ? AND b = ?', a, b);
-  }
-}
-export function listFriends(me) {
-  const rows = all(`SELECT f.*, u.id AS uid, u.username, u.avatar_hue, u.xp, u.last_seen, u.discord_verified_at FROM friends f
-    JOIN users u ON u.id = CASE WHEN f.a = ? THEN f.b ELSE f.a END WHERE f.a = ? OR f.b = ? ORDER BY u.last_seen DESC`, me, me, me);
-  const out = { friends: [], incoming: [], outgoing: [] };
-  for (const r of rows) {
-    const u = { id: r.uid, username: r.username, avatar_hue: r.avatar_hue, level: levelOf(r.xp).level, online: now() - r.last_seen < 5 * 60e3, verified: !!r.discord_verified_at };
-    if (r.status === 'ACCEPTED') out.friends.push(u);
-    else if (r.requester === me) out.outgoing.push(u);
-    else out.incoming.push(u);
-  }
-  return out;
-}
-
-// ───────────────────────────── Échanges (entre amis)
-export function createTrade(me, { toId, give = [], take = [], creditsFrom = 0, creditsTo = 0, message = '' }) {
-  toId = Number(toId);
-  give = [...new Set(give.map(Number))]; take = [...new Set(take.map(Number))];
-  creditsFrom = Math.max(0, Math.floor(Number(creditsFrom) || 0));
-  creditsTo = Math.max(0, Math.floor(Number(creditsTo) || 0));
-  if (friendStatus(me, toId) !== 'FRIENDS') throw bad('Vous ne pouvez échanger qu’avec vos amis');
-  if (!give.length && !take.length && !creditsFrom && !creditsTo) throw bad('Échange vide');
-  if (give.length > TRADES.maxCardsPerSide || take.length > TRADES.maxCardsPerSide) throw bad(`Maximum ${TRADES.maxCardsPerSide} cartes par côté`);
-  if (creditsFrom > TRADES.maxCredits || creditsTo > TRADES.maxCredits) throw bad('Montant trop élevé');
-  return tx(() => {
-    const open = one("SELECT COUNT(*) n FROM trades WHERE from_id = ? AND status = 'OPEN'", me).n;
-    if (open >= TRADES.maxOpenPerUser) throw bad('Trop d’échanges en attente');
-    for (const id of give) ownedCard(me, id);
-    for (const id of take) ownedCard(toId, id);
-    const u = one('SELECT balance, admin_mode FROM users WHERE id = ?', me);
-    if (!isAdmin(u) && u.balance < creditsFrom) throw bad('Solde insuffisant');
-    const t = now();
-    const res = run('INSERT INTO trades (from_id, to_id, credits_from, credits_to, message, created_at, updated_at) VALUES (?,?,?,?,?,?,?)',
-      me, toId, creditsFrom, creditsTo, String(message).slice(0, 200), t, t);
-    const id = Number(res.lastInsertRowid);
-    for (const c of give) run('INSERT INTO trade_items (trade_id, card_id, side) VALUES (?,?,?)', id, c, 'from');
-    for (const c of take) run('INSERT INTO trade_items (trade_id, card_id, side) VALUES (?,?,?)', id, c, 'to');
-    const meName = one('SELECT username FROM users WHERE id = ?', me).username;
-    notify(toId, `${meName} vous propose un échange`, `#/trades/${id}`);
-    return id;
-  });
-}
-export function tradeDetail(me, id) {
-  const t = one('SELECT * FROM trades WHERE id = ?', Number(id));
-  if (!t || (t.from_id !== me && t.to_id !== me)) throw new HttpError(404, 'Échange introuvable');
-  const items = all('SELECT i.side, c.* FROM trade_items i JOIN cards c ON c.id = i.card_id WHERE i.trade_id = ?', t.id);
-  const users = Object.fromEntries(all('SELECT id, username, avatar_hue FROM users WHERE id IN (?, ?)', t.from_id, t.to_id).map((u) => [u.id, u]));
-  return {
-    ...t, from: users[t.from_id], to: users[t.to_id],
-    give: items.filter((i) => i.side === 'from').map((r) => cardOut(r)),
-    take: items.filter((i) => i.side === 'to').map((r) => cardOut(r)),
-  };
-}
-export function listTrades(me) {
-  return all(`SELECT t.*, f.username AS from_name, o.username AS to_name,
-      (SELECT COUNT(*) FROM trade_items i WHERE i.trade_id = t.id AND i.side = 'from') AS n_give,
-      (SELECT COUNT(*) FROM trade_items i WHERE i.trade_id = t.id AND i.side = 'to') AS n_take
-    FROM trades t JOIN users f ON f.id = t.from_id JOIN users o ON o.id = t.to_id
-    WHERE t.from_id = ? OR t.to_id = ? ORDER BY (t.status = 'OPEN') DESC, t.updated_at DESC LIMIT 60`, me, me);
-}
-export function respondTrade(me, id, action) {
-  return tx(() => {
-    const t = one("SELECT * FROM trades WHERE id = ? AND status = 'OPEN'", Number(id));
-    if (!t) throw bad('Échange introuvable ou clos');
-    if (action === 'cancel') {
-      if (t.from_id !== me) throw bad('Seul l’initiateur peut annuler');
-      run("UPDATE trades SET status = 'CANCELLED', updated_at = ? WHERE id = ?", now(), t.id); return 'CANCELLED';
-    }
-    if (t.to_id !== me) throw bad('Seul le destinataire peut répondre');
-    if (action === 'decline') {
-      run("UPDATE trades SET status = 'DECLINED', updated_at = ? WHERE id = ?", now(), t.id);
-      notify(t.from_id, 'Votre proposition d’échange a été refusée', `#/trades/${t.id}`); return 'DECLINED';
-    }
-    if (action !== 'accept') throw bad('Action inconnue');
-    if (friendStatus(t.from_id, t.to_id) !== 'FRIENDS') throw bad('Vous n’êtes plus amis');
-    const items = all('SELECT * FROM trade_items WHERE trade_id = ?', t.id);
-    for (const i of items) ownedCard(i.side === 'from' ? t.from_id : t.to_id, i.card_id);
-    if (t.credits_from) { credit(t.from_id, -t.credits_from, 'TRADE', `Échange #${t.id}`); credit(t.to_id, t.credits_from, 'TRADE', `Échange #${t.id}`); }
-    if (t.credits_to) { credit(t.to_id, -t.credits_to, 'TRADE', `Échange #${t.id}`); credit(t.from_id, t.credits_to, 'TRADE', `Échange #${t.id}`); }
-    run("UPDATE trades SET status = 'DONE', updated_at = ? WHERE id = ?", now(), t.id);
-    bumpEvent(t.from_id, 'trade'); bumpEvent(t.to_id, 'trade');
-    for (const i of items) {
-      const [from, to] = i.side === 'from' ? [t.from_id, t.to_id] : [t.to_id, t.from_id];
-      transferCard(i.card_id, from, to, 'TRADE');
-    }
-    notify(t.from_id, 'Votre échange a été accepté !', `#/trades/${t.id}`);
-    return 'DONE';
+    credit(l.seller_id, l.price - fee, `Vente au marché : ${g.t}`);
+    moveCopy(l.seller_id, userId, l.card);
+    run(`UPDATE listings SET status = 'SOLD', buyer_id = ?, closed_at = ? WHERE id = ?`, userId, now(), id);
+    addStat(userId, 'trade'); addStat(l.seller_id, 'trade');
+    const buyer = one('SELECT username FROM users WHERE id = ?', userId).username;
+    notify(l.seller_id, `${buyer} a acheté ${g.t} pour ${l.price} ◆ (${l.price - fee} ◆ reçus après frais).`, `/carte/${g.n}`);
+    run('DELETE FROM wishes WHERE user_id = ? AND card = ?', userId, l.card);
+    return { ok: true, card: g.n, user: me(userId) };
   });
 }
 
-// ───────────────────────────── Gradation
-export function submitGrading(me, ids, service) {
-  const svc = GRADING.services[service];
-  if (!svc) throw bad('Service inconnu');
-  ids = [...new Set((ids || []).map(Number))];
-  if (!ids.length || ids.length > GRADING.maxPerOrder) throw bad(`1 à ${GRADING.maxPerOrder} cartes`);
+// --- tableau des échanges -------------------------------------------------------------------------
+export function offersList({ user = null, limit = 100 } = {}) {
+  let sql = `SELECT o.id, o.give, o.wants, o.created_at, u.username, u.hue, o.user_id FROM offers o JOIN users u ON u.id = o.user_id WHERE o.status = 'OPEN'`;
+  const p = [];
+  if (user) { sql += ' AND o.user_id = ?'; p.push(user); }
+  sql += ' ORDER BY o.id DESC LIMIT ?'; p.push(limit);
+  return all(sql, ...p).map((o) => ({ ...o, give: nOf(o.give), wants: JSON.parse(o.wants).map(nOf).filter(Boolean) })).filter((o) => o.give && o.wants.length);
+}
+export function createOffer(userId, giveN, wantsN) {
+  const give = cardId(giveN);
+  const wants = [...new Set((Array.isArray(wantsN) ? wantsN : []).map(idOf).filter((id) => id && id !== give))].slice(0, 5);
+  if (!wants.length) throw new HttpError(400, 'Choisis au moins une carte que tu acceptes en retour.');
   return tx(() => {
-    let fee = 0;
-    for (const id of ids) {
-      const r = ownedCard(me, id);
-      if (r.grade != null) throw bad('Carte déjà gradée');
-      fee += gradingFee(service, valueOfRow(r));
-    }
-    credit(me, -fee, 'GRADING', `${ids.length} carte(s) – ${svc.fr}`);
-    const delay = isAdmin(one('SELECT admin_mode FROM users WHERE id = ?', me)) ? 0 : svc.delayMs;
-    const res = run('INSERT INTO grading_orders (user_id, service, fee, ready_at, created_at) VALUES (?,?,?,?,?)', me, service, fee, now() + delay, now());
-    const oid = Number(res.lastInsertRowid);
-    for (const id of ids) {
-      run('INSERT INTO grading_items (order_id, card_id) VALUES (?,?)', oid, id);
-      run("UPDATE cards SET status = 'GRADING' WHERE id = ?", id);
-      for (const t of all("SELECT t.id FROM trades t JOIN trade_items i ON i.trade_id = t.id WHERE i.card_id = ? AND t.status = 'OPEN'", id)) {
-        run("UPDATE trades SET status = 'FAILED', updated_at = ? WHERE id = ?", now(), t.id);
-      }
-    }
-    return { orderId: oid, fee };
+    const n = one(`SELECT COUNT(*) AS n FROM offers WHERE user_id = ? AND status = 'OPEN'`, userId).n;
+    if (n >= ECONOMY.maxOffers) throw new HttpError(400, 'Tu as trop d’échanges en attente.');
+    reserveCopy(userId, give);
+    const r = run('INSERT INTO offers (user_id, give, wants, created_at) VALUES (?,?,?,?)', userId, give, JSON.stringify(wants), now());
+    return { id: Number(r.lastInsertRowid) };
   });
 }
-export function gradingQuote(me, ids, service) {
-  const svc = GRADING.services[service];
-  if (!svc) throw bad('Service inconnu');
-  let fee = 0;
-  for (const id of ids || []) fee += gradingFee(service, valueOfRow(ownedCard(me, Number(id))));
-  return { fee };
-}
-export function listGrading(me) {
-  return all('SELECT * FROM grading_orders WHERE user_id = ? ORDER BY id DESC LIMIT 30', me).map((o) => ({
-    ...o,
-    cards: all('SELECT c.* FROM grading_items i JOIN cards c ON c.id = i.card_id WHERE i.order_id = ?', o.id).map((r) => cardOut(r)),
-  }));
-}
-let certCounter = null;
-function nextCert() {
-  if (certCounter == null) certCounter = Number(one("SELECT v FROM meta WHERE k = 'cert'")?.v || 0);
-  certCounter++;
-  run("INSERT INTO meta (k, v) VALUES ('cert', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(certCounter));
-  return `MGG-${new Date().getFullYear()}-${String(certCounter).padStart(6, '0')}`;
-}
-export function revealGrading(me, orderId) {
+export function cancelOffer(userId, id) {
   return tx(() => {
-    const o = one("SELECT * FROM grading_orders WHERE id = ? AND user_id = ? AND status = 'PENDING'", Number(orderId), me);
-    if (!o) throw bad('Commande introuvable ou déjà révélée');
-    if (o.ready_at > now()) throw bad('Pas encore prêt');
-    const out = [];
-    for (const { card_id } of all('SELECT card_id FROM grading_items WHERE order_id = ?', o.id)) {
-      const r = one('SELECT * FROM cards WHERE id = ?', card_id);
-      const before = valueOfRow(r);
-      const { subs, grade } = gradeCard(rowToCard(r));
-      run("UPDATE cards SET grade = ?, subgrades = ?, cert = ?, status = 'OWNED' WHERE id = ?", grade, JSON.stringify(subs), nextCert(), r.id);
-      out.push({ ...cardOut(one('SELECT * FROM cards WHERE id = ?', r.id)), before });
-    }
-    run("UPDATE grading_orders SET status = 'DONE' WHERE id = ?", o.id);
-    bumpEvent(me, 'grade', out.length); bumpEvent(me, 'grade9', out.filter((c) => c.g >= 9).length);
-    addXp(me, ECONOMY.xp.grade * out.length);
-    return out;
+    const o = one(`SELECT * FROM offers WHERE id = ? AND status = 'OPEN'`, id);
+    if (!o || o.user_id !== userId) throw new HttpError(404, 'Cet échange n’est plus en attente.');
+    run(`UPDATE offers SET status = 'CANCELLED', closed_at = ? WHERE id = ?`, now(), id);
+    releaseCopy(userId, o.give);
+    return { ok: true };
   });
 }
-export function unslab(me, id) {
+// Le preneur donne l'une des cartes demandées et reçoit la carte proposée, en un clic.
+export function takeOffer(userId, id, giveBackN) {
+  const giveBack = cardId(giveBackN);
   return tx(() => {
-    const r = ownedCard(me, Number(id));
-    if (r.grade == null) throw bad('Carte non gradée');
-    run('UPDATE cards SET grade = NULL, subgrades = NULL, cert = NULL WHERE id = ?', r.id);
-    return cardOut(one('SELECT * FROM cards WHERE id = ?', r.id));
-  });
-}
-export function certLookup(cert) {
-  const r = one('SELECT id FROM cards WHERE cert = ?', String(cert).toUpperCase());
-  if (!r) throw new HttpError(404, 'Certificat inconnu');
-  return cardDetail(r.id);
-}
-
-// ───────────────────────────── Discord
-export function verifyDiscord(me, discordId, discordName) {
-  return tx(() => {
-    const taken = one('SELECT id FROM users WHERE discord_id = ? AND id != ?', discordId, me);
-    if (taken) throw bad('Ce compte Discord est déjà lié à un autre joueur');
-    const u = one('SELECT discord_verified_at FROM users WHERE id = ?', me);
-    run('UPDATE users SET discord_id = ?, discord_name = ?, discord_verified_at = ? WHERE id = ?', discordId, discordName, now(), me);
-    if (!u.discord_verified_at && DISCORD.verifyBonus) credit(me, DISCORD.verifyBonus, 'BONUS', 'Vérification Discord');
+    const o = one(`SELECT * FROM offers WHERE id = ? AND status = 'OPEN'`, id);
+    if (!o) throw new HttpError(404, 'Cet échange n’est plus en attente.');
+    if (o.user_id === userId) throw new HttpError(400, 'C’est ta propre offre.');
+    if (!JSON.parse(o.wants).includes(giveBack)) throw new HttpError(400, 'Cette carte ne fait pas partie de la demande.');
+    reserveCopy(userId, giveBack);
+    moveCopy(userId, o.user_id, giveBack);
+    moveCopy(o.user_id, userId, o.give);
+    run(`UPDATE offers SET status = 'DONE', taker_id = ?, got = ?, closed_at = ? WHERE id = ?`, userId, giveBack, now(), id);
+    addStat(userId, 'trade'); addStat(o.user_id, 'trade');
+    const taker = one('SELECT username FROM users WHERE id = ?', userId).username;
+    notify(o.user_id, `Échange conclu ! ${taker} t’a donné ${gameById(giveBack).t} contre ${gameById(o.give)?.t || 'ta carte'}.`, `/carte/${nOf(giveBack)}`);
+    run('DELETE FROM wishes WHERE user_id = ? AND card = ?', userId, o.give);
+    run('DELETE FROM wishes WHERE user_id = ? AND card = ?', o.user_id, giveBack);
+    return { ok: true, got: nOf(o.give), user: me(userId) };
   });
 }
 
-// ───────────────────────────── Profil, classements, flux
-export function userCardsValue(userId) {
-  let total = 0;
-  for (const r of all("SELECT * FROM cards WHERE owner_id = ? AND status != 'BURNED'", userId)) total += valueOfRow(r);
-  return total;
-}
-let lbCache = { at: 0, data: null };
-export function leaderboards() {
-  if (now() - lbCache.at < 60e3 && lbCache.data) return lbCache.data;
-  const users = all('SELECT id, username, avatar_hue, xp, is_bot FROM users');
-  const byUser = new Map(users.map((u) => [u.id, { ...u, value: 0, best: 0, bestCard: null }]));
-  for (const r of all("SELECT * FROM cards WHERE status != 'BURNED'")) {
-    const u = byUser.get(r.owner_id); if (!u) continue;
-    const v = valueOfRow(r); u.value += v;
-    if (v > u.best) { u.best = v; u.bestCard = r; }
-  }
-  const disc = Object.fromEntries(all('SELECT user_id, COUNT(*) n FROM discovered GROUP BY user_id').map((r) => [r.user_id, r.n]));
-  const list = [...byUser.values()].map((u) => ({
-    id: u.id, username: u.username, avatar_hue: u.avatar_hue, bot: !!u.is_bot, level: levelOf(u.xp).level,
-    value: u.value, best: u.best, bestCard: u.bestCard ? cardOut(u.bestCard) : null, discovered: disc[u.id] || 0,
-  }));
-  const top = (k) => [...list].sort((a, b) => b[k] - a[k]).slice(0, 25);
-  lbCache = { at: now(), data: { value: top('value'), best: top('best'), discovered: top('discovered'), level: top('level') } };
-  return lbCache.data;
-}
-export function publicProfile(username, viewerId) {
-  const u = one('SELECT * FROM users WHERE username = ?', String(username));
-  if (!u) throw new HttpError(404, 'Joueur introuvable');
-  const ids = JSON.parse(u.showcase || '[]');
-  const showcase = ids.map((id) => one("SELECT * FROM cards WHERE id = ? AND owner_id = ? AND status != 'BURNED'", id, u.id)).filter(Boolean).map((r) => cardOut(r));
-  const count = one("SELECT COUNT(*) n FROM cards WHERE owner_id = ? AND status != 'BURNED'", u.id).n;
-  const discovered = one('SELECT COUNT(*) n FROM discovered WHERE user_id = ?', u.id).n;
-  const byRarity = all("SELECT rarity, COUNT(*) n FROM cards WHERE owner_id = ? AND status != 'BURNED' GROUP BY rarity", u.id);
-  return {
-    id: u.id, username: u.username, avatar_hue: u.avatar_hue, bio: u.bio, bot: !!u.is_bot,
-    level: levelOf(u.xp), created_at: u.created_at, online: now() - u.last_seen < 5 * 60e3,
-    verified: !!u.discord_verified_at, discord_name: u.discord_verified_at ? u.discord_name : null,
-    packs_opened: u.packs_opened, count, discovered, total: SKINS.length, byRarity,
-    value: userCardsValue(u.id), showcase,
-    friend: viewerId ? (viewerId === u.id ? 'SELF' : friendStatus(viewerId, u.id)) : null,
-  };
-}
-export function feed(limit = 30) {
-  return all(`SELECT f.at, u.username, u.is_bot, c.* FROM feed f JOIN users u ON u.id = f.user_id JOIN cards c ON c.id = f.card_id
-    ORDER BY f.id DESC LIMIT ?`, limit).map((r) => ({ at: r.at, username: r.username, card: cardOut(r) }));
-}
-export function siteStats() {
-  return {
-    players: one('SELECT COUNT(*) n FROM users WHERE is_bot = 0').n,
-    cards: one("SELECT COUNT(*) n FROM cards WHERE status != 'BURNED'").n,
-    listings: one("SELECT COUNT(*) n FROM listings WHERE status = 'ACTIVE'").n,
-    skins: SKINS.length,
-  };
+// Qui possède une carte (pour proposer un échange) — limité aux doublons libres
+export function holders(n, limit = 20) {
+  const card = cardId(n);
+  return all(`SELECT u.username, u.hue, c.qty FROM collection c JOIN users u ON u.id = c.user_id
+    WHERE c.card = ? AND c.qty > 0 ORDER BY c.qty DESC LIMIT ?`, card, limit);
 }
 
-export { PACK_BY_KEY, RARITIES, rand, wearOf };
+export { GENRES };

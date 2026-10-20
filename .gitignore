@@ -1,5 +1,6 @@
+.cache/
 node_modules/
-data/
+db/
 *.db
 *.db-wal
 *.db-shm

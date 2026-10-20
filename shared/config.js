@@ -1,184 +1,127 @@
-// Mugigo (무기고) – config de jeu : TOUS les paramètres d'équilibrage (partagé serveur + navigateur).
-// Jeu 100 % fictif : aucune monnaie réelle, aucun paiement.
+// Gēmu – équilibrage du jeu, partagé entre le serveur et le navigateur.
+// Les raretés, taux et valeurs de recyclage reprennent ceux de kyara.games.
 
-export const BRAND = { name: 'Mugigo', ko: '무기고', glyph: '무', tagline: 'L’arsenal à collectionner', taglineEn: 'The collectible arsenal' };
-export const CURRENCY = { name: 'Mu', ko: '무', symbol: '무' };
-// Boutique (argent réel) : prévue plus tard. Tant que enabled = false, l'onglet est visible mais verrouillé.
-export const SHOP = { enabled: false };
-// Mode admin de test : interrupteur dans le menu joueur (sans mot de passe) → Mu illimités, gradation instantanée.
-// À désactiver (false) avant l'ouverture au public.
-export const ADMIN_TOGGLE = true;
+export const RARITIES = ['C', 'U', 'R', 'E', 'L', 'M'];
 
-export const RARITIES = [
-  { id: 0, key: 'common',       fr: 'Commun', en: 'Common',       color: '#9aa3ad', glow: '#9aa3ad', base: [4, 10] },
-  { id: 1, key: 'uncommon',     fr: 'Peu commun', en: 'Uncommon',   color: '#4ade80', glow: '#4ade80', base: [14, 34] },
-  { id: 2, key: 'rare',         fr: 'Rare', en: 'Rare',         color: '#3b9cff', glow: '#3b9cff', base: [50, 130] },
-  { id: 3, key: 'ultra',        fr: 'Épique', en: 'Epic',   color: '#b266ff', glow: '#b266ff', base: [220, 560] },
-  { id: 4, key: 'legendary',    fr: 'Légendaire', en: 'Legendary',   color: '#ffb020', glow: '#ffb020', base: [900, 2400] },
-  { id: 5, key: 'mythic',       fr: 'Mythique', en: 'Mythic',     color: '#ff3d5a', glow: '#ff3d5a', base: [4000, 11000] },
-  { id: 6, key: 'transcendent', fr: 'Transcendant', en: 'Transcendent', color: '#5ff3ff', glow: '#ff7ae6', base: [22000, 60000] },
-];
-
-// Répartition du catalogue : skins par modèle d'arme et par rareté (somme = SKINS_PER_MODEL)
-export const SKINS_PER_MODEL = 300;
-export const CATALOG_QUOTA = [100, 78, 54, 36, 20, 9, 3];          // armes à feu
-export const KNIFE_QUOTA = [0, 0, 120, 90, 55, 25, 10];            // couteaux : à partir de Rare
-
-// ───── Usure (float 0 → 1, 6 décimales) – noms propres à Mugigo
-export const WEAR = {
-  tiers: [
-    { key: 'IM', fr: 'Immaculée', en: 'Immaculate',   min: 0.00, max: 0.07, mult: 1.00, weight: 4,  color: '#4ade80' },
-    { key: 'PM', fr: 'Peu marquée', en: 'Lightly Marked', min: 0.07, max: 0.15, mult: 0.80, weight: 9,  color: '#a3e635' },
-    { key: 'EP', fr: 'Éprouvée', en: 'Seasoned',    min: 0.15, max: 0.38, mult: 0.60, weight: 34, color: '#facc15' },
-    { key: 'US', fr: 'Usée', en: 'Worn',        min: 0.38, max: 0.45, mult: 0.45, weight: 9,  color: '#fb923c' },
-    { key: 'RV', fr: 'Ravagée', en: 'Ravaged',     min: 0.45, max: 1.00, mult: 0.30, weight: 44, color: '#ef4444' },
-  ],
+// share : part du catalogue (classé du plus populaire au moins populaire) qui reçoit la rareté.
+export const RARITY = {
+  C: { label: 'Commune', short: 'C', color: '#B5B1BB', drop: 62, recycle: 1, points: 1, value: 2, rule: 'le reste (25 %)', look: 'Cadre gris mat, aucun effet.' },
+  U: { label: 'Peu commune', short: 'U', color: '#3FBF7F', drop: 25, recycle: 1, points: 2, value: 4, rule: 'top 50–75 %', look: 'Cadre vert, filet lumineux.' },
+  R: { label: 'Rare', short: 'R', color: '#4D9BFF', drop: 11.4, recycle: 3, points: 5, value: 12, rule: 'top 25–50 %', look: 'Cadre bleu, halo externe léger.' },
+  E: { label: 'Épique', short: 'E', color: '#B072FF', drop: 1.4, recycle: 10, points: 15, value: 45, rule: 'top 10–25 %', look: 'Cadre violet, premier reflet holo animé.' },
+  L: { label: 'Légendaire', short: 'L', color: '#F5C518', drop: 0.15, recycle: 40, points: 50, value: 180, rule: 'top 3–10 %', look: 'Cadre or brossé, holo et forte lueur.' },
+  M: { label: 'Mythique', short: 'M', color: '#FF4D2E', drop: 0.025, recycle: 150, points: 200, value: 700, rule: 'top 3 %', look: 'Cadre arc-en-ciel, holo intégral.' },
 };
+// bornes cumulées du classement (part du catalogue) : top 3 % Mythique, 3–10 % Légendaire…
+export const RARITY_CUTS = [['M', 0.03], ['L', 0.10], ['E', 0.25], ['R', 0.50], ['U', 0.75], ['C', 1]];
 
-// ───── Graine de motif (0–999) : place le motif sur l'arme ; certaines graines sont rares (voir shared/patterns.js)
-export const PATTERN = { seeds: 1000, tiers: { 1: { fr: 'Graine légendaire', en: 'Legendary seed', mult: 6 }, 2: { fr: 'Graine rare', en: 'Rare seed', mult: 2.5 }, 3: { fr: 'Graine recherchée', en: 'Coveted seed', mult: 1.35 } } };
+export const rarityIndex = (r) => RARITIES.indexOf(r);
 
-// ───── Collections (thèmes de skins)
-export const COLLECTIONS = [
-  { key: 'dragon', sym: '용',  fr: 'Dynastie du Dragon', en: 'Dragon Dynasty', theme: ['#e0b54a', '#c8102e'], arts: ['dragon', 'filigree'] },
-  { key: 'abysses', sym: '해', fr: 'Abysses', en: 'Abyss',            theme: ['#0ea5e9', '#1e3a8a'], arts: ['koi', 'wave'] },
-  { key: 'neon', sym: '빛',    fr: 'Nuit Néon', en: 'Neon Night',          theme: ['#ff2bd6', '#2bfff0'], arts: ['city', 'circuit'] },
-  { key: 'desert', sym: '사',  fr: 'Désert d’Ocre', en: 'Ochre Desert',      theme: ['#d6a35c', '#7a4a1e'], arts: ['scorpion', 'dunes'] },
-  { key: 'forge', sym: '철',   fr: 'Forge Ancienne', en: 'Ancient Forge',     theme: ['#ff8a3d', '#4a4f5a'], arts: ['runes', 'filigree'] },
-  { key: 'sakura', sym: '꽃',  fr: 'Jardin Sakura', en: 'Sakura Garden',      theme: ['#ff9ec7', '#5b2a3a'], arts: ['sakura', 'crane'] },
-  { key: 'cosmos', sym: '별',  fr: 'Cosmos', en: 'Cosmos',             theme: ['#8b5cf6', '#0b1030'], arts: ['galaxy', 'planet'] },
-  { key: 'arctique', sym: '얼', fr: 'Arctique', en: 'Arctic',          theme: ['#bfe9ff', '#2b4a6b'], arts: ['frost', 'wolf'] },
-  { key: 'jungle', sym: '숲',  fr: 'Jungle', en: 'Jungle',             theme: ['#4ade80', '#14532d'], arts: ['tiger', 'serpent'] },
-  { key: 'phenix', sym: '불',  fr: 'Phénix', en: 'Phoenix',             theme: ['#ff5a1f', '#ffd36b'], arts: ['phoenix', 'flames'] },
-];
+export const CURRENCY = { name: 'jetons', one: 'jeton', icon: '◆' };
 
-export const MODIFIERS = {
-  tracker: { chance: 0.08, mult: 1.4 },                 // compteur de victimes (cosmétique)
-  extreme: { low: 0.001, high: 0.999, mult: [1.5, 3.0] },
-};
-
-// ───── Centrage (part de la bordure à gauche / en haut, 50 = parfait)
-export const CENTERING = {
-  sigma: 4.5, min: 28, max: 72,
-  // écart max à 50 → note de centrage (barème type PSA : 55/45 = 10, 60/40 = 9 …)
-  scale: [[5, 10], [7.5, 9.5], [10, 9], [12.5, 8.5], [15, 8], [20, 7], [25, 6], [30, 5], [99, 4]],
-  // effet (léger) du centrage sur une carte NON gradée : [note de centrage ≥ n, multiplicateur]
-  valueMult: [[10, 1.12], [9, 1.04], [8, 1.0], [7, 0.94], [0, 0.85]],
-};
-
-// ───── Carte erreur : deux cartes à moitié sur la même carte
-export const MISPRINT = { chance: 1 / 2000, valueMult: 40 };
-
-// ───── Cartes gradées
-export const GRADING = {
-  maxPerOrder: 10,
-  services: {
-    economy:  { fr: 'Économique', en: 'Economy', baseFee: 40,  delayMs: 24 * 3600e3 },
-    standard: { fr: 'Standard', en: 'Standard',   baseFee: 120, delayMs: 4 * 3600e3 },
-    express:  { fr: 'Express', en: 'Express',    baseFee: 300, delayMs: 10 * 60e3 },
-  },
-  valueFeeRate: 0.02, maxValueFee: 600,
-  model: { k: 9.0, p: 0.75, sigma: { IM: 0.45, PM: 0.55, EP: 0.85, US: 0.9, RV: 0.9 } },
-  weights: { paint: 0.35, edges: 0.25, surface: 0.25, shine: 0.15 },   // sous-notes de l'arme
-  maxByWear: { IM: 10, PM: 10, EP: 9, US: 7, RV: 6 },
-  labels: [[10, 'Pristine'], [9.5, 'Gem Mint'], [9, 'Mint'], [8, 'NM-MT'], [7, 'NM'], [6, 'EX'], [0, 'Abîmée']],
-  valueMult: [[10, 6], [9.5, 3], [9, 2], [8, 1.4], [7, 1.15], [6, 1.0], [5, 0.9], [0, 0.75]],
-  popBonus: [[1, 1.30], [5, 1.15], [25, 1.05]],   // [population ≤ n, multiplicateur]
-};
-
-// ───── Boosters (taux par carte en %, indices = rareté 0..6)
-// Les prix sont calculés automatiquement (shared/packs.js) pour que la valeur moyenne ≈ PACK_EV_TARGET × prix.
-// `npm run calibrate` vérifie le résultat par simulation.
-export const PACK_EV_TARGET = 0.87;
-export const BASE_PACKS = [
-  { key: 'standard',  fr: 'Caisse Mugigo', en: 'Mugigo Crate', ko: '무기고', sym: '무', tag: 'Tous modèles', tagEn: 'All models', filter: {},
-    cards: 5, rates: [62, 25, 9.5, 3, 0.4, 0.09, 0.01], theme: ['#ff4d2e', '#ffb020'] },
-  { key: 'sidearm',   fr: 'Arme de poing', en: 'Sidearm', ko: '권총', sym: '권', tag: 'Pistolets & revolvers', tagEn: 'Pistols & revolvers', filter: { classes: ['pistol', 'revolver'] },
-    cards: 5, rates: [64, 24, 8.5, 2.8, 0.55, 0.13, 0.02], theme: ['#3b9cff', '#5ff3ff'] },
-  { key: 'assault',   fr: 'Rafale', en: 'Burst', ko: '연사', sym: '연', tag: 'PM, fusils, pompes, mitrailleuses', tagEn: 'SMGs, rifles, shotguns, machine guns', filter: { classes: ['smg', 'rifle', 'shotgun', 'lmg'] },
-    cards: 5, rates: [55, 27, 12, 4.5, 1.1, 0.35, 0.05], theme: ['#4ade80', '#d9ff66'] },
-  { key: 'precision', fr: 'Ligne de mire', en: 'Line of Sight', ko: '저격', sym: '저', tag: 'Fusils de précision', tagEn: 'Sniper rifles', filter: { classes: ['sniper', 'dmr'] },
-    cards: 5, rates: [0, 52, 30, 13, 3.8, 1, 0.2], theme: ['#b266ff', '#ff7ae6'] },
-  { key: 'blades',    fr: 'Éclat d’acier', en: 'Steel Glint', ko: '칼날', sym: '검', tag: 'Couteaux', tagEn: 'Knives', filter: { classes: ['knife'] },
-    cards: 5, rates: [0, 0, 62, 26, 9, 2.6, 0.4], theme: ['#ff3d5a', '#ffb020'] },
-  { key: 'mega',      fr: 'Caisse Mugigo XL', en: 'Mugigo Crate XL', ko: '대형', sym: '대', tag: '10 cartes, tous modèles', tagEn: '10 cards, all models', filter: {},
-    cards: 10, rates: [60, 26, 10, 3.3, 0.55, 0.13, 0.02], theme: ['#ff7a1f', '#ffd36b'], evTarget: 0.9 },
-  { key: 'elite',     fr: 'Coffre d’élite', en: 'Elite Chest', ko: '정예', sym: '정', tag: '7 cartes, à partir de Peu commun', tagEn: '7 cards, Uncommon or better', filter: {},
-    cards: 7, rates: [0, 34, 38, 19, 6.5, 2, 0.5], theme: ['#2bd9ff', '#8b5cff'], evTarget: 0.85 },
-  { key: 'royal',     fr: 'Arsenal royal', en: 'Royal Arsenal', ko: '왕실', sym: '왕', tag: '10 cartes, à partir de Rare', tagEn: '10 cards, Rare or better', filter: {},
-    cards: 10, rates: [0, 0, 52, 31, 12, 4, 1], theme: ['#e0b54a', '#c8102e'], evTarget: 0.82 },
-  { key: 'free',      fr: 'Booster gratuit', en: 'Free Pack', ko: '무료 부스터', sym: '공', tag: 'Toutes les 10 minutes', tagEn: 'Every 10 minutes', filter: {}, free: true,
-    price: 0, cards: 3, rates: [78, 17.5, 3.6, 0.75, 0.12, 0.025, 0.005], theme: ['#22c7a9', '#8ef0ff'] },
-];
-// symbole des boosters « par arme » selon la famille
-export const CLASS_SYM = { pistol: '권', revolver: '탄', smg: '속', rifle: '총', dmr: '정', sniper: '저', shotgun: '산', lmg: '포', knife: '검' };
-// Boosters générés : un par collection et un par modèle d'arme (taux renormalisés selon le contenu réel)
-export const COLLECTION_PACK_RATES = [58, 26, 10.5, 4, 1.1, 0.33, 0.07];
-export const MODEL_PACK_RATES = [60, 25, 10, 3.8, 0.9, 0.25, 0.05];
-
-// boosters payants consécutifs sans Épique+ / Légendaire+ / Transcendant.
-// Le compteur Transcendant ne progresse qu'avec les boosters « premium » (taux Transcendant ≥ transcendentMinRate % par carte),
-// sinon la garantie offrirait trop de valeur aux boosters bon marché.
-export const PITY = { ultraAfter: 15, legendaryAfter: 90, transcendentAfter: 150, transcendentMinRate: 0.2 };
-
-// ───── Économie
 export const ECONOMY = {
-  startBalance: 300,
-  welcomePacks: 3,                       // 3 Caisses Standard offertes
-  sellToSystemRate: 0.55,
+  packSize: 5,
+  startJetons: 300,
+  free: { max: 10, regenMinutes: 10 },     // 1 booster gratuit toutes les 10 min, stock de 10
+  welcomeFree: 10,                          // le stock est plein à l'inscription
+  pityMythic: 250,                          // Mythique garantie au 250e booster sans Mythique
+  goldenEvery: 10,                          // 1 booster sur 10 est doré : Épique ou mieux garantie
+  divineChance: 1 / 800,                    // booster divin : Mythique garantie, tout en Rare ou mieux
   marketFee: 0.05,
-  priceCapMult: 20, priceFloorMult: 0.15,
-  maxListings: 40,
-  free: { intervalMs: 10 * 60e3, maxStock: 10 },
-  dailyStreak: [40, 50, 60, 75, 90, 120, 200],
-  xp: { pack: 10, sale: 5, grade: 15, mission: 20 },
+  minPrice: 1,
+  maxPrice: 1_000_000,
+  maxListings: 30,
+  maxOffers: 10,
+  wishMax: 200,
+  showcaseMax: 8,
+  streak: [20, 25, 30, 40, 50, 60, 120],   // récompense de connexion, jour 1 → 7 (puis 7 en boucle)
+  streakBoosterDay: 7,                      // le 7e jour donne aussi un booster gratuit en plus
 };
 
-// ───── Quêtes : quotidiennes (minuit UTC), hebdomadaires (lundi), exploits (une seule fois)
-// ev = évènement suivi ; diff = difficulté affichée ; reward en Mu, packs = Caisses Mugigo offertes
-export const QUEST_DIFF = { facile: { fr: 'Facile', en: 'Easy', color: '#4ade80' }, moyen: { fr: 'Moyen', en: 'Medium', color: '#3b9cff' }, difficile: { fr: 'Difficile', en: 'Hard', color: '#b266ff' }, extreme: { fr: 'Extrême', en: 'Extreme', color: '#ffb020' } };
-export const QUESTS = {
+// Groupes de tags Steam (identifiants) → thèmes des boosters et filtres.
+export const GENRES = {
+  action: { label: 'Action', kanji: '撃', color: '#FF4D2E', tags: [19, 1646, 4106] },
+  aventure: { label: 'Aventure', kanji: '旅', color: '#3FBF7F', tags: [21, 3834, 1695] },
+  rpg: { label: 'RPG', kanji: '冒', color: '#B072FF', tags: [122, 4231, 4434, 1754] },
+  tir: { label: 'Tir & FPS', kanji: '銃', color: '#FF7A45', tags: [1663, 1774, 3814] },
+  strategie: { label: 'Stratégie', kanji: '策', color: '#4D9BFF', tags: [9, 1676, 1741, 1708] },
+  simulation: { label: 'Simulation & gestion', kanji: '営', color: '#4DD6FF', tags: [599, 12472, 4328, 1100687] },
+  horreur: { label: 'Horreur', kanji: '怖', color: '#C0392B', tags: [1667, 1721, 3978, 1659] },
+  inde: { label: 'Indé', kanji: '独', color: '#FF4D9E', tags: [492] },
+  plateforme: { label: 'Plateforme', kanji: '跳', color: '#F5C518', tags: [1625, 1628] },
+  course: { label: 'Course & sport', kanji: '速', color: '#FFB347', tags: [699, 701, 1644] },
+  survie: { label: 'Survie & craft', kanji: '生', color: '#8BC34A', tags: [1662, 1702, 1100689, 7332] },
+  roguelike: { label: 'Roguelike', kanji: '輪', color: '#E056FD', tags: [1716, 3959, 42804] },
+  combat: { label: 'Combat', kanji: '拳', color: '#FF5C5C', tags: [1743] },
+  multi: { label: 'Multijoueur', kanji: '群', color: '#4DB6AC', tags: [128, 1775, 3878] },
+  anime: { label: 'Anime', kanji: '絵', color: '#FF8AC9', tags: [4085] },
+  casse: { label: 'Casse-tête', kanji: '謎', color: '#9CCC65', tags: [1664] },
+};
+
+// Boosters. pool : filtre sur le catalogue ; usesFree : s'ouvre avec le stock gratuit (sinon jetons).
+// slots : raretés minimales garanties par emplacement (null = tirage libre).
+export const BOOSTERS = [
+  { id: 'standard', cat: 'free', name: 'Booster Standard', sub: 'Tout le catalogue', kanji: '遊', color: '#FF4D2E', price: 100, usesFree: true, pool: {} },
+  { id: 'retro', cat: 'free', name: 'Rétro', sub: 'Sortis avant 2006', kanji: '昔', color: '#E9C496', price: 100, usesFree: true, pool: { yearMax: 2005 } },
+  { id: 'eighties', cat: 'free', name: 'Années 2006–2015', sub: "L'âge d'or HD", kanji: '黄', color: '#F5C518', price: 100, usesFree: true, pool: { yearMin: 2006, yearMax: 2015 } },
+  { id: 'nextgen', cat: 'free', name: 'Nouvelle génération', sub: 'Sortis depuis 2020', kanji: '新', color: '#4DD6FF', price: 100, usesFree: true, pool: { yearMin: 2020 } },
+  ...Object.entries(GENRES).map(([g, d]) => ({ id: `g-${g}`, cat: 'free', name: d.label, sub: `Booster ${d.label}`, kanji: d.kanji, color: d.color, price: 100, usesFree: true, pool: { genre: g } })),
+  { id: 'nintendo', cat: 'shop', name: 'Consoles Nintendo', sub: 'NES → Switch 2', kanji: '任', color: '#E60012', price: 150, pool: { platform: 'nintendo' } },
+  { id: 'playstation', cat: 'shop', name: 'Exclus PlayStation', sub: 'PS1 → PS5', kanji: '駅', color: '#2E6DB4', price: 150, pool: { platform: 'playstation' } },
+  { id: 'arcade', cat: 'shop', name: 'Arcade & cartouches', sub: 'Bornes, Mega Drive, Game Boy…', kanji: '機', color: '#FF4D9E', price: 150, pool: { platform: 'retro' } },
+  { id: 'mobile', cat: 'shop', name: 'Mobile & free-to-play', sub: 'Les géants du téléphone', kanji: '携', color: '#3FBF7F', price: 150, pool: { platform: 'mobile' } },
+  { id: 'univers', cat: 'shop', name: 'Grandes sagas', sub: 'Uniquement des jeux de séries', kanji: '系', color: '#B072FF', price: 150, pool: { saga: true } },
+  { id: 'prestige', cat: 'shop', name: 'Édition prestige', sub: 'Rare ou mieux sur chaque carte', kanji: '極', color: '#F5C518', price: 600, pool: {}, slots: ['R', 'R', 'R', 'R', 'E'] },
+  { id: 'daily', cat: 'limited', name: 'Pack du jour', sub: 'Gratuit · 1 par jour · Épique garantie', kanji: '日', color: '#FF6A4D', price: 0, daily: true, pool: {}, slots: [null, null, null, null, 'E'] },
+];
+
+export const boosterById = (id) => BOOSTERS.find((b) => b.id === id);
+
+// Le pack du jour change de thème chaque jour (genre).
+export function dailyTheme(dayKey) {
+  const keys = Object.keys(GENRES);
+  let h = 0;
+  for (const ch of dayKey) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return keys[h % keys.length];
+}
+
+// Missions (réinitialisées à minuit / le lundi, heure de Paris) et succès.
+export const MISSIONS = {
   daily: [
-    { key: 'd_open3', ev: 'open', fr: 'Ouvrir 3 boosters', en: 'Open 3 packs', target: 3, reward: 60, diff: 'facile' },
-    { key: 'd_free2', ev: 'open_free', fr: 'Ouvrir 2 boosters gratuits', en: 'Open 2 free packs', target: 2, reward: 30, diff: 'facile' },
-    { key: 'd_new3', ev: 'new', fr: 'Découvrir 3 nouveaux skins', en: 'Discover 3 new skins', target: 3, reward: 50, diff: 'facile' },
-    { key: 'd_market', ev: 'market', fr: 'Acheter ou vendre sur le marché', en: 'Buy or sell on the market', target: 1, reward: 50, diff: 'moyen' },
-    { key: 'd_ultra', ev: 'drop3', fr: 'Obtenir une carte Épique ou mieux', en: 'Pull an Epic card or better', target: 1, reward: 90, diff: 'moyen' },
-    { key: 'd_open10', ev: 'open', fr: 'Ouvrir 10 boosters', en: 'Open 10 packs', target: 10, reward: 220, diff: 'difficile' },
+    { id: 'd-open5', label: 'Ouvre 5 boosters', stat: 'open', goal: 5, reward: 40 },
+    { id: 'd-daily', label: 'Ouvre le pack du jour', stat: 'dailyPack', goal: 1, reward: 25 },
+    { id: 'd-rare', label: 'Tire une Rare ou mieux', stat: 'rarePlus', goal: 1, reward: 25 },
+    { id: 'd-recycle', label: 'Recycle 10 doublons', stat: 'recycled', goal: 10, reward: 30 },
   ],
   weekly: [
-    { key: 'w_daily5', ev: 'daily', fr: 'Se connecter 5 jours', en: 'Log in on 5 days', target: 5, reward: 300, diff: 'facile' },
-    { key: 'w_new40', ev: 'new', fr: 'Découvrir 40 nouveaux skins', en: 'Discover 40 new skins', target: 40, reward: 400, diff: 'moyen' },
-    { key: 'w_grade3', ev: 'grade', fr: 'Faire grader 3 cartes', en: 'Get 3 cards graded', target: 3, reward: 300, diff: 'moyen' },
-    { key: 'w_trade3', ev: 'trade', fr: 'Réaliser 3 échanges avec des amis', en: 'Complete 3 trades with friends', target: 3, reward: 300, diff: 'moyen' },
-    { key: 'w_tradeup2', ev: 'tradeup', fr: 'Signer 2 contrats', en: 'Sign 2 contracts', target: 2, reward: 250, diff: 'moyen' },
-    { key: 'w_open40', ev: 'open', fr: 'Ouvrir 40 boosters', en: 'Open 40 packs', target: 40, reward: 600, packs: 2, diff: 'difficile' },
-    { key: 'w_legend', ev: 'drop4', fr: 'Obtenir une carte Légendaire ou mieux', en: 'Pull a Legendary card or better', target: 1, reward: 700, diff: 'difficile' },
-  ],
-  long: [
-    { key: 'l_open250', ev: 'open', fr: 'Ouvrir 250 boosters', en: 'Open 250 packs', target: 250, reward: 2500, packs: 5, diff: 'difficile' },
-    { key: 'l_new500', ev: 'new', fr: 'Découvrir 500 skins', en: 'Discover 500 skins', target: 500, reward: 3000, diff: 'difficile' },
-    { key: 'l_sell50', ev: 'market_sell', fr: 'Vendre 50 cartes sur le marché', en: 'Sell 50 cards on the market', target: 50, reward: 1500, diff: 'difficile' },
-    { key: 'l_friends10', ev: 'friend', fr: 'Avoir 10 amis', en: 'Have 10 friends', target: 10, reward: 800, diff: 'moyen' },
-    { key: 'l_grade9', ev: 'grade9', fr: 'Obtenir une note de 9 ou plus', en: 'Get a grade of 9 or higher', target: 1, reward: 1200, diff: 'difficile' },
-    { key: 'l_mythic', ev: 'drop5', fr: 'Obtenir une carte Mythique', en: 'Pull a Mythic card', target: 1, reward: 1500, diff: 'difficile' },
-    { key: 'l_misprint', ev: 'misprint', fr: 'Trouver une carte erreur', en: 'Find a misprint card', target: 1, reward: 5000, diff: 'extreme' },
-    { key: 'l_transc', ev: 'drop6', fr: 'Obtenir une carte Transcendante', en: 'Pull a Transcendent card', target: 1, reward: 10000, packs: 10, diff: 'extreme' },
+    { id: 'w-open50', label: 'Ouvre 50 boosters', stat: 'open', goal: 50, reward: 250, freePacks: 2 },
+    { id: 'w-epic', label: 'Tire 3 Épiques ou mieux', stat: 'epicPlus', goal: 3, reward: 150 },
+    { id: 'w-new', label: 'Découvre 40 nouveaux jeux', stat: 'newCards', goal: 40, reward: 150 },
+    { id: 'w-market', label: 'Vends, achète ou échange 1 carte', stat: 'trade', goal: 1, reward: 100 },
   ],
 };
-// compatibilité : anciennes missions du jour
-export const MISSIONS = QUESTS.daily;
 
-export const LEVELS = [0, 100, 250, 500, 900, 1500, 2400, 3800, 6000, 9500, 15000]; // XP par niveau
+export const ACHIEVEMENTS = [
+  { id: 'a-first', label: 'Premier booster', desc: 'Ouvre ton premier booster', stat: 'open', goal: 1, reward: 50 },
+  { id: 'a-open100', label: 'Habitué', desc: 'Ouvre 100 boosters', stat: 'open', goal: 100, reward: 200 },
+  { id: 'a-open1000', label: 'Accro', desc: 'Ouvre 1 000 boosters', stat: 'open', goal: 1000, reward: 1000 },
+  { id: 'a-uniq100', label: 'Ludothèque', desc: '100 jeux différents', stat: 'unique', goal: 100, reward: 100 },
+  { id: 'a-uniq500', label: 'Collectionneur', desc: '500 jeux différents', stat: 'unique', goal: 500, reward: 400 },
+  { id: 'a-uniq1500', label: 'Archiviste', desc: '1 500 jeux différents', stat: 'unique', goal: 1500, reward: 1200 },
+  { id: 'a-uniq3000', label: 'Conservateur', desc: '3 000 jeux différents', stat: 'unique', goal: 3000, reward: 3000 },
+  { id: 'a-epic', label: 'Violet', desc: 'Tire ta première Épique', stat: 'epicPlus', goal: 1, reward: 50 },
+  { id: 'a-legend', label: 'Or brossé', desc: 'Tire ta première Légendaire', stat: 'legendPlus', goal: 1, reward: 150 },
+  { id: 'a-mythic', label: 'Arc-en-ciel', desc: 'Tire ta première Mythique', stat: 'mythic', goal: 1, reward: 500 },
+  { id: 'a-univers', label: 'Saga complète', desc: 'Complète un univers à 100 %', stat: 'universDone', goal: 1, reward: 200 },
+  { id: 'a-univers10', label: 'Encyclopédiste', desc: 'Complète 10 univers', stat: 'universDone', goal: 10, reward: 800 },
+  { id: 'a-recycle', label: 'Recycleur', desc: 'Recycle 500 doublons', stat: 'recycled', goal: 500, reward: 150 },
+  { id: 'a-streak', label: 'Fidèle', desc: 'Série de connexion de 7 jours', stat: 'streak', goal: 7, reward: 150 },
+  { id: 'a-trade', label: 'Marchand', desc: '10 ventes, achats ou échanges', stat: 'trade', goal: 10, reward: 200 },
+];
 
-export const DISCORD = {
-  minAccountAgeDays: 7,
-  // Actions réservées aux comptes vérifiés (si l'OAuth Discord est configuré côté serveur)
-  gated: ['market.sell', 'trade', 'friends.request'],
-  verifyBonus: 150,                      // crédits offerts à la vérification
-};
-
-export const TRADES = { maxCardsPerSide: 12, maxOpenPerUser: 15, maxCredits: 250000 };
-export const TRADE_UP = { inputCount: 10, cost: 25, maxInputRarity: 5 };
-export const LEGAL = 'Mugigo est un jeu fictif sans valeur réelle. Aucune monnaie réelle, aucun achat, aucune revente hors du site. Toutes les armes et tous les skins sont imaginaires et ne sont affiliés à aucune marque ni à aucun éditeur.';
-export const LEGAL_EN = 'Mugigo is a fictional game with no real value. No real money, no purchases, no resale outside the site. All weapons and skins are imaginary and are not affiliated with any brand or publisher.';
+// Rangs du joueur, d'après ses points de collection (Commune 1 … Mythique 200).
+export const RANKS = [
+  [0, 'Joueur du dimanche'], [100, 'Apprenti'], [400, 'Habitué'], [1000, 'Collectionneur'],
+  [2500, 'Expert'], [5000, 'Vétéran'], [10000, 'Maître'], [20000, 'Légende'], [40000, 'Hall of Fame'],
+];
+export const rankFor = (pts) => RANKS.reduce((a, r) => (pts >= r[0] ? r : a), RANKS[0]);

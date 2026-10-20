@@ -1,275 +1,378 @@
-// Séquence d'ouverture de booster : déchirure, pile de cartes, suspense pour les raretés, révélation, résumé.
-import { RARITIES, ECONOMY } from '/shared/config.js';
-import { SKIN_BY_ID, MODEL_BY_KEY } from '/shared/catalog.js';
-import { wearOf, fmtFloat } from '/shared/rules.js';
-import { cardHTML, cardBack } from './art/card.js';
-import { packSVG } from './art/pack.js';
-import { Particles, sound, haptic } from './fx.js';
-import { esc, cr, toast, $, reducedMotion } from './ui.js';
-import { post, store } from './api.js';
-import { t, L } from '/shared/i18n.js';
+// Ouverture d'un booster : déchirure (glisser le long du haut ou bouton), cartes empilées, suspense lumineux
+// avant les cartes rares, retournement, rayons, onde de choc, particules, sons, puis récapitulatif.
+import { RARITY, RARITIES, ECONOMY, rarityIndex, GENRES } from '/shared/config.js';
+import { matches } from '/shared/pools.js';
+import { S, setUser, addPulled, game, artUrl } from './state.js';
+import { api } from './api.js';
+import { cardHTML, backHTML, slotHTML, inspect } from './card.js';
+import { packHTML, todayTheme } from './pack.js';
+import { Particles, sfx, vibrate } from './fx.js';
+import { esc, icon, fmt, gem, sleep, toast, toastErr, modal, confirmBox, prefs, pct, $ } from './util.js';
 
-const left = (n) => (n > 1 ? t('Cliquez sur la carte · {n} restantes', { n }) : t('Cliquez sur la carte · {n} restante', { n }));
-const sleep = (ms) => new Promise((r) => setTimeout(r, reducedMotion() ? Math.min(ms, 60) : ms));
-export const cardOf = (c, opts = {}) => cardHTML(SKIN_BY_ID.get(c.s), c, { ...opts, misprintSkin: c.mp ? SKIN_BY_ID.get(c.mp) : null });
+const CHARGE = { C: 0, U: 0, R: 450, E: 900, L: 1500, M: 2200 };
 
-
-export function openSequence(pack, result, { onAgain } = {}) {
-  const cards = result.packs.flatMap((p) => p.cards);
-  // la carte la plus rare est révélée en dernier (suspense), les erreurs encore après
-  const order = [...cards].sort((a, b) => (a.mp ? 99 : a.r) - (b.mp ? 99 : b.r) || a.value - b.value);
-  const el = document.createElement('div');
-  el.className = 'opening';
-  el.style.setProperty('--glow', pack.theme[0]);
-  el.innerHTML = `
-    <canvas class="fx"></canvas>
-    <div class="flash-screen"></div><div class="shockwave"></div><div class="rarity-burst"></div>
-    <div class="controls">
-      <button class="btn sm ghost" data-sound title="${t('Son')}">${sound.on ? '🔊' : '🔇'}</button>
-      <button class="btn sm" data-all>${t('Tout révéler')}</button>
-      <button class="btn sm ghost" data-close aria-label="${t('Fermer')}">✕</button>
-    </div>
-    <div class="stage">
-      <div class="pack-big">${packSVG(pack)}<div class="tear-hint">${t('CLIQUEZ OU GLISSEZ POUR DÉCHIRER')}</div></div>
-      ${order.map((c, i) => `<div class="stack-card" data-i="${i}" style="--rg:${RARITIES[c.r].glow};z-index:${order.length - i};opacity:0;transform:translateY(30%) scale(.85)">
-        <div class="flip"><div class="face back"></div><div class="face front"></div></div>
-      </div>`).join('')}
-      <div class="reveal-info"></div>
-      <div class="stack-hint"></div>
-    </div>
-    <div class="tray"></div>
-    <div class="summary"></div>`;
-  document.body.append(el);
-  document.body.style.overflow = 'hidden';
-  const fx = new Particles(el.querySelector('canvas.fx'));
-  // particules qui remontent du bas de l'écran, à la couleur courante de la scène
-  fx.ambient(() => el.style.getPropertyValue('--glow') || pack.theme[0], 0.12);
-  const stage = $('.stage', el), packEl = $('.pack-big', el), info = $('.reveal-info', el), hint = $('.stack-hint', el);
-  const stack = [...el.querySelectorAll('.stack-card')];
-  let idx = 0, busy = false, torn = false, closed = false;
-  const fitGridRef = { fn: () => {} };
-
-  // rendu paresseux : seules les cartes proches du sommet de la pile existent dans le DOM
-  // (une ouverture ×10 = 50 cartes, chacune avec ses filtres d'usure → trop lourd en une fois)
-  const BACKS = 7, FRONTS = 2;
-  const stackPos = (s, i) => {
-    const depth = Math.min(i - idx, 6);
-    s.style.opacity = 1;
-    s.style.transform = `translate(${depth * 3}px, ${-depth * 3}px) rotate(${(i % 2 ? 1 : -1) * Math.min(depth, 3) * 0.25}deg)`;
+export function ratesModal(b) {
+  const pool = b.daily ? { ...(b.pool || {}), genre: todayTheme() } : b.pool || {};
+  const counts = Object.fromEntries(RARITIES.map((r) => [r, 0]));
+  for (const g of S.games) if (matches(g, pool)) counts[g.r]++;
+  const total = RARITIES.reduce((s, r) => s + RARITY[r].drop, 0);
+  const slots = b.slots || Array(ECONOMY.packSize).fill(null);
+  // chance qu'au moins une carte du booster soit de cette rareté (ou mieux pour les emplacements garantis)
+  const perPack = (r) => {
+    let none = 1;
+    for (const min of slots) {
+      const allowed = RARITIES.filter((x) => rarityIndex(x) >= rarityIndex(min || 'C'));
+      const sum = allowed.reduce((s, x) => s + RARITY[x].drop, 0);
+      const p = allowed.includes(r) ? RARITY[r].drop / sum : 0;
+      none *= 1 - p;
+    }
+    return (1 - none) * 100;
   };
-  function prep() {
-    for (let i = idx; i < Math.min(stack.length, idx + BACKS); i++) {
-      const s = stack[i], back = s.querySelector('.face.back');
-      if (!back.firstChild) { back.innerHTML = `<div class="liseret"></div>${cardBack()}`; s.hidden = false; if (torn) stackPos(s, i); }
-      const front = s.querySelector('.face.front');
-      if (i < idx + FRONTS && !front.firstChild) front.innerHTML = cardOf(order[i]);
-    }
-  }
-  stack.forEach((s, i) => { s.hidden = i >= BACKS; });
-  prep();
-
-  const center = () => { const r = stage.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-  const close = () => {
-    if (closed) return; closed = true;
-    fx.destroy(); el.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); removeEventListener('resize', fitGridRef.fn);
-    store.refresh();
-  };
-
-  // ── Déchirure : clic, ou glisser horizontalement sur le haut du pack
-  let sx = null;
-  packEl.addEventListener('pointerdown', (e) => { sx = e.clientX; });
-  packEl.addEventListener('pointermove', (e) => { if (sx != null && Math.abs(e.clientX - sx) > 90) tear(); });
-  packEl.addEventListener('click', () => tear());
-
-  async function tear() {
-    if (torn) return; torn = true;
-    sound.play('tear'); haptic(30);
-    packEl.classList.add('torn');
-    const [x, y] = center();
-    fx.burst(x, y - stage.offsetHeight * 0.45, ['#fff', pack.theme[1]], 22, { speed: 6, size: 2.5 });
-    // lueur rapide de la couleur de la carte la plus rare du booster
-    const best = order.reduce((a, b) => (b.r > a.r ? b : a), order[0]);
-    const bc = best.mp ? '#ff2b6a' : RARITIES[best.r].glow;
-    const fl = el.querySelector('.flash-screen');
-    fl.style.background = `radial-gradient(circle at 50% 45%, ${bc}, transparent 70%)`;
-    fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
-    el.style.setProperty('--glow', bc);
-    setTimeout(() => el.style.setProperty('--glow', pack.theme[0]), 700);
-    await sleep(450);
-    packEl.classList.add('gone');
-    const shown = stack.filter((s) => !s.hidden);
-    shown.forEach((s, i) => setTimeout(() => stackPos(s, i), 120 + (shown.length - i) * 40));
-    await sleep(500 + shown.length * 40);
-    stack[0]?.classList.add('is-top');
-    hint.textContent = left(stack.length);
-  }
-
-  async function next() {
-    if (!torn) return tear();
-    if (busy || idx >= stack.length) return;
-    busy = true;
-    const s = stack[idx], c = order[idx];
-    if (!s.classList.contains('flipped')) {
-      await reveal(s, c);
-    } else {
-      // carte déjà révélée → elle file dans le plateau
-      s.style.transition = 'transform .55s cubic-bezier(.22,1,.36,1), opacity .45s';
-      s.style.transform = `translate(${innerWidth * 0.7}px, ${innerHeight * 0.25}px) rotate(24deg) scale(.6)`;
-      s.style.opacity = 0;
-      setTimeout(() => { s.style.display = 'none'; }, 600);
-      info.innerHTML = '';
-      const mini = document.createElement('div');
-      mini.className = 'mini'; mini.innerHTML = cardOf(c, { small: true, noSlab: true, lite: true });
-      const tray = $('.tray', el); tray.append(mini);
-      if (tray.children.length > 12) tray.firstElementChild.remove();
-      idx++;
-      prep();
-      stack[idx]?.classList.add('is-top');
-      hint.textContent = idx < stack.length ? left(stack.length - idx) : '';
-      await sleep(260);
-      if (idx >= stack.length) summary();
-    }
-    busy = false;
-  }
-
-  async function reveal(s, c, quick = false) {
-    const R = RARITIES[c.r];
-    const special = c.mp || c.r >= 3;
-    hint.textContent = '';
-    // retournement immédiat au clic : pas de charge ni de note avant, seul le jingle du retournement
-    s.classList.add('flipped', 'revealed');
-    // la lueur de fond prend (et garde) la couleur de la dernière carte révélée
-    el.style.setProperty('--glow', c.mp ? '#ff2b6a' : R.glow);
-    sound.play('flip', c.mp ? 6 : c.r);
-    if (quick) return;
-    const [x, y] = center();
-    if (special) {
-      haptic(c.r >= 5 ? [60, 40, 120] : 50);
-      const burst = $('.rarity-burst', el);
-      burst.style.setProperty('--rg', c.mp ? '#ff2b6a' : R.glow);
-      burst.textContent = c.mp ? t('CARTE ERREUR !') : t('{r} !', { r: L(R).toUpperCase() });
-      burst.classList.remove('go'); void burst.offsetWidth; burst.classList.add('go');
-      const wave = $('.shockwave', el);
-      wave.style.setProperty('--rg', R.glow); wave.classList.remove('go'); void wave.offsetWidth; wave.classList.add('go');
-      fx.burst(x, y, [R.color, R.glow, '#fff'], 16 + c.r * 8, { speed: 6 + c.r, size: 3 });
-      if (c.r >= 4 || c.mp) fx.stars(x, y, c.r === 6 || c.mp ? ['#5ff3ff', '#ff7ae6', '#ffe46b', '#fff'] : [R.color, '#fff'], 8 + (c.r - 4) * 5, { speed: 7 + c.r });
-      if (c.r >= 4 || c.mp) { const f = $('.flash-screen', el); f.style.background = '#fff'; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
-      if (c.r >= 5 || c.mp) {
-        el.classList.remove('quake'); void el.offsetWidth; el.classList.add('quake');
-        fx.rain(c.r === 6 || c.mp ? ['#5ff3ff', '#ff7ae6', '#ffe46b', '#fff'] : ['#ffd76a', '#ffb020', '#fff'], 60);
-      }
-    } else {
-      fx.burst(x, y, R.color, 6, { speed: 4, size: 2 });
-    }
-    const skin = SKIN_BY_ID.get(c.s);
-    const w = wearOf(c.f);
-    info.innerHTML = `<div class="big" style="color:${R.color}">${esc(MODEL_BY_KEY[skin.m].name)} | ${esc(L(skin, 'n'))}</div>
-      <div class="muted small">${esc(L(R))} · ${w.key} ${fmtFloat(c.f)}${c.tr != null ? ` · ${t('Traqueur')}` : ''}</div>
-      <div style="margin-top:6px">${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span> ` : ''}<span class="pill">${cr(c.value)}</span></div>`;
-  }
-
-  async function revealAll() {
-    if (!torn) { torn = true; packEl.classList.add('gone'); }
-    const best = order.reduce((a, b) => (b.r > a.r || (b.mp && !a.mp) ? b : a), order[0]);
-    if (best.r >= 4 || best.mp) {
-      const R = RARITIES[best.r];
-      const [x, y] = center();
-      fx.burst(x, y, [R.color, '#fff'], 50, { speed: 10 });
-      sound.play('rare', best.r);
-    }
-    idx = stack.length;
-    summary();
-  }
-
-  const EAGER = 10;
-  function summary() {
-    el.classList.add('done');
-    const total = cards.reduce((a, c) => a + c.value, 0);
-    const lows = cards.filter((c) => c.r <= 1 && !c.mp && c.g == null);
-    const lowGain = lows.reduce((a, c) => a + Math.max(1, Math.floor(c.value * ECONOMY.sellToSystemRate)), 0);
-    const sum = $('.summary', el);
-    const sorted = [...cards].sort((a, b) => b.value - a.value);
-    sum.innerHTML = `
-      <div class="summary-head">
-        <div><div class="muted small">${result.packs.length} × ${esc(L(pack))}${result.welcomeUsed ? ` ${result.welcomeUsed > 1 ? t('({n} offerts)', { n: result.welcomeUsed }) : t('({n} offert)', { n: result.welcomeUsed })}` : ''}</div>
-          <div class="total">${t('Valeur totale :')} ${cr(total)}</div>
-          ${result.packs.some((p) => p.pityTriggered != null) ? `<div class="pill" style="margin-top:6px">✨ ${t('Garantie déclenchée')}</div>` : ''}</div>
-        <div class="row">
-          ${lows.length ? `<button class="btn" data-sell-low>${lows.length > 1 ? t('Vendre {n} communes', { n: lows.length }) : t('Vendre {n} commune', { n: lows.length })} · +${cr(lowGain)}</button>` : ''}
-          <button class="btn ghost" data-close2>${t('Tout garder')}</button>
-          ${onAgain ? `<button class="btn primary" data-again>${t('Rouvrir')} ${pack.free ? '' : `· ${pack.price} <i class="mu" aria-label="Mu">무</i>`}</button>` : ''}
-        </div>
-      </div>
-      <div class="summary-grid">${sorted.map((c, i) => `<div class="tile" style="--i:${Math.min(i, 12)}">${i < EAGER ? cardOf(c) : `<div class="card-ph" data-ph="${i}"></div>`}
-        <div class="meta">${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span>` : ''}<b>${cr(c.value)}</b></div></div>`).join('')}</div>`;
-    // les cartes suivantes sont dessinées quand elles approchent de l'écran
-    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
-      if (!e.isIntersecting) return;
-      io.unobserve(e.target);
-      e.target.outerHTML = cardOf(sorted[Number(e.target.dataset.ph)]);
-    }), { root: sum, rootMargin: '400px 0px' });
-    sum.querySelectorAll('[data-ph]').forEach((x) => io.observe(x));
-    // taille des cartes calculée pour que tout le résumé tienne à l'écran (mobile compris)
-    const gridEl = sum.querySelector('.summary-grid');
-    const fitGrid = () => {
-      const head = sum.querySelector('.summary-head');
-      const cs = getComputedStyle(sum);
-      const W = sum.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      const H = sum.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - head.offsetHeight - 20;
-      const n = sorted.length, gap = innerWidth < 600 ? 8 : 14, meta = innerWidth < 600 ? 22 : 30;
-      let best = 0, cols = 1;
-      for (let c = 1; c <= n; c++) {
-        const w = Math.min(230, (W - (c - 1) * gap) / c), rows = Math.ceil(n / c);
-        if (rows * (w * 88 / 63 + meta) + (rows - 1) * gap <= H && w > best) { best = w; cols = c; }
-      }
-      if (!best) { cols = Math.max(1, Math.floor((W + gap) / (64 + gap))); best = (W - (cols - 1) * gap) / cols; }
-      gridEl.style.gridTemplateColumns = `repeat(${cols}, ${Math.floor(best)}px)`;
-      gridEl.style.gap = `${gap}px`;
-      gridEl.classList.toggle('compact', best < 120);
-    };
-    fitGrid();
-    fitGridRef.fn = fitGrid;
-    addEventListener('resize', fitGrid);
-    // inspection : clic sur une carte du résumé → la carte s'agrandit en tournant, inclinable à la souris
-    gridEl.addEventListener('click', (e) => {
-      const tile = e.target.closest('.tile'); if (!tile) return;
-      const c = sorted[[...gridEl.children].indexOf(tile)]; if (!c) return;
-      const R = RARITIES[c.r], skin = SKIN_BY_ID.get(c.s), w = wearOf(c.f);
-      const r0 = tile.getBoundingClientRect();
-      const z = document.createElement('div');
-      z.className = 'zoom-inspect';
-      z.innerHTML = `<div class="zoom-card" style="--fx:${r0.left + r0.width / 2 - innerWidth / 2}px;--fy:${r0.top + r0.height / 2 - innerHeight / 2}px;--fs:${(r0.width / Math.min(380, innerWidth * 0.8)).toFixed(3)}">${cardOf(c)}</div>
-        <div class="zoom-info"><div class="big" style="color:${R.color}">${esc(MODEL_BY_KEY[skin.m].name)} | ${esc(L(skin, 'n'))}</div>
-          <div class="muted small">${esc(L(R))} · ${w.key} ${fmtFloat(c.f)}${c.tr != null ? ` · ${t('Traqueur')}` : ''}</div>
-          <div style="margin-top:6px">${c.isNew ? `<span class="pill tag-new">${t('NOUVEAU')}</span> ` : ''}<span class="pill">${cr(c.value)}</span></div>
-          <div class="muted small" style="margin-top:10px">${t('Cliquez n’importe où pour fermer')}</div></div>`;
-      el.append(z);
-      sound.play('flip', 0);
-      const shut = () => { z.classList.add('out'); setTimeout(() => z.remove(), 300); };
-      z.addEventListener('click', (ev) => { if (!ev.target.closest('.zoom-card')) shut(); });
-      z.querySelector('.zoom-card').addEventListener('dblclick', shut);
-    });
-    sum.querySelector('[data-close2]').onclick = close;
-    sum.querySelector('[data-again]')?.addEventListener('click', () => { close(); onAgain(); });
-    sum.querySelector('[data-sell-low]')?.addEventListener('click', async (e) => {
-      e.target.disabled = true;
-      try {
-        const r = await post('/cards/sell', { ids: lows.map((c) => c.id) });
-        sound.play('coin'); toast(`+${cr(r.total)} ${t('crédités')}`, 'good');
-        e.target.remove(); store.refresh();
-      } catch (err) { toast(esc(err.message), 'error'); e.target.disabled = false; }
-    });
-  }
-
-  const onKey = (e) => {
-    const z = el.querySelector('.zoom-inspect:not(.out)');
-    if (e.key === 'Escape' && z) { z.click(); return; }
-    if (e.key === 'Escape') close();
-    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!el.classList.contains('done')) next(); }
-  };
-  document.addEventListener('keydown', onKey);
-  stage.addEventListener('click', (e) => { if (e.target.closest('.stack-card')) next(); });
-  el.querySelector('[data-close]').onclick = close;
-  el.querySelector('[data-all]').onclick = (e) => { e.target.remove(); revealAll(); };
-  el.querySelector('[data-sound]').onclick = (e) => { sound.on = !sound.on; e.target.textContent = sound.on ? '🔊' : '🔇'; };
+  modal(`<h3>Chance par booster</h3><p class="mut" style="margin:0 0 14px">${esc(b.name)} · ${fmt(Object.values(counts).reduce((a, c) => a + c, 0))} jeux · ${ECONOMY.packSize} cartes par booster</p>
+    <table class="rates"><tr><td class="mut">Rareté</td><td class="num mut">Par carte</td><td class="num mut">Par booster</td><td class="num mut">Jeux</td></tr>
+    ${RARITIES.map((r) => `<tr style="--rc:${RARITY[r].color}"><td class="rn">${RARITY[r].label}</td><td class="num">${pct(RARITY[r].drop / total * 100)}</td><td class="num">${pct(perPack(r))}</td><td class="num">${fmt(counts[r])}</td></tr>`).join('')}
+    </table>
+    <div style="display:grid;gap:8px;margin-top:16px;font-size:13px">
+      ${b.slots ? `<div>★ ${b.daily ? 'Épique garantie dans le pack du jour.' : 'Rare ou mieux sur chaque carte, Épique ou mieux sur la dernière.'}</div>` : ''}
+      <div>✦ <b>Booster doré</b> : un booster sur ${ECONOMY.goldenEvery}, Épique ou mieux garantie.</div>
+      <div>✦ <b>Booster divin</b> : 1 chance sur ${ECONOMY.divineChance ? Math.round(1 / ECONOMY.divineChance) : '—'}, Mythique garantie et tout en Rare ou mieux.</div>
+      <div>✦ <b>Pitié</b> : Mythique garantie au ${ECONOMY.pityMythic}ᵉ booster sans Mythique.</div>
+      <div class="mut">Aucun doublon dans un même booster. Les meilleures cartes sortent en dernier.</div>
+    </div>`);
 }
+
+export function openStage(boosterId, { onClose } = {}) {
+  const b = S.boosters.find((x) => x.id === boosterId);
+  if (!b) return;
+  const theme = b.daily ? todayTheme() : null;
+  const st = document.createElement('div');
+  st.className = 'stage';
+  st.style.setProperty('--glow', b.color);
+  document.getElementById('layer').append(st);
+  document.body.style.overflow = 'hidden';
+  let fx, keyHandler, alive = true;
+
+  let keyUp = null;
+  const close = () => {
+    alive = false;
+    fx?.destroy();
+    document.removeEventListener('keydown', keyHandler);
+    document.removeEventListener('keyup', keyUp);
+    st.remove();
+    document.body.style.overflow = '';
+    onClose?.();
+  };
+
+  const top = (sub = '') => `<div class="stage-top">
+      <button class="icon-btn" data-close aria-label="Retour aux boosters">${icon.back}</button>
+      <div><div class="t">${esc(b.name)}</div><div class="s">${esc(sub || (theme ? `Thème du jour : ${GENRES[theme].label}` : b.sub))}</div></div>
+      <div class="spacer"></div>
+      <button class="chip" data-rates>${icon.info.replace('<svg', '<svg width="14" height="14"')} Chances</button>
+      <button class="icon-btn" data-sound aria-label="Son">${prefs.get('sound', true) ? icon.sound : icon.x}</button>
+    </div>`;
+
+  // --- étape 1 : le sachet ---
+  function ready() {
+    const u = S.user;
+    const golden = u.goldenIn === 1;
+    const freeLeft = u.freePacks + u.bonusPacks;
+    let count = Math.min(prefs.get('count', 1), b.usesFree ? Math.max(1, freeLeft) : 10);
+    if (b.daily) count = 1;
+    const payFree = () => b.usesFree && !b.daily && freeLeft >= count;
+    const costLine = () => {
+      if (b.daily) return u.dailyAvailable ? 'Gratuit · 1 par jour' : 'Déjà ouvert aujourd’hui : reviens demain.';
+      if (payFree()) return `Gratuit · stock ${u.freePacks}/${u.freePacksMax}${u.bonusPacks ? ` + ${u.bonusPacks} bonus` : ''}`;
+      return `${gem(b.price * count)} · solde ${gem(u.jetons)}`;
+    };
+    st.innerHTML = `${top()}<div class="rays"></div><canvas class="fx"></canvas>
+      <div class="stage-mid"><div class="open-pack">
+        ${packHTML(b, { kind: golden ? 'golden' : 'normal', theme })}
+        <div class="tear-guide" title="Glisse pour déchirer"><i></i></div>
+      </div></div>
+      <div class="stage-bot">
+        ${golden ? `<div class="badge" style="--rc:var(--gold)">Ce booster sera doré : Épique ou mieux garantie</div>` : ''}
+        <div class="hint-line">Glisse le doigt le long du haut pour déchirer</div>
+        ${!b.daily ? `<div class="seg" data-count>${[1, 5, 10].map((k) => `<button data-k="${k}" class="${k === count ? 'on' : ''}">×${k}</button>`).join('')}</div>` : ''}
+        <div class="row wrap" style="justify-content:center">
+          <button class="btn acc lg" data-open>Ouvrir</button>
+        </div>
+        <div class="hint-line mut" data-cost>${costLine()}</div>
+        <div class="counter">${u.pityThreshold - u.pityM} avant Mythique sûre · ${u.goldenIn} avant le booster doré</div>
+      </div>`;
+    fx = new Particles($('canvas.fx', st));
+    const op = $('.open-pack', st), guide = $('.tear-guide', st), bar = guide.querySelector('i');
+    const openBtn = $('[data-open]', st);
+    const refresh = () => {
+      $('[data-cost]', st).innerHTML = costLine();
+      openBtn.disabled = b.daily && !u.dailyAvailable;
+    };
+    refresh();
+    st.querySelectorAll('[data-count] button').forEach((btn) => btn.onclick = () => {
+      count = Number(btn.dataset.k);
+      prefs.set('count', count);
+      st.querySelectorAll('[data-count] button').forEach((x) => x.classList.toggle('on', x === btn));
+      refresh();
+    });
+    // déchirure au doigt
+    let tearing = false, startX = 0, done = false;
+    const rect = () => guide.getBoundingClientRect();
+    const down = (e) => { if (done) return; tearing = true; startX = e.clientX; guide.setPointerCapture?.(e.pointerId); sfx.tick(); };
+    const move = (e) => {
+      if (!tearing || done) return;
+      const r = rect();
+      const p = Math.max(0, Math.min(1, (e.clientX - Math.min(startX, r.left + 10)) / r.width));
+      bar.parentElement.style.setProperty('--tp', `${p * 100}%`);
+      if (Math.random() < 0.3) sfx.tick();
+      if (p > 0.82) { done = true; tearing = false; go(); }
+    };
+    const up = () => { if (!done) { tearing = false; bar.parentElement.style.setProperty('--tp', '0%'); } };
+    guide.addEventListener('pointerdown', down);
+    guide.addEventListener('pointermove', move);
+    guide.addEventListener('pointerup', up);
+    guide.addEventListener('pointercancel', up);
+    openBtn.onclick = () => { if (!done) { done = true; go(); } };
+    document.removeEventListener('keydown', keyHandler);
+    keyHandler = (e) => {
+      if (e.key === 'Escape') return close();
+      if ((e.code === 'Space' || e.key === 'Enter') && !done && !openBtn.disabled && !document.querySelector('.modal-bg')) { e.preventDefault(); done = true; go(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+
+    async function go() {
+      const pay = payFree() || b.daily ? 'free' : 'jetons';
+      if (pay === 'jetons') {
+        if (!b.price) { toast('Ce booster s’obtient seulement en récompense.', 'err'); done = false; return; }
+        if (u.jetons < b.price * count) { toast(`Pas assez de jetons : il en faut ${fmt(b.price * count)}.`, 'err'); done = false; bar.parentElement.style.setProperty('--tp', '0%'); return; }
+        if (prefs.get('warnPaid', true) && !(await confirmBox('Booster payant', `Ouvrir ${count > 1 ? `${count} boosters` : 'ce booster'} pour ${gem(b.price * count)} ?`, 'Ouvrir'))) {
+          done = false; bar.parentElement.style.setProperty('--tp', '0%'); return;
+        }
+      }
+      openBtn.disabled = true;
+      bar.parentElement.style.setProperty('--tp', '100%');
+      let res;
+      try {
+        res = await api.post('/open', { booster: b.id, pay, count });
+      } catch (e) {
+        toastErr(e);
+        done = false; openBtn.disabled = false; bar.parentElement.style.setProperty('--tp', '0%');
+        return;
+      }
+      setUser(res.user);
+      for (const p of res.packs) addPulled(p.cards);
+      // les affiches se chargent pendant la déchirure
+      for (const p of res.packs) for (const c of p.cards) for (const big of [true, false]) { const im = new Image(); im.src = artUrl(game(c.n), big); }
+      const divine = res.packs.some((p) => p.divine);
+      const goldenNow = res.packs.some((p) => p.golden);
+      if (divine) {
+        op.querySelector('.pack').className = 'pack divine';
+        st.style.setProperty('--glow', '#ffffff');
+        $('.rays', st).classList.add('on');
+        st.insertAdjacentHTML('beforeend', `<div class="banner-anim divine">Booster divin !</div><div class="flash go"></div>`);
+        sfx.fanfare(); vibrate([60, 40, 120]);
+        fx.burst('#fff', 120, { rainbow: true, speed: 12 });
+        await sleep(1500);
+      } else if (goldenNow) {
+        st.style.setProperty('--glow', '#f5c518');
+        st.insertAdjacentHTML('beforeend', `<div class="banner-anim">Booster doré !</div>`);
+        sfx.fanfare();
+        fx.rain('#f5c518', 50);
+        await sleep(1100);
+      }
+      // la languette s'envole, le sachet tombe
+      sfx.tear(); vibrate(30);
+      const packEl = op.querySelector('.pack');
+      const cap = packEl.cloneNode(true);
+      cap.classList.add('cap-fly');
+      cap.style.cssText = 'position:absolute;inset:0;clip-path:inset(0 0 91% 0);';
+      packEl.style.clipPath = 'inset(9% 0 0 0)';
+      packEl.classList.add('body-drop');
+      op.append(cap);
+      op.classList.add('torn');
+      guide.remove();
+      fx.burst('#fff8e0', 40, { y: op.getBoundingClientRect().top + 30, speed: 6 });
+      await sleep(900);
+      if (alive) reveal(res);
+    }
+  }
+
+  // --- étape 2 : révélation carte par carte ---
+  function reveal(res) {
+    document.removeEventListener('keydown', keyHandler);
+    const all = res.packs.flatMap((p) => p.cards);
+    const seq = [...all].sort((a, c) => rarityIndex(a.r) - rarityIndex(c.r));
+    const many = res.packs.length > 1;
+    st.style.setProperty('--glow', b.color);
+    st.innerHTML = `${top(many ? `${res.packs.length} boosters · ${all.length} cartes` : '')}<div class="rays"></div><canvas class="fx"></canvas>
+      <div class="stage-mid"><div class="stack"></div></div>
+      <div class="stage-bot">
+        <div class="hint-line" data-hint>Touche la carte pour la retourner</div>
+        <div class="row wrap" style="justify-content:center">
+          <button class="btn sm" data-skip>Passer à la prochaine Épique ou mieux</button>
+          <button class="btn sm" data-all>Tout révéler</button>
+        </div>
+        <div class="counter" data-ctr></div>
+        <div class="hint-line mut" style="font-size:12px"><kbd>Espace</kbd> suivante · maintenir : avance rapide</div>
+      </div>`;
+    fx = new Particles($('canvas.fx', st));
+    const stack = $('.stack', st);
+    // première carte au-dessus
+    stack.innerHTML = seq.map((c, i) => `<div class="sc" data-i="${i}" style="z-index:${seq.length - i};transform:translate(${(i % 3 - 1) * 3}px, ${Math.min(i, 6) * 2}px) rotate(${((i * 37) % 7) - 3}deg)">
+      <div class="flipcard">${backHTML()}<div class="face">${cardHTML(c.n, { lg: true, eager: true })}</div></div></div>`).join('');
+    let idx = 0, busy = false, flipped = false;
+    const ctr = $('[data-ctr]', st), hint = $('[data-hint]', st);
+    const upd = () => { ctr.textContent = `${Math.min(idx + 1, seq.length)} / ${seq.length}`; };
+    upd();
+
+    async function flip(fast = false) {
+      if (busy || idx >= seq.length) return;
+      busy = true;
+      const c = seq[idx];
+      const el = stack.children[idx];
+      const col = RARITY[c.r].color;
+      const charge = fast ? 0 : CHARGE[c.r];
+      st.style.setProperty('--glow', col);
+      if (charge) {
+        el.style.setProperty('--cd', `${charge}ms`);
+        el.style.setProperty('--glow', col);
+        el.classList.add('charge');
+        sfx.charge(charge / 1000);
+        if (rarityIndex(c.r) >= 3) $('.rays', st).classList.add('on');
+        if (c.r === 'M' || c.r === 'L') { vibrate([20, 40, 20, 40, 20]); setTimeout(() => el.classList.add('shake'), charge * 0.55); }
+        await sleep(charge);
+      }
+      el.classList.remove('charge', 'shake');
+      el.querySelector('.flipcard').classList.add('up');
+      sfx.flip();
+      await sleep(fast ? 120 : 260);
+      if (rarityIndex(c.r) >= 2) {
+        sfx.reveal(c.r);
+        const flash = document.createElement('div'); flash.className = 'flash go'; st.append(flash); setTimeout(() => flash.remove(), 800);
+        fx.burst(col, c.r === 'M' ? 180 : c.r === 'L' ? 120 : c.r === 'E' ? 70 : 30, { rainbow: c.r === 'M', speed: c.r === 'M' ? 13 : 9 });
+        if (rarityIndex(c.r) >= 4) {
+          const sh = document.createElement('div'); sh.className = 'shock'; st.querySelector('.stage-mid').append(sh); setTimeout(() => sh.remove(), 900);
+          fx.rain(col, c.r === 'M' ? 80 : 40);
+          vibrate(c.r === 'M' ? [80, 50, 160] : 80);
+        }
+      } else if (!fast) sfx.whoosh();
+      el.insertAdjacentHTML('beforeend', `<div class="reveal-tag" style="--rc:${col}"><span class="rname">${RARITY[c.r].label}</span>${c.isNew ? '<span class="badge new">Nouveau</span>' : `<span class="badge">×${c.qty}</span>`}</div>`);
+      hint.textContent = idx + 1 < seq.length ? 'Glisse ou touche pour la suivante' : 'Touche pour voir le récapitulatif';
+      flipped = true;
+      busy = false;
+    }
+    function next(dir = 1) {
+      if (busy) return;
+      if (!flipped) return flip();
+      const el = stack.children[idx];
+      el.classList.add('gone');
+      if (dir < 0) el.classList.add('l');
+      el.querySelector('.reveal-tag')?.remove();
+      sfx.whoosh();
+      idx++; flipped = false;
+      $('.rays', st).classList.remove('on');
+      st.style.setProperty('--glow', b.color);
+      if (idx >= seq.length) return summary(res);
+      upd();
+      hint.textContent = 'Touche la carte pour la retourner';
+    }
+    async function skipLow() {
+      // retourne d'un coup tout ce qui est en dessous d'Épique
+      while (idx < seq.length && rarityIndex(seq[idx].r) < 3 && alive) {
+        if (!flipped) await flip(true);
+        next();
+        await sleep(60);
+      }
+      if (idx >= seq.length) return;
+      if (!flipped) flip();
+    }
+    // gestes : toucher, glisser
+    let sx = 0, sy = 0;
+    stack.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; });
+    stack.addEventListener('pointerup', (e) => {
+      const dx = e.clientX - sx;
+      if (Math.abs(dx) > 40 && flipped) next(dx < 0 ? -1 : 1);
+      else next();
+    });
+    $('[data-all]', st).onclick = () => summary(res);
+    $('[data-skip]', st).onclick = () => skipLow();
+    // espace : suivante ; maintenu : avance rapide
+    let holdTimer = null, holding = false;
+    keyHandler = (e) => {
+      if (e.key === 'Escape') return summary(res);
+      if (e.code !== 'Space' && e.key !== 'Enter' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      if (e.repeat) {
+        if (!holding) {
+          holding = true;
+          holdTimer = setInterval(async () => { if (idx >= seq.length) return clearInterval(holdTimer); if (!flipped) await flip(rarityIndex(seq[idx].r) < 3); else next(); }, 180);
+        }
+        return;
+      }
+      next();
+    };
+    document.addEventListener('keydown', keyHandler);
+    document.removeEventListener('keyup', keyUp);
+    keyUp = () => { holding = false; clearInterval(holdTimer); };
+    document.addEventListener('keyup', keyUp);
+  }
+
+  // --- étape 3 : récapitulatif ---
+  function summary(res) {
+    document.removeEventListener('keydown', keyHandler);
+    const all = res.packs.flatMap((p) => p.cards);
+    const best = all.reduce((a, c) => (rarityIndex(c.r) > rarityIndex(a.r) ? c : a), all[0]);
+    const news = all.filter((c) => c.isNew).length;
+    const dups = all.filter((c) => !c.isNew);
+    const dupGain = dups.reduce((s, c) => s + RARITY[c.r].recycle, 0);
+    const many = all.length > 5;
+    st.style.setProperty('--glow', RARITY[best.r].color);
+    st.innerHTML = `${top('Récapitulatif')}<canvas class="fx"></canvas>
+      <div class="stage-mid" style="overflow:auto;${many ? 'align-items:start;padding-top:10px' : ''}">
+        <div class="summary ${many ? 'many' : ''}">${all.map((c, i) => slotHTML(c.n, {
+          showQty: false, missing: false,
+          extra: c.isNew ? '<span class="badge new" style="position:absolute;top:-8px;left:50%;translate:-50% 0;z-index:9">Nouveau</span>' : '',
+        }).replace('class="slot"', `class="slot${c === best ? ' best' : ''}" style="animation-delay:${Math.min(i, 30) * 60}ms"`)).join('')}</div>
+      </div>
+      <div class="stage-bot">
+        <div class="sum-bar"><span><b>${news}</b> nouvelle${news > 1 ? 's' : ''}</span><span><b>${dups.length}</b> doublon${dups.length > 1 ? 's' : ''}${dups.length ? ` → ${gem(dupGain)} au recyclage` : ''}</span>
+          <span>Meilleure : <b style="color:${RARITY[best.r].color}">${RARITY[best.r].label}</b></span></div>
+        <div class="row wrap" style="justify-content:center">
+          ${dups.length ? `<button class="btn" data-recycle>♻ Recycler ces doublons</button>` : ''}
+          <button class="btn acc" data-again>Ouvrir un autre</button>
+          <a class="btn" href="/collection" data-col>Voir la collection</a>
+        </div>
+      </div>`;
+    fx = new Particles($('canvas.fx', st));
+    if (rarityIndex(best.r) >= 3) setTimeout(() => fx.rain(RARITY[best.r].color, 40), 300);
+    st.querySelectorAll('.summary .slot').forEach((s) => s.onclick = () => inspect(Number(s.dataset.card)));
+    $('[data-again]', st).onclick = () => { fx.destroy(); ready(); };
+    $('[data-col]', st).onclick = () => close();
+    $('[data-recycle]', st)?.addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      let gain = 0, count = 0;
+      const per = new Map();
+      for (const c of dups) per.set(c.n, (per.get(c.n) || 0) + 1);
+      try {
+        for (const [n, q] of per) {
+          const r = await api.post('/recycle', { card: n, qty: q });
+          gain += r.gain; count += r.count;
+          setUser(r.user);
+          const cur = S.coll.get(n); if (cur) cur.qty -= r.count;
+        }
+        sfx.coin();
+        toast(`♻ ${count} doublon${count > 1 ? 's' : ''} recyclé${count > 1 ? 's' : ''} : +${gem(gain)}`, 'ok');
+        e.target.remove();
+      } catch (err) { toastErr(err); e.target.disabled = false; }
+    });
+  }
+
+  st.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) close();
+    if (e.target.closest('[data-rates]')) ratesModal(b);
+    const snd = e.target.closest('[data-sound]');
+    if (snd) { prefs.set('sound', !prefs.get('sound', true)); snd.innerHTML = prefs.get('sound', true) ? icon.sound : icon.x; }
+  });
+  ready();
+  return close;
+}
+
+export { game };

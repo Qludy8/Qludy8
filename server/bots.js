@@ -1,68 +1,56 @@
-// Bots : font vivre le marché et le flux de drops dès le premier jour.
-// Ils ouvrent des boosters (sans payer) et mettent en vente au-dessus de la valeur de référence.
-// Ils n'achètent jamais aux joueurs → aucun argent créé ; chaque achat chez un bot est un puits.
-import { PACKS } from '../shared/packs.js';
-import { one, all, run, tx, now } from './db.js';
-import { openPack, rand } from './cards.js';
-import { insertCard, valueOfRow } from './game.js';
+// Collectionneurs automatiques : ils ouvrent des boosters (fil des gros tirages), vendent leurs doublons
+// au marché et proposent des échanges, pour que le jeu soit vivant même avec peu de joueurs.
+import { randomInt } from 'node:crypto';
+import { one, all, run } from './db.js';
 import { createUser } from './auth.js';
+import * as G from './game.js';
+import { gameById, TOTAL } from './catalog.js';
+import { BOOSTERS } from '../shared/config.js';
+import { baseValue } from '../shared/rules.js';
 
-const NAMES = ['Kestrel', 'Vandal_7', 'NoxRaven', 'Mirefox', 'Sable.K', 'Orbit_Lux', 'Talon88', 'Hexwright',
-  'GreyMantis', 'Ashen_Ivy', 'Pyrelight', 'Quillon', 'Driftmark', 'Zeroflare', 'Lumen_Cat', 'Brassjaw'];
-const BOT_LISTING_TTL = 6 * 3600e3;
+const NAMES = ['PixelNomade', 'LootGoblin', 'Sakura8bit', 'ManetteDor', 'NoScopeNina', 'RetroRenard', 'Kirbyste', 'SpeedrunSam',
+  'GachaGaston', 'MiniBoss', 'CheatCodeChloe', 'Player2Paul', 'HadokenHugo', 'SaveStateSara', 'CartoucheCo', 'GlitchGuru'];
 
 export function ensureBots() {
-  for (const n of NAMES) if (!one('SELECT id FROM users WHERE username = ?', n)) createUser({ username: n, isBot: true });
-  const bots = all('SELECT id FROM users WHERE is_bot = 1');
-  const listed = one("SELECT COUNT(*) n FROM listings WHERE status = 'ACTIVE' AND seller_id IN (SELECT id FROM users WHERE is_bot = 1)").n;
-  for (let i = Math.ceil(listed / 2); i < 60; i++) botTick(bots, true);
-  return bots;
+  return NAMES.map((name) => one('SELECT id FROM users WHERE username = ?', name)?.id ?? createUser({ username: name, bot: true }));
 }
 
-function botTick(bots, silent = false) {
-  const bot = bots[Math.floor(rand() * bots.length)];
-  const paid = PACKS.filter((p) => !p.free);
-  // les boosters bon marché sont ouverts plus souvent
-  const weights = paid.map((p) => 1 / Math.sqrt(p.price));
-  let x = rand() * weights.reduce((a, b) => a + b, 0);
-  const pack = paid.find((_, i) => (x -= weights[i]) < 0) || paid[0];
-  tx(() => {
-    const { cards } = openPack(pack, { ultra: 0, legend: 0 }, false);
-    run('UPDATE users SET packs_opened = packs_opened + 1 WHERE id = ?', bot.id);
-    // trie : les cartes intéressantes vont au marché, le reste est détruit
-    for (const c of cards) {
-      const id = insertCard(bot.id, c, `PACK:${pack.key}`);
-      const row = one('SELECT * FROM cards WHERE id = ?', id);
-      if (row.rarity >= 3 || row.misprint) run('INSERT INTO feed (user_id, card_id, at) VALUES (?,?,?)', bot.id, id, now());
-      if (row.rarity >= 2 || row.misprint || (row.rarity === 1 && rand() < 0.5)) {
-        const price = Math.max(2, Math.round(valueOfRow(row) * (1.05 + rand() * 0.35)));
-        run("UPDATE cards SET status = 'LISTED' WHERE id = ?", id);
-        run('INSERT INTO listings (card_id, seller_id, price, created_at) VALUES (?,?,?,?)', id, bot.id, price, now() - (silent ? Math.floor(rand() * 3 * 3600e3) : 0));
-      } else {
-        run("UPDATE cards SET status = 'BURNED' WHERE id = ?", id);
-      }
+export function botTick(ids) {
+  const id = ids[randomInt(0, ids.length)];
+  const boosters = BOOSTERS.filter((b) => !b.daily && !b.slots);
+  G.openBooster(id, boosters[randomInt(0, boosters.length)].id, { bot: true });
+  // de temps en temps : mise en vente d'un doublon
+  if (randomInt(0, 3) === 0) {
+    const dup = all('SELECT card, qty, reserved FROM collection WHERE user_id = ? AND qty - reserved > 1 ORDER BY RANDOM() LIMIT 1', id)[0];
+    const active = one(`SELECT COUNT(*) AS n FROM listings WHERE seller_id = ? AND status = 'ACTIVE'`, id).n;
+    if (dup && active < 25 && gameById(dup.card)) {
+      const g = gameById(dup.card);
+      const price = Math.max(1, Math.round(baseValue(g.n, g.r, TOTAL) * (0.8 + Math.random() * 0.9)));
+      try { G.createListing(id, g.n, price); } catch { /* carte déjà engagée */ }
     }
-  });
-}
-
-function expireBotListings() {
-  tx(() => {
-    for (const l of all(`SELECT l.id, l.card_id FROM listings l JOIN users u ON u.id = l.seller_id
-      WHERE l.status = 'ACTIVE' AND u.is_bot = 1 AND l.created_at < ?`, now() - BOT_LISTING_TTL)) {
-      run("UPDATE listings SET status = 'EXPIRED' WHERE id = ?", l.id);
-      run("UPDATE cards SET status = 'BURNED' WHERE id = ?", l.card_id);
+  }
+  // de temps en temps : une offre d'échange « je donne X contre l'un de Y »
+  if (randomInt(0, 6) === 0) {
+    const dup = all('SELECT card FROM collection WHERE user_id = ? AND qty - reserved > 1 ORDER BY RANDOM() LIMIT 1', id)[0];
+    const open = one(`SELECT COUNT(*) AS n FROM offers WHERE user_id = ? AND status = 'OPEN'`, id).n;
+    if (dup && open < 5 && gameById(dup.card)) {
+      const g = gameById(dup.card);
+      const same = all('SELECT n FROM cards_meta WHERE r = ? AND id NOT IN (SELECT card FROM collection WHERE user_id = ? AND qty > 0) ORDER BY RANDOM() LIMIT 3', g.r, id).map((x) => x.n);
+      if (same.length) try { G.createOffer(id, g.n, same); } catch { /* ignoré */ }
     }
-  });
+  }
+  // historique des tirages : seuls les gros tirages des bots sont gardés au-delà de 7 jours
+  run(`DELETE FROM pulls WHERE at < ? AND best NOT IN ('L','M') AND user_id IN (SELECT id FROM users WHERE is_bot = 1)`, Date.now() - 7 * 864e5);
+  // annonces trop anciennes retirées
+  for (const l of all(`SELECT id FROM listings WHERE seller_id = ? AND status = 'ACTIVE' AND created_at < ?`, id, Date.now() - 3 * 864e5)) {
+    G.cancelListing(id, l.id);
+  }
 }
 
 export function startBots() {
-  const bots = ensureBots();
-  setInterval(() => {
-    try {
-      botTick(bots);
-      expireBotListings();
-      // garde le flux de drops raisonnable
-      run('DELETE FROM feed WHERE id < (SELECT MAX(id) - 500 FROM feed)');
-    } catch (e) { console.error('[bots]', e.message); }
-  }, Number(process.env.BOT_TICK_MS || 90_000)).unref();
+  const ids = ensureBots();
+  // amorçage : quelques boosters pour que le marché ait du choix dès le premier lancement
+  if (!one(`SELECT COUNT(*) AS n FROM listings WHERE status = 'ACTIVE'`).n) for (let i = 0; i < 160; i++) botTick(ids);
+  setInterval(() => { try { botTick(ids); } catch (e) { console.error('bot', e.message); } }, 45_000).unref();
 }
+

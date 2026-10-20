@@ -1,140 +1,97 @@
-// Routes HTTP : fines, elles valident l'accès puis délèguent à server/game.js.
+// Routes JSON de l'API.
 import express from 'express';
-import { ECONOMY, PITY, ADMIN_TOGGLE } from '../shared/config.js';
-import { one, all, run } from './db.js';
+import { requireUser, rateLimit, createUser, createSession, destroySession, login, secureAccount } from './auth.js';
 import * as G from './game.js';
-import { createUser, createSession, destroySession, checkPassword, requireUser, rateLimit } from './auth.js';
-import { mountDiscord, discordMode, requireVerified, assertVerified } from './discord.js';
+import { game, details, TOTAL } from './catalog.js';
 
-const { HttpError } = G;
-
-function me(u) {
-  const free = G.syncFree(u.id);
-  u = one('SELECT * FROM users WHERE id = ?', u.id);
-  return {
-    id: u.id, username: u.username, email: u.email, balance: u.balance, avatar_hue: u.avatar_hue, bio: u.bio,
-    admin: G.isAdmin(u), adminToggle: ADMIN_TOGGLE,
-    level: G.levelOf(u.xp), welcomePacks: u.welcome_packs, free,
-    pity: { ultra: u.pity_ultra, legend: u.pity_legend, trans: u.pity_trans, ultraAfter: PITY.ultraAfter, legendaryAfter: PITY.legendaryAfter, transAfter: PITY.transcendentAfter },
-    daily: G.dailyState(u), packs_opened: u.packs_opened, showcase: JSON.parse(u.showcase),
-    discord: { mode: discordMode(), verified: !!u.discord_verified_at, name: u.discord_name },
-    unread: one('SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND read = 0', u.id).n,
-    openTrades: one("SELECT COUNT(*) n FROM trades WHERE to_id = ? AND status = 'OPEN'", u.id).n,
-    friendRequests: one("SELECT COUNT(*) n FROM friends WHERE (a = ? OR b = ?) AND status = 'PENDING' AND requester != ?", u.id, u.id, u.id).n,
-    questsReady: G.questsReady(u.id),
-    gradingReady: one("SELECT COUNT(*) n FROM grading_orders WHERE user_id = ? AND status = 'PENDING' AND ready_at <= ?", u.id, Date.now()).n,
-  };
-}
+const wrap = (fn) => (req, res, next) => {
+  try {
+    const out = fn(req, res);
+    if (out !== undefined) res.json(out);
+  } catch (e) { next(e); }
+};
 
 export function api() {
   const r = express.Router();
-  r.use(express.json({ limit: '64kb' }));
-  // Anti-CSRF : un formulaire d'un autre site ne peut pas envoyer de JSON → toute écriture exige ce type
-  r.use((req, _res, next) => {
-    if (req.method !== 'GET' && !req.is('application/json')) return next(new HttpError(415, 'Requête JSON attendue'));
-    next();
-  });
+  r.use(express.json({ limit: '32kb' }));
 
-  // ── Auth
-  r.post('/auth/register', rateLimit(8, 60 * 60e3), (req, res) => {
-    const { username, email, password } = req.body || {};
-    const id = createUser({ username, email: email || null, password });
+  // comptes
+  r.post('/guest', rateLimit(40, 3600e3), wrap((req, res) => {
+    if (req.user) return { user: G.me(req.user.id) };
+    const id = createUser();
     createSession(res, id);
-    res.json(me(one('SELECT * FROM users WHERE id = ?', id)));
-  });
-  r.post('/auth/login', rateLimit(15, 15 * 60e3), (req, res) => {
-    const { login, password } = req.body || {};
-    const u = one('SELECT * FROM users WHERE (username = ? OR email = ?) AND is_bot = 0', String(login || ''), String(login || ''));
-    if (!u || !checkPassword(String(password || ''), u.pass_hash)) throw new HttpError(401, 'Identifiants incorrects');
-    createSession(res, u.id);
-    res.json(me(u));
-  });
-  r.post('/auth/logout', (req, res) => { destroySession(req, res); res.json({ ok: true }); });
-  r.get('/me', (req, res) => res.json(req.user ? me(req.user) : null));
-  r.patch('/me', requireUser, (req, res) => {
-    const { bio, avatar_hue } = req.body || {};
-    if (bio !== undefined) run('UPDATE users SET bio = ? WHERE id = ?', String(bio).slice(0, 160), req.user.id);
-    if (avatar_hue !== undefined) run('UPDATE users SET avatar_hue = ? WHERE id = ?', Math.abs(Number(avatar_hue) | 0) % 360, req.user.id);
-    res.json(me(req.user));
-  });
-  mountDiscord(r, requireUser);
+    const login = G.dailyLogin(id);
+    return { user: G.me(id), login, welcome: true };
+  }));
+  r.post('/login', rateLimit(15, 600e3), wrap((req, res) => {
+    const id = login(req.body.username, req.body.password);
+    createSession(res, id);
+    return { user: G.me(id) };
+  }));
+  r.post('/register', rateLimit(10, 3600e3), wrap((req, res) => {
+    if (req.user) {
+      secureAccount(req.user.id, req.body.username, req.body.password);
+      return { user: G.me(req.user.id) };
+    }
+    const id = createUser({ username: String(req.body.username || '').trim(), password: String(req.body.password || '') });
+    createSession(res, id);
+    return { user: G.me(id) };
+  }));
+  r.post('/logout', wrap((req, res) => { destroySession(req, res); return { ok: true }; }));
 
-  // ── Public
-  r.get('/feed', (_req, res) => res.json(G.feed(30)));
-  r.get('/stats', (_req, res) => res.json(G.siteStats()));
-  r.get('/leaderboards', (_req, res) => res.json(G.leaderboards()));
-  r.get('/users/:name', (req, res) => res.json(G.publicProfile(req.params.name, req.user?.id)));
-  r.get('/users/:name/cards', (req, res) => {
-    const u = one('SELECT id FROM users WHERE username = ?', req.params.name);
-    if (!u) throw new HttpError(404, 'Joueur introuvable');
-    const rows = all("SELECT * FROM cards WHERE owner_id = ? AND status = 'OWNED' ORDER BY rarity DESC, id DESC LIMIT 400", u.id);
-    res.json(rows.map((x) => G.cardOut(x)));
-  });
-  r.get('/cards/duplicates', requireUser, (req, res) => res.json(G.duplicatesOf(req.user.id)));
-  r.get('/cards/:id', (req, res) => res.json(G.cardDetail(req.params.id)));
-  r.get('/cert/:cert', (req, res) => res.json(G.certLookup(req.params.cert)));
-  r.get('/market', (req, res) => res.json(G.browseMarket(req.query, req.user?.id)));
-  r.get('/skins/:id/market', (req, res) => {
-    const rows = all(`SELECT c.*, l.id AS listing_id, l.price, u.username AS seller FROM listings l JOIN cards c ON c.id = l.card_id
-      JOIN users u ON u.id = l.seller_id WHERE l.status = 'ACTIVE' AND c.skin_id = ? ORDER BY l.price LIMIT 30`, req.params.id);
-    const sales = all('SELECT price, at FROM sales WHERE skin_id = ? ORDER BY at DESC LIMIT 40', req.params.id).reverse();
-    const copies = one("SELECT COUNT(*) n FROM cards WHERE skin_id = ? AND status != 'BURNED'", req.params.id).n;
-    res.json({ listings: rows.map((x) => G.cardOut(x, { listing: { id: x.listing_id, price: x.price, seller: x.seller } })), sales, copies });
-  });
+  r.get('/me', wrap((req) => {
+    if (!req.user) return { user: null };
+    const login = G.dailyLogin(req.user.id);
+    return { user: G.me(req.user.id), login };
+  }));
+  r.get('/stats', wrap(() => ({ ...G.stats(), total: TOTAL })));
+  r.get('/boosters', wrap(() => G.boosterInfo()));
 
-  // ── Joueur connecté
-  r.use(requireUser);
-  r.post('/daily', (req, res) => res.json(G.claimDaily(req.user.id)));
-  r.get('/missions', (req, res) => res.json(G.missionsOf(req.user.id)));
-  r.post('/missions/:key/claim', (req, res) => res.json({ balance: G.claimMission(req.user.id, req.params.key) }));
-  r.get('/notifications', (req, res) => {
-    const rows = all('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 40', req.user.id);
-    run('UPDATE notifications SET read = 1 WHERE user_id = ?', req.user.id);
-    res.json(rows);
-  });
-  r.get('/transactions', (req, res) => res.json(all('SELECT * FROM transactions WHERE user_id = ? ORDER BY id DESC LIMIT 100', req.user.id)));
+  // boosters
+  r.post('/open', requireUser, rateLimit(120, 60e3), wrap((req) =>
+    G.openBooster(req.user.id, String(req.body.booster || 'standard'), { pay: req.body.pay === 'jetons' ? 'jetons' : 'free', count: req.body.count })));
 
-  r.post('/packs/:key/open', (req, res) => res.json(G.openPacks(req.user.id, req.params.key, req.body?.count)));
+  // collection
+  r.get('/collection', requireUser, wrap((req) => ({ cards: G.collectionOf(req.user.id), wishes: G.wishesOf(req.user.id) })));
+  r.post('/collection/:card/lock', requireUser, wrap((req) => { G.setLock(req.user.id, Number(req.params.card), !!req.body.locked); return { ok: true }; }));
+  r.post('/collection/:card/wish', requireUser, wrap((req) => { G.toggleWish(req.user.id, Number(req.params.card), !!req.body.on); return { ok: true }; }));
+  r.post('/recycle', requireUser, wrap((req) => G.recycle(req.user.id, {
+    card: req.body.card ? Number(req.body.card) : null, qty: req.body.qty ? Number(req.body.qty) : null,
+    rarities: Array.isArray(req.body.rarities) ? req.body.rarities : null,
+  })));
 
-  r.get('/inventory', (req, res) => {
-    const rows = all("SELECT c.*, l.id AS listing_id, l.price AS listing_price FROM cards c LEFT JOIN listings l ON l.card_id = c.id AND l.status = 'ACTIVE' WHERE c.owner_id = ? AND c.status != 'BURNED' ORDER BY c.id DESC", req.user.id);
-    res.json(rows.map((x) => G.cardOut(x, x.listing_id ? { listing: { id: x.listing_id, price: x.listing_price } } : {})));
-  });
-  r.get('/collection', (req, res) => {
-    const owned = all("SELECT skin_id, COUNT(*) n, MIN(float) best FROM cards WHERE owner_id = ? AND status != 'BURNED' GROUP BY skin_id", req.user.id);
-    const disc = all('SELECT skin_id FROM discovered WHERE user_id = ?', req.user.id).map((x) => x.skin_id);
-    res.json({ owned: Object.fromEntries(owned.map((o) => [o.skin_id, { n: o.n, best: o.best }])), discovered: disc });
-  });
-  r.post('/cards/recycle', (req, res) => res.json(G.recycleDuplicates(req.user.id, req.body?.count)));
-  r.post('/cards/sell', (req, res) => res.json(G.sellToSystem(req.user.id, req.body?.ids)));
-  r.post('/cards/:id/lock', (req, res) => { G.setLocked(req.user.id, req.params.id, !!req.body?.locked); res.json({ ok: true }); });
-  r.post('/cards/:id/unslab', (req, res) => res.json(G.unslab(req.user.id, req.params.id)));
-  r.post('/showcase', (req, res) => { G.setShowcase(req.user.id, req.body?.ids); res.json({ ok: true }); });
-  r.post('/trade-up', (req, res) => res.json(G.tradeUp(req.user.id, req.body?.ids)));
+  // fiche d'un jeu
+  r.get('/card/:n', wrap((req) => {
+    const n = Number(req.params.n);
+    const g = game(n);
+    if (!g) throw new G.HttpError(404, 'Cette carte n’existe pas.');
+    return { card: g, details: details(n), price: G.priceInfo(n), holders: G.holders(n), listings: G.marketList({ card: n, limit: 20 }) };
+  }));
 
-  r.post('/market/list', requireVerified('market.sell'), (req, res) => res.json({ id: G.createListing(req.user.id, req.body?.cardId, req.body?.price) }));
-  r.post('/market/:id/cancel', (req, res) => { G.cancelListing(req.user.id, req.params.id); res.json({ ok: true }); });
-  r.post('/market/:id/buy', (req, res) => res.json(G.buyListing(req.user.id, req.params.id)));
+  // missions & succès
+  r.get('/missions', requireUser, wrap((req) => G.missions(req.user.id)));
+  r.post('/missions/claim', requireUser, wrap((req) => G.claim(req.user.id, String(req.body.id || 'all'))));
 
-  r.get('/friends', (req, res) => res.json(G.listFriends(req.user.id)));
-  r.post('/friends/request', requireVerified('friends.request'), (req, res) => res.json({ status: G.requestFriend(req.user.id, req.body?.username) }));
-  r.post('/friends/:id/accept', (req, res) => { G.respondFriend(req.user.id, req.params.id, true); res.json({ ok: true }); });
-  r.post('/friends/:id/remove', (req, res) => { G.respondFriend(req.user.id, req.params.id, false); res.json({ ok: true }); });
+  // communauté
+  r.get('/feed', wrap(() => G.feed(40)));
+  r.get('/leaderboard', wrap((req) => G.leaderboard(String(req.query.kind || 'points'))));
+  r.get('/profile/:name', wrap((req) => G.profile(req.params.name)));
+  r.post('/profile', requireUser, wrap((req) => ({ user: G.updateProfile(req.user.id, req.body || {}) })));
+  r.get('/notifications', requireUser, wrap((req) => G.notifications(req.user.id)));
 
-  r.get('/trades', (req, res) => res.json(G.listTrades(req.user.id)));
-  r.get('/trades/:id', (req, res) => res.json(G.tradeDetail(req.user.id, req.params.id)));
-  r.post('/trades', requireVerified('trade'), (req, res) => res.json({ id: G.createTrade(req.user.id, req.body || {}) }));
-  r.post('/trades/:id/:action', (req, res) => {
-    if (req.params.action === 'accept') assertVerified(req.user, 'trade');
-    res.json({ status: G.respondTrade(req.user.id, req.params.id, req.params.action) });
-  });
+  // marché
+  r.get('/market', wrap((req) => G.marketList({ card: req.query.card ? Number(req.query.card) : null, limit: 300 })));
+  r.get('/market/mine', requireUser, wrap((req) => G.marketList({ seller: req.user.id })));
+  r.post('/market', requireUser, rateLimit(30, 60e3), wrap((req) => G.createListing(req.user.id, req.body.card, req.body.price)));
+  r.post('/market/:id/buy', requireUser, rateLimit(30, 60e3), wrap((req) => G.buyListing(req.user.id, Number(req.params.id))));
+  r.delete('/market/:id', requireUser, wrap((req) => G.cancelListing(req.user.id, Number(req.params.id))));
 
-  r.post('/admin/toggle', (req, res) => { G.setAdminMode(req.user.id, !!req.body?.on); res.json(me(req.user)); });
-  r.get('/grading', (req, res) => res.json(G.listGrading(req.user.id)));
-  r.post('/grading/quote', (req, res) => res.json(G.gradingQuote(req.user.id, req.body?.ids, req.body?.service)));
-  r.post('/grading', (req, res) => res.json(G.submitGrading(req.user.id, req.body?.ids, req.body?.service)));
-  r.post('/grading/:id/reveal', (req, res) => res.json(G.revealGrading(req.user.id, req.params.id)));
+  // échanges
+  r.get('/offers', wrap(() => G.offersList()));
+  r.get('/offers/mine', requireUser, wrap((req) => G.offersList({ user: req.user.id })));
+  r.post('/offers', requireUser, rateLimit(20, 60e3), wrap((req) => G.createOffer(req.user.id, req.body.give, req.body.wants)));
+  r.post('/offers/:id/take', requireUser, rateLimit(30, 60e3), wrap((req) => G.takeOffer(req.user.id, Number(req.params.id), req.body.give)));
+  r.delete('/offers/:id', requireUser, wrap((req) => G.cancelOffer(req.user.id, Number(req.params.id))));
 
-  r.get('/economy', (_req, res) => res.json(ECONOMY));
   return r;
 }
