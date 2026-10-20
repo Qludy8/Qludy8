@@ -1,5 +1,8 @@
 # Mugigo (무기고) — cartes d’armes à collectionner
 
+> Nouveau : **[Gēmu (ゲーム)](gemu/README.md)**, la version jeu vidéo — 7 114 vrais jeux de Commune à Mythique,
+> avec leur affiche officielle. Lancement : `cd gemu`, `npm install`, `npm start` → http://localhost:4848
+
 Jeu web de cartes à collectionner (dans l’esprit de kyara.games) dont les cartes sont des **armes imaginaires** :
 **36 boosters** (dont des boosters de 7 et 10 cartes, par collection, par arme), chacun avec son symbole coréen, **5 100 skins** procéduraux sur 17 armes inventées aux silhouettes réalistes (dont 7 formes de couteaux), monnaie **Mu (무)**, quêtes quotidiennes / hebdomadaires / exploits, usure par **float** (0 → 1, paliers IM / PM / EP / US / RV), **graines de motif** avec graines rares, **centrage** des cartes,
 **cartes erreur** ultra-rares, **gradation** façon PSA, marché entre joueurs, **amis & échanges**, collection complète,

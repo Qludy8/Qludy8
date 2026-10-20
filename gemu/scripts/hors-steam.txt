@@ -1,0 +1,356 @@
+# Jeux absents de Steam : l'image vient de l'article Wikipédia (anglais) du jeu, c'est-à-dire sa jaquette officielle.
+# article Wikipédia | nom | année | plateforme | studio | univers | popularité (équivalent avis Steam) | % d'avis positifs
+The Legend of Zelda: Breath of the Wild|The Legend of Zelda: Breath of the Wild|2017|Switch|Nintendo EPD|The Legend of Zelda|1400000|98
+The Legend of Zelda: Tears of the Kingdom|The Legend of Zelda: Tears of the Kingdom|2023|Switch|Nintendo EPD|The Legend of Zelda|900000|97
+The Legend of Zelda: Ocarina of Time|The Legend of Zelda: Ocarina of Time|1998|Nintendo 64|Nintendo EAD|The Legend of Zelda|900000|98
+The Legend of Zelda: A Link to the Past|The Legend of Zelda: A Link to the Past|1991|Super Nintendo|Nintendo EAD|The Legend of Zelda|450000|97
+The Legend of Zelda: Majora's Mask|The Legend of Zelda: Majora's Mask|2000|Nintendo 64|Nintendo EAD|The Legend of Zelda|350000|96
+The Legend of Zelda: The Wind Waker|The Legend of Zelda: The Wind Waker|2002|GameCube|Nintendo EAD|The Legend of Zelda|330000|95
+The Legend of Zelda: Twilight Princess|The Legend of Zelda: Twilight Princess|2006|GameCube / Wii|Nintendo EAD|The Legend of Zelda|300000|94
+The Legend of Zelda: Link's Awakening|The Legend of Zelda: Link's Awakening|1993|Game Boy|Nintendo EAD|The Legend of Zelda|220000|95
+The Legend of Zelda: Skyward Sword|The Legend of Zelda: Skyward Sword|2011|Wii|Nintendo EAD|The Legend of Zelda|160000|86
+The Legend of Zelda: Echoes of Wisdom|The Legend of Zelda: Echoes of Wisdom|2024|Switch|Grezzo|The Legend of Zelda|120000|91
+The Legend of Zelda: Minish Cap|The Legend of Zelda: The Minish Cap|2004|Game Boy Advance|Capcom|The Legend of Zelda|90000|93
+The Legend of Zelda: A Link Between Worlds|The Legend of Zelda: A Link Between Worlds|2013|Nintendo 3DS|Nintendo EAD|The Legend of Zelda|110000|94
+The Legend of Zelda (video game)|The Legend of Zelda|1986|NES|Nintendo R&D4|The Legend of Zelda|260000|92
+Zelda II: The Adventure of Link|Zelda II: The Adventure of Link|1987|NES|Nintendo R&D4|The Legend of Zelda|50000|78
+Hyrule Warriors: Age of Calamity|Hyrule Warriors: L'Ère du Fléau|2020|Switch|Omega Force|The Legend of Zelda|60000|86
+Super Mario Bros.|Super Mario Bros.|1985|NES|Nintendo R&D4|Super Mario|1100000|97
+Super Mario Bros. 3|Super Mario Bros. 3|1988|NES|Nintendo EAD|Super Mario|500000|97
+Super Mario World|Super Mario World|1990|Super Nintendo|Nintendo EAD|Super Mario|550000|97
+Super Mario 64|Super Mario 64|1996|Nintendo 64|Nintendo EAD|Super Mario|900000|97
+Super Mario Sunshine|Super Mario Sunshine|2002|GameCube|Nintendo EAD|Super Mario|220000|88
+Super Mario Galaxy|Super Mario Galaxy|2007|Wii|Nintendo EAD|Super Mario|550000|98
+Super Mario Galaxy 2|Super Mario Galaxy 2|2010|Wii|Nintendo EAD|Super Mario|300000|97
+Super Mario Odyssey|Super Mario Odyssey|2017|Switch|Nintendo EPD|Super Mario|1000000|97
+Super Mario Bros. Wonder|Super Mario Bros. Wonder|2023|Switch|Nintendo EPD|Super Mario|500000|95
+Super Mario 3D World|Super Mario 3D World + Bowser's Fury|2013|Wii U / Switch|Nintendo EAD|Super Mario|380000|94
+New Super Mario Bros.|New Super Mario Bros.|2006|Nintendo DS|Nintendo EAD|Super Mario|400000|88
+New Super Mario Bros. Wii|New Super Mario Bros. Wii|2009|Wii|Nintendo EAD|Super Mario|350000|89
+Super Mario Land|Super Mario Land|1989|Game Boy|Nintendo R&D1|Super Mario|150000|84
+Super Mario Bros. 2|Super Mario Bros. 2|1988|NES|Nintendo EAD|Super Mario|140000|82
+Super Mario Maker 2|Super Mario Maker 2|2019|Switch|Nintendo EPD|Super Mario|280000|91
+Super Mario 3D Land|Super Mario 3D Land|2011|Nintendo 3DS|Nintendo EAD|Super Mario|150000|91
+Super Mario RPG|Super Mario RPG|1996|Super Nintendo|Square|Super Mario|140000|93
+Paper Mario: The Thousand-Year Door|Paper Mario : La Porte Millénaire|2004|GameCube|Intelligent Systems|Paper Mario|160000|96
+Paper Mario (video game)|Paper Mario|2000|Nintendo 64|Intelligent Systems|Paper Mario|100000|92
+Mario & Luigi: Superstar Saga|Mario & Luigi: Superstar Saga|2003|Game Boy Advance|AlphaDream|Mario & Luigi|70000|92
+Mario Kart 8 Deluxe|Mario Kart 8 Deluxe|2017|Switch|Nintendo EPD|Mario Kart|1500000|96
+Mario Kart World|Mario Kart World|2025|Switch 2|Nintendo EPD|Mario Kart|400000|90
+Mario Kart Wii|Mario Kart Wii|2008|Wii|Nintendo EAD|Mario Kart|700000|94
+Mario Kart: Double Dash|Mario Kart: Double Dash!!|2003|GameCube|Nintendo EAD|Mario Kart|300000|93
+Mario Kart 64|Mario Kart 64|1996|Nintendo 64|Nintendo EAD|Mario Kart|400000|92
+Super Mario Kart|Super Mario Kart|1992|Super Nintendo|Nintendo EAD|Mario Kart|260000|92
+Mario Kart DS|Mario Kart DS|2005|Nintendo DS|Nintendo EAD|Mario Kart|300000|94
+Mario Kart 7|Mario Kart 7|2011|Nintendo 3DS|Nintendo EAD|Mario Kart|180000|89
+Mario Party Superstars|Mario Party Superstars|2021|Switch|NDcube|Mario Party|200000|88
+Mario Party (video game)|Mario Party|1998|Nintendo 64|Hudson Soft|Mario Party|150000|82
+Super Mario Party Jamboree|Super Mario Party Jamboree|2024|Switch|Nintendo Cube|Mario Party|140000|86
+Luigi's Mansion 3|Luigi's Mansion 3|2019|Switch|Next Level Games|Luigi's Mansion|300000|93
+Luigi's Mansion|Luigi's Mansion|2001|GameCube|Nintendo EAD|Luigi's Mansion|150000|88
+Donkey Kong Country|Donkey Kong Country|1994|Super Nintendo|Rare|Donkey Kong|350000|94
+Donkey Kong Country 2: Diddy's Kong Quest|Donkey Kong Country 2: Diddy's Kong Quest|1995|Super Nintendo|Rare|Donkey Kong|220000|96
+Donkey Kong Country: Tropical Freeze|Donkey Kong Country: Tropical Freeze|2014|Wii U / Switch|Retro Studios|Donkey Kong|180000|95
+Donkey Kong Country Returns|Donkey Kong Country Returns|2010|Wii|Retro Studios|Donkey Kong|160000|92
+Donkey Kong 64|Donkey Kong 64|1999|Nintendo 64|Rare|Donkey Kong|160000|84
+Donkey Kong Bananza|Donkey Kong Bananza|2025|Switch 2|Nintendo EPD|Donkey Kong|150000|94
+Donkey Kong (1981 video game)|Donkey Kong|1981|Arcade|Nintendo R&D1|Donkey Kong|350000|90
+Super Smash Bros. Ultimate|Super Smash Bros. Ultimate|2018|Switch|Bandai Namco / Sora Ltd.|Super Smash Bros.|1300000|96
+Super Smash Bros. Melee|Super Smash Bros. Melee|2001|GameCube|HAL Laboratory|Super Smash Bros.|500000|96
+Super Smash Bros. Brawl|Super Smash Bros. Brawl|2008|Wii|Sora Ltd.|Super Smash Bros.|350000|90
+Super Smash Bros. (video game)|Super Smash Bros.|1999|Nintendo 64|HAL Laboratory|Super Smash Bros.|260000|92
+Animal Crossing: New Horizons|Animal Crossing: New Horizons|2020|Switch|Nintendo EPD|Animal Crossing|1300000|93
+Animal Crossing: New Leaf|Animal Crossing: New Leaf|2012|Nintendo 3DS|Nintendo EAD|Animal Crossing|260000|93
+Animal Crossing (video game)|Animal Crossing|2001|GameCube|Nintendo EAD|Animal Crossing|160000|90
+Splatoon 3|Splatoon 3|2022|Switch|Nintendo EPD|Splatoon|400000|90
+Splatoon 2|Splatoon 2|2017|Switch|Nintendo EPD|Splatoon|350000|91
+Splatoon (video game)|Splatoon|2015|Wii U|Nintendo EAD|Splatoon|160000|91
+Metroid Prime|Metroid Prime|2002|GameCube|Retro Studios|Metroid|300000|97
+Metroid Prime 4: Beyond|Metroid Prime 4: Beyond|2025|Switch|Retro Studios|Metroid|90000|86
+Super Metroid|Super Metroid|1994|Super Nintendo|Nintendo R&D1|Metroid|280000|97
+Metroid Dread|Metroid Dread|2021|Switch|MercurySteam|Metroid|220000|94
+Metroid Fusion|Metroid Fusion|2002|Game Boy Advance|Nintendo R&D1|Metroid|90000|93
+Metroid (video game)|Metroid|1986|NES|Nintendo R&D1|Metroid|80000|82
+Kirby and the Forgotten Land|Kirby et le monde oublié|2022|Switch|HAL Laboratory|Kirby|300000|94
+Kirby Super Star|Kirby Super Star|1996|Super Nintendo|HAL Laboratory|Kirby|130000|93
+Kirby's Return to Dream Land|Kirby's Return to Dream Land|2011|Wii|HAL Laboratory|Kirby|130000|90
+Kirby's Dream Land|Kirby's Dream Land|1992|Game Boy|HAL Laboratory|Kirby|90000|84
+Kirby Air Riders|Kirby Air Riders|2025|Switch 2|Sora Ltd.|Kirby|80000|84
+Yoshi's Island|Super Mario World 2: Yoshi's Island|1995|Super Nintendo|Nintendo EAD|Yoshi|200000|95
+Star Fox 64|Star Fox 64|1997|Nintendo 64|Nintendo EAD|Star Fox|200000|93
+Star Fox (1993 video game)|Star Fox|1993|Super Nintendo|Nintendo EAD / Argonaut|Star Fox|90000|85
+F-Zero GX|F-Zero GX|2003|GameCube|Amusement Vision|F-Zero|100000|94
+F-Zero (video game)|F-Zero|1990|Super Nintendo|Nintendo EAD|F-Zero|70000|86
+Pikmin 4|Pikmin 4|2023|Switch|Nintendo EPD|Pikmin|200000|94
+Pikmin 2|Pikmin 2|2004|GameCube|Nintendo EAD|Pikmin|120000|94
+Pikmin (video game)|Pikmin|2001|GameCube|Nintendo EAD|Pikmin|100000|91
+Fire Emblem: Three Houses|Fire Emblem: Three Houses|2019|Switch|Intelligent Systems|Fire Emblem|400000|95
+Fire Emblem Engage|Fire Emblem Engage|2023|Switch|Intelligent Systems|Fire Emblem|150000|85
+Fire Emblem Awakening|Fire Emblem Awakening|2012|Nintendo 3DS|Intelligent Systems|Fire Emblem|220000|93
+Fire Emblem: Path of Radiance|Fire Emblem: Path of Radiance|2005|GameCube|Intelligent Systems|Fire Emblem|60000|92
+Xenoblade Chronicles (video game)|Xenoblade Chronicles|2010|Wii|Monolith Soft|Xenoblade|220000|95
+Xenoblade Chronicles 2|Xenoblade Chronicles 2|2017|Switch|Monolith Soft|Xenoblade|180000|89
+Xenoblade Chronicles 3|Xenoblade Chronicles 3|2022|Switch|Monolith Soft|Xenoblade|200000|94
+Xenoblade Chronicles X|Xenoblade Chronicles X|2015|Wii U / Switch|Monolith Soft|Xenoblade|90000|89
+Bayonetta 2|Bayonetta 2|2014|Wii U / Switch|PlatinumGames|Bayonetta|110000|92
+Bayonetta 3|Bayonetta 3|2022|Switch|PlatinumGames|Bayonetta|90000|85
+Astral Chain|Astral Chain|2019|Switch|PlatinumGames|Astral Chain|80000|89
+Wii Sports|Wii Sports|2006|Wii|Nintendo EAD|Wii|900000|90
+Wii Sports Resort|Wii Sports Resort|2009|Wii|Nintendo EAD|Wii|350000|89
+Wii Fit|Wii Fit|2007|Wii|Nintendo EAD|Wii|250000|76
+Ring Fit Adventure|Ring Fit Adventure|2019|Switch|Nintendo EPD|Ring Fit|200000|88
+Nintendogs|Nintendogs|2005|Nintendo DS|Nintendo EAD|Nintendogs|250000|83
+Brain Age: Train Your Brain in Minutes a Day!|Programme d'entraînement cérébral du Dr Kawashima|2005|Nintendo DS|Nintendo SPD|Brain Age|200000|80
+Tomodachi Life|Tomodachi Life|2013|Nintendo 3DS|Nintendo SPD|Tomodachi|150000|86
+Professor Layton and the Curious Village|Professeur Layton et l'Étrange Village|2007|Nintendo DS|Level-5|Professeur Layton|160000|90
+Professor Layton and the Unwound Future|Professeur Layton et le Destin perdu|2008|Nintendo DS|Level-5|Professeur Layton|110000|93
+Phoenix Wright: Ace Attorney|Phoenix Wright: Ace Attorney|2001|Game Boy Advance / DS|Capcom|Ace Attorney|90000|94
+Golden Sun|Golden Sun|2001|Game Boy Advance|Camelot|Golden Sun|90000|93
+EarthBound|EarthBound|1994|Super Nintendo|Ape / HAL Laboratory|Mother|160000|95
+Mother 3|Mother 3|2006|Game Boy Advance|Brownie Brown / HAL|Mother|90000|96
+Advance Wars|Advance Wars|2001|Game Boy Advance|Intelligent Systems|Advance Wars|80000|93
+Punch-Out!! (NES)|Punch-Out!!|1987|NES|Nintendo R&D3|Punch-Out!!|130000|92
+Duck Hunt|Duck Hunt|1984|NES|Nintendo R&D1|Duck Hunt|200000|84
+Excite Truck|Excite Truck|2006|Wii|Monster Games|Excite|30000|82
+Kid Icarus: Uprising|Kid Icarus: Uprising|2012|Nintendo 3DS|Project Sora|Kid Icarus|70000|89
+Mario Tennis Aces|Mario Tennis Aces|2018|Switch|Camelot|Mario Sports|90000|83
+Captain Toad: Treasure Tracker|Captain Toad: Treasure Tracker|2014|Wii U / Switch|Nintendo EAD|Super Mario|90000|89
+Arms (video game)|Arms|2017|Switch|Nintendo EPD|Arms|80000|80
+Nintendo Switch Sports|Nintendo Switch Sports|2022|Switch|Nintendo EPD|Wii|160000|80
+1-2-Switch|1-2-Switch|2017|Switch|Nintendo EPD|1-2-Switch|80000|62
+Clubhouse Games: 51 Worldwide Classics|Clubhouse Games: 51 Worldwide Classics|2020|Switch|NDcube|Clubhouse Games|80000|86
+Super Mario Party|Super Mario Party|2018|Switch|NDcube|Mario Party|200000|80
+Mario + Rabbids Kingdom Battle|Mario + The Lapins Crétins Kingdom Battle|2017|Switch|Ubisoft|Mario + Rabbids|160000|88
+Mario + Rabbids Sparks of Hope|Mario + The Lapins Crétins Sparks of Hope|2022|Switch|Ubisoft|Mario + Rabbids|80000|88
+Princess Peach: Showtime!|Princess Peach: Showtime!|2024|Switch|Good-Feel|Super Mario|50000|82
+Mario Strikers: Battle League|Mario Strikers: Battle League Football|2022|Switch|Next Level Games|Mario Sports|70000|75
+Pokémon Red and Blue|Pokémon Rouge et Bleu|1996|Game Boy|Game Freak|Pokémon|1300000|95
+Pokémon Yellow|Pokémon Jaune|1998|Game Boy|Game Freak|Pokémon|400000|93
+Pokémon Gold and Silver|Pokémon Or et Argent|1999|Game Boy Color|Game Freak|Pokémon|800000|97
+Pokémon Crystal|Pokémon Cristal|2000|Game Boy Color|Game Freak|Pokémon|250000|95
+Pokémon Ruby and Sapphire|Pokémon Rubis et Saphir|2002|Game Boy Advance|Game Freak|Pokémon|500000|93
+Pokémon Emerald|Pokémon Émeraude|2004|Game Boy Advance|Game Freak|Pokémon|350000|95
+Pokémon FireRed and LeafGreen|Pokémon Rouge Feu et Vert Feuille|2004|Game Boy Advance|Game Freak|Pokémon|300000|93
+Pokémon Diamond and Pearl|Pokémon Diamant et Perle|2006|Nintendo DS|Game Freak|Pokémon|450000|91
+Pokémon Platinum|Pokémon Platine|2008|Nintendo DS|Game Freak|Pokémon|250000|94
+Pokémon HeartGold and SoulSilver|Pokémon Or HeartGold et Argent SoulSilver|2009|Nintendo DS|Game Freak|Pokémon|350000|97
+Pokémon Black and White|Pokémon Noir et Blanc|2010|Nintendo DS|Game Freak|Pokémon|400000|94
+Pokémon Black 2 and White 2|Pokémon Noir 2 et Blanc 2|2012|Nintendo DS|Game Freak|Pokémon|220000|94
+Pokémon X and Y|Pokémon X et Y|2013|Nintendo 3DS|Game Freak|Pokémon|450000|88
+Pokémon Omega Ruby and Alpha Sapphire|Pokémon Rubis Oméga et Saphir Alpha|2014|Nintendo 3DS|Game Freak|Pokémon|250000|88
+Pokémon Sun and Moon|Pokémon Soleil et Lune|2016|Nintendo 3DS|Game Freak|Pokémon|350000|85
+Pokémon Sword and Shield|Pokémon Épée et Bouclier|2019|Switch|Game Freak|Pokémon|700000|78
+Pokémon Brilliant Diamond and Shining Pearl|Pokémon Diamant Étincelant et Perle Scintillante|2021|Switch|ILCA|Pokémon|300000|68
+Pokémon Legends: Arceus|Légendes Pokémon : Arceus|2022|Switch|Game Freak|Pokémon|500000|91
+Pokémon Scarlet and Violet|Pokémon Écarlate et Violet|2022|Switch|Game Freak|Pokémon|700000|72
+Pokémon Legends: Z-A|Légendes Pokémon : Z-A|2025|Switch|Game Freak|Pokémon|300000|80
+Pokémon: Let's Go, Pikachu! and Let's Go, Eevee!|Pokémon : Let's Go, Pikachu et Let's Go, Évoli|2018|Switch|Game Freak|Pokémon|300000|82
+Pokémon Stadium|Pokémon Stadium|1999|Nintendo 64|Nintendo EAD / HAL|Pokémon|150000|86
+Pokémon Colosseum|Pokémon Colosseum|2003|GameCube|Genius Sonority|Pokémon|80000|85
+Pokémon Snap|Pokémon Snap|1999|Nintendo 64|HAL Laboratory|Pokémon|120000|88
+Pokémon Mystery Dungeon: Explorers of Time and Explorers of Darkness|Pokémon Donjon Mystère : Explorateurs du Temps et de l'Ombre|2007|Nintendo DS|Chunsoft|Pokémon|130000|91
+Pokémon Trading Card Game (video game)|Pokémon Trading Card Game|1998|Game Boy Color|Hudson Soft|Pokémon|90000|89
+Pokémon Go|Pokémon GO|2016|Mobile|Niantic|Pokémon|1200000|78
+Pokémon Unite|Pokémon Unite|2021|Switch / Mobile|TiMi Studio|Pokémon|300000|72
+Pokémon Trading Card Game Pocket|Pokémon TCG Pocket|2024|Mobile|Creatures / DeNA|Pokémon|500000|80
+Detective Pikachu (video game)|Détective Pikachu|2016|Nintendo 3DS|Creatures|Pokémon|50000|80
+Bloodborne|Bloodborne|2015|PlayStation 4|FromSoftware|Bloodborne|900000|97
+Demon's Souls|Demon's Souls|2009|PlayStation 3|FromSoftware|Souls|250000|92
+Demon's Souls (2020 video game)|Demon's Souls (2020)|2020|PlayStation 5|Bluepoint Games|Souls|200000|92
+Gran Turismo (1997 video game)|Gran Turismo|1997|PlayStation|Polyphony Digital|Gran Turismo|200000|92
+Gran Turismo 7|Gran Turismo 7|2022|PlayStation 5|Polyphony Digital|Gran Turismo|200000|78
+Gran Turismo 4|Gran Turismo 4|2004|PlayStation 2|Polyphony Digital|Gran Turismo|150000|92
+Astro Bot (video game)|Astro Bot|2024|PlayStation 5|Team Asobi|Astro Bot|300000|97
+Astro's Playroom|Astro's Playroom|2020|PlayStation 5|Team Asobi|Astro Bot|150000|93
+Ghost of Yōtei|Ghost of Yōtei|2025|PlayStation 5|Sucker Punch|Ghost of Tsushima|200000|90
+Uncharted 2: Among Thieves|Uncharted 2: Among Thieves|2009|PlayStation 3|Naughty Dog|Uncharted|350000|96
+Uncharted 3: Drake's Deception|Uncharted 3: L'Illusion de Drake|2011|PlayStation 3|Naughty Dog|Uncharted|200000|91
+Uncharted: Drake's Fortune|Uncharted: Drake's Fortune|2007|PlayStation 3|Naughty Dog|Uncharted|160000|86
+The Last of Us Part II|The Last of Us Part II|2020|PlayStation 4|Naughty Dog|The Last of Us|500000|80
+Crash Bandicoot (video game)|Crash Bandicoot|1996|PlayStation|Naughty Dog|Crash Bandicoot|300000|88
+Crash Team Racing|Crash Team Racing|1999|PlayStation|Naughty Dog|Crash Bandicoot|200000|92
+Crash Bandicoot: Warped|Crash Bandicoot 3: Warped|1998|PlayStation|Naughty Dog|Crash Bandicoot|180000|92
+Spyro the Dragon (1998 video game)|Spyro the Dragon|1998|PlayStation|Insomniac Games|Spyro|200000|90
+Jak and Daxter: The Precursor Legacy|Jak and Daxter: The Precursor Legacy|2001|PlayStation 2|Naughty Dog|Jak and Daxter|160000|91
+Jak II|Jak II : Hors-la-loi|2003|PlayStation 2|Naughty Dog|Jak and Daxter|120000|91
+Ratchet & Clank (2002 video game)|Ratchet & Clank|2002|PlayStation 2|Insomniac Games|Ratchet & Clank|180000|91
+Ratchet & Clank: Going Commando|Ratchet & Clank 2|2003|PlayStation 2|Insomniac Games|Ratchet & Clank|120000|93
+Sly Cooper and the Thievius Raccoonus|Sly Raccoon|2002|PlayStation 2|Sucker Punch|Sly Cooper|90000|88
+Shadow of the Colossus|Shadow of the Colossus|2005|PlayStation 2|Team Ico|Team Ico|300000|95
+Ico (video game)|Ico|2001|PlayStation 2|Team Ico|Team Ico|120000|91
+The Last Guardian|The Last Guardian|2016|PlayStation 4|genDESIGN / Japan Studio|Team Ico|110000|84
+Gravity Rush|Gravity Rush|2012|PS Vita|Japan Studio|Gravity Rush|60000|87
+Killzone 2|Killzone 2|2009|PlayStation 3|Guerrilla Games|Killzone|90000|85
+Resistance: Fall of Man|Resistance: Fall of Man|2006|PlayStation 3|Insomniac Games|Resistance|80000|84
+LittleBigPlanet|LittleBigPlanet|2008|PlayStation 3|Media Molecule|LittleBigPlanet|200000|90
+Dreams (video game)|Dreams|2020|PlayStation 4|Media Molecule|Dreams|60000|86
+Infamous (video game)|inFAMOUS|2009|PlayStation 3|Sucker Punch|inFAMOUS|120000|88
+Infamous Second Son|inFAMOUS Second Son|2014|PlayStation 4|Sucker Punch|inFAMOUS|130000|86
+God of War (2005 video game)|God of War|2005|PlayStation 2|Santa Monica Studio|God of War|300000|94
+God of War II|God of War II|2007|PlayStation 2|Santa Monica Studio|God of War|250000|95
+God of War III|God of War III|2010|PlayStation 3|Santa Monica Studio|God of War|250000|92
+Metal Gear Solid (1998 video game)|Metal Gear Solid|1998|PlayStation|Konami|Metal Gear|450000|96
+Metal Gear Solid 2: Sons of Liberty|Metal Gear Solid 2: Sons of Liberty|2001|PlayStation 2|Konami|Metal Gear|250000|93
+Metal Gear Solid 4: Guns of the Patriots|Metal Gear Solid 4: Guns of the Patriots|2008|PlayStation 3|Kojima Productions|Metal Gear|200000|93
+Silent Hill (video game)|Silent Hill|1999|PlayStation|Konami|Silent Hill|200000|93
+Silent Hill 2|Silent Hill 2 (2001)|2001|PlayStation 2|Konami|Silent Hill|250000|96
+Resident Evil (1996 video game)|Resident Evil (1996)|1996|PlayStation|Capcom|Resident Evil|300000|92
+Resident Evil 2 (1998 video game)|Resident Evil 2 (1998)|1998|PlayStation|Capcom|Resident Evil|220000|94
+Kingdom Hearts (video game)|Kingdom Hearts|2002|PlayStation 2|Square|Kingdom Hearts|400000|92
+Chrono Cross|Chrono Cross|1999|PlayStation|Square|Chrono|110000|90
+Dragon Quest VIII|Dragon Quest VIII : L'Odyssée du roi maudit|2004|PlayStation 2|Level-5|Dragon Quest|180000|94
+Dragon Quest (video game)|Dragon Quest|1986|NES|Chunsoft|Dragon Quest|120000|82
+Dragon Quest V|Dragon Quest V : La Fiancée céleste|1992|Super Nintendo|Chunsoft|Dragon Quest|100000|94
+Tekken 3|Tekken 3|1997|PlayStation|Namco|Tekken|300000|95
+Soulcalibur (video game)|Soulcalibur|1998|Dreamcast|Namco|Soulcalibur|120000|93
+Ridge Racer (video game)|Ridge Racer|1993|Arcade / PlayStation|Namco|Ridge Racer|70000|84
+Tony Hawk's Pro Skater 2|Tony Hawk's Pro Skater 2|2000|PlayStation|Neversoft|Tony Hawk's|250000|95
+Medal of Honor (1999 video game)|Medal of Honor|1999|PlayStation|DreamWorks Interactive|Medal of Honor|100000|85
+Parappa the Rapper|PaRappa the Rapper|1996|PlayStation|NanaOn-Sha|PaRappa|70000|85
+Ape Escape (video game)|Ape Escape|1999|PlayStation|Japan Studio|Ape Escape|90000|89
+MediEvil (1998 video game)|MediEvil|1998|PlayStation|SCE Cambridge Studio|MediEvil|70000|85
+Twisted Metal 2|Twisted Metal 2|1996|PlayStation|SingleTrac|Twisted Metal|70000|85
+Syphon Filter (video game)|Syphon Filter|1999|PlayStation|Eidetic|Syphon Filter|60000|84
+Legend of Dragoon|The Legend of Dragoon|1999|PlayStation|Japan Studio|Legend of Dragoon|70000|87
+Xenogears|Xenogears|1998|PlayStation|Square|Xenogears|80000|91
+Suikoden II|Suikoden II|1998|PlayStation|Konami|Suikoden|70000|94
+Vagrant Story|Vagrant Story|2000|PlayStation|Square|Vagrant Story|50000|88
+Persona 4 (video game)|Persona 4|2008|PlayStation 2|Atlus|Persona|200000|94
+Halo: Combat Evolved|Halo: Combat Evolved|2001|Xbox|Bungie|Halo|600000|95
+Halo 2|Halo 2|2004|Xbox|Bungie|Halo|450000|94
+Halo 3|Halo 3|2007|Xbox 360|Bungie|Halo|550000|95
+Halo: Reach|Halo: Reach|2010|Xbox 360|Bungie|Halo|350000|94
+Halo 5: Guardians|Halo 5: Guardians|2015|Xbox One|343 Industries|Halo|150000|72
+Fable (2004 video game)|Fable|2004|Xbox|Lionhead Studios|Fable|150000|86
+Fable II|Fable II|2008|Xbox 360|Lionhead Studios|Fable|180000|89
+Gears of War (video game)|Gears of War|2006|Xbox 360|Epic Games|Gears of War|250000|91
+Gears of War 2|Gears of War 2|2008|Xbox 360|Epic Games|Gears of War|200000|92
+Gears of War 3|Gears of War 3|2011|Xbox 360|Epic Games|Gears of War|200000|92
+Forza Motorsport 4|Forza Motorsport 4|2011|Xbox 360|Turn 10 Studios|Forza|100000|89
+Banjo-Kazooie|Banjo-Kazooie|1998|Nintendo 64|Rare|Banjo-Kazooie|250000|94
+Banjo-Tooie|Banjo-Tooie|2000|Nintendo 64|Rare|Banjo-Kazooie|130000|90
+Conker's Bad Fur Day|Conker's Bad Fur Day|2001|Nintendo 64|Rare|Conker|100000|91
+GoldenEye 007 (1997 video game)|GoldenEye 007|1997|Nintendo 64|Rare|James Bond|400000|93
+Perfect Dark|Perfect Dark|2000|Nintendo 64|Rare|Perfect Dark|130000|91
+Viva Piñata|Viva Piñata|2006|Xbox 360|Rare|Viva Piñata|90000|88
+Kameo: Elements of Power|Kameo: Elements of Power|2005|Xbox 360|Rare|Kameo|40000|79
+Jet Set Radio Future|Jet Set Radio Future|2002|Xbox|Smilebit|Jet Set Radio|60000|90
+Shenmue (video game)|Shenmue|1999|Dreamcast|Sega AM2|Shenmue|110000|91
+Sonic the Hedgehog (1991 video game)|Sonic the Hedgehog|1991|Mega Drive|Sonic Team|Sonic|700000|92
+Sonic the Hedgehog 2|Sonic the Hedgehog 2|1992|Mega Drive|Sega Technical Institute|Sonic|450000|95
+Sonic 3 & Knuckles|Sonic 3 & Knuckles|1994|Mega Drive|Sega Technical Institute|Sonic|250000|95
+Sonic Adventure 2|Sonic Adventure 2|2001|Dreamcast|Sonic Team USA|Sonic|200000|86
+Sonic CD|Sonic CD|1993|Mega-CD|Sega|Sonic|100000|88
+Streets of Rage 2|Streets of Rage 2|1992|Mega Drive|Sega|Streets of Rage|150000|95
+Phantasy Star Online|Phantasy Star Online|2000|Dreamcast|Sonic Team|Phantasy Star|80000|88
+Crazy Taxi (video game)|Crazy Taxi|1999|Arcade / Dreamcast|Hitmaker|Crazy Taxi|110000|86
+Virtua Fighter 2|Virtua Fighter 2|1994|Arcade|Sega AM2|Virtua Fighter|60000|88
+Out Run|Out Run|1986|Arcade|Sega AM2|Out Run|90000|88
+Space Invaders|Space Invaders|1978|Arcade|Taito|Space Invaders|500000|90
+Pac-Man|Pac-Man|1980|Arcade|Namco|Pac-Man|900000|93
+Ms. Pac-Man|Ms. Pac-Man|1982|Arcade|General Computer Corp.|Pac-Man|200000|90
+Galaga|Galaga|1981|Arcade|Namco|Galaxian|250000|91
+Asteroids (video game)|Asteroids|1979|Arcade|Atari|Asteroids|250000|86
+Pong|Pong|1972|Arcade|Atari|Pong|400000|84
+Breakout (video game)|Breakout|1976|Arcade|Atari|Breakout|200000|84
+Centipede (video game)|Centipede|1981|Arcade|Atari|Centipede|90000|84
+Frogger|Frogger|1981|Arcade|Konami|Frogger|200000|86
+Dig Dug|Dig Dug|1982|Arcade|Namco|Dig Dug|90000|85
+Q*bert|Q*bert|1982|Arcade|Gottlieb|Q*bert|80000|84
+Defender (1981 video game)|Defender|1981|Arcade|Williams Electronics|Defender|70000|82
+Street Fighter II|Street Fighter II|1991|Arcade|Capcom|Street Fighter|900000|95
+Mortal Kombat (1992 video game)|Mortal Kombat (1992)|1992|Arcade|Midway|Mortal Kombat|400000|88
+Mortal Kombat II|Mortal Kombat II|1993|Arcade|Midway|Mortal Kombat|200000|90
+NBA Jam (1993 video game)|NBA Jam|1993|Arcade|Midway|NBA Jam|150000|88
+Teenage Mutant Ninja Turtles (1989 video game)|Teenage Mutant Ninja Turtles (arcade)|1989|Arcade|Konami|TMNT|120000|88
+The Simpsons (arcade game)|The Simpsons (arcade)|1991|Arcade|Konami|Les Simpson|70000|84
+Metal Slug (video game)|Metal Slug|1996|Arcade|Nazca|Metal Slug|150000|92
+Bomberman (1983 video game)|Bomberman|1983|MSX / NES|Hudson Soft|Bomberman|150000|85
+Tetris|Tetris|1985|Game Boy / multi|Alekseï Pajitnov|Tetris|1500000|96
+Tetris 99|Tetris 99|2019|Switch|Arika|Tetris|150000|88
+Mega Man 2|Mega Man 2|1988|NES|Capcom|Mega Man|220000|94
+Mega Man X|Mega Man X|1993|Super Nintendo|Capcom|Mega Man|200000|95
+Castlevania (1986 video game)|Castlevania|1986|NES|Konami|Castlevania|160000|88
+Castlevania: Symphony of the Night|Castlevania: Symphony of the Night|1997|PlayStation|Konami|Castlevania|300000|97
+Contra (video game)|Contra|1987|NES|Konami|Contra|180000|90
+Ninja Gaiden (NES video game)|Ninja Gaiden|1988|NES|Tecmo|Ninja Gaiden|100000|86
+Secret of Mana|Secret of Mana|1993|Super Nintendo|Square|Mana|160000|92
+Super Castlevania IV|Super Castlevania IV|1991|Super Nintendo|Konami|Castlevania|80000|91
+Kid Icarus (video game)|Kid Icarus|1986|NES|Nintendo R&D1|Kid Icarus|50000|76
+Excitebike|Excitebike|1984|NES|Nintendo R&D1|Excite|80000|82
+Ice Climber|Ice Climber|1985|NES|Nintendo R&D1|Ice Climber|60000|76
+Kirby's Adventure|Kirby's Adventure|1993|NES|HAL Laboratory|Kirby|90000|91
+Wario Land 4|Wario Land 4|2001|Game Boy Advance|Nintendo R&D1|Wario|70000|90
+WarioWare, Inc.: Mega Microgames!|WarioWare, Inc.: Mega Microgames!|2003|Game Boy Advance|Nintendo R&D1|WarioWare|80000|90
+Kirby: Planet Robobot|Kirby: Planet Robobot|2016|Nintendo 3DS|HAL Laboratory|Kirby|70000|90
+Fortnite|Fortnite|2017|Multi|Epic Games|Fortnite|2200000|82
+Minecraft|Minecraft|2011|Multi|Mojang Studios|Minecraft|3000000|96
+League of Legends|League of Legends|2009|PC|Riot Games|League of Legends|2500000|76
+Valorant|Valorant|2020|PC / Consoles|Riot Games|Valorant|900000|80
+Teamfight Tactics|Teamfight Tactics|2019|PC / Mobile|Riot Games|League of Legends|300000|80
+Legends of Runeterra|Legends of Runeterra|2020|PC / Mobile|Riot Games|League of Legends|80000|86
+World of Warcraft|World of Warcraft|2004|PC|Blizzard Entertainment|Warcraft|1600000|92
+Warcraft III: Reign of Chaos|Warcraft III: Reign of Chaos|2002|PC|Blizzard Entertainment|Warcraft|500000|96
+Warcraft II: Tides of Darkness|Warcraft II: Tides of Darkness|1995|PC|Blizzard Entertainment|Warcraft|150000|92
+StarCraft (video game)|StarCraft|1998|PC|Blizzard Entertainment|StarCraft|700000|97
+StarCraft II: Wings of Liberty|StarCraft II: Wings of Liberty|2010|PC|Blizzard Entertainment|StarCraft|500000|93
+Diablo (video game)|Diablo|1997|PC|Blizzard North|Diablo|300000|92
+Diablo II|Diablo II|2000|PC|Blizzard North|Diablo|800000|97
+Diablo III|Diablo III|2012|PC|Blizzard Entertainment|Diablo|500000|82
+Diablo Immortal|Diablo Immortal|2022|Mobile / PC|Blizzard / NetEase|Diablo|200000|40
+Hearthstone|Hearthstone|2014|PC / Mobile|Blizzard Entertainment|Warcraft|700000|80
+Heroes of the Storm|Heroes of the Storm|2015|PC|Blizzard Entertainment|Blizzard|200000|78
+Genshin Impact|Genshin Impact|2020|PC / Mobile / PS|miHoYo|Genshin Impact|1200000|82
+Honkai: Star Rail|Honkai: Star Rail|2023|PC / Mobile / PS|HoYoverse|Honkai|500000|85
+Zenless Zone Zero|Zenless Zone Zero|2024|PC / Mobile / PS|HoYoverse|Zenless Zone Zero|200000|80
+Roblox|Roblox|2006|Multi|Roblox Corporation|Roblox|1500000|70
+Clash of Clans|Clash of Clans|2012|Mobile|Supercell|Clash|1200000|82
+Clash Royale|Clash Royale|2016|Mobile|Supercell|Clash|900000|80
+Brawl Stars|Brawl Stars|2018|Mobile|Supercell|Brawl Stars|800000|80
+Candy Crush Saga|Candy Crush Saga|2012|Mobile|King|Candy Crush|1000000|74
+Angry Birds (video game)|Angry Birds|2009|Mobile|Rovio Entertainment|Angry Birds|900000|84
+Subway Surfers|Subway Surfers|2012|Mobile|SYBO / Kiloo|Subway Surfers|900000|80
+Temple Run|Temple Run|2011|Mobile|Imangi Studios|Temple Run|500000|78
+Fruit Ninja|Fruit Ninja|2010|Mobile|Halfbrick Studios|Fruit Ninja|500000|82
+Plants vs. Zombies 2|Plants vs. Zombies 2|2013|Mobile|PopCap Games|Plants vs. Zombies|400000|82
+Flappy Bird|Flappy Bird|2013|Mobile|Dong Nguyen|Flappy Bird|400000|70
+Monument Valley (video game)|Monument Valley|2014|Mobile|ustwo games|Monument Valley|200000|94
+Alto's Adventure|Alto's Adventure|2015|Mobile|Snowman|Alto|100000|92
+Free Fire (video game)|Free Fire|2017|Mobile|111dots Studio / Garena|Free Fire|800000|70
+PUBG Mobile|PUBG Mobile|2018|Mobile|LightSpeed & Quantum|PUBG|900000|72
+Call of Duty: Mobile|Call of Duty: Mobile|2019|Mobile|TiMi Studio|Call of Duty|700000|80
+Honor of Kings|Honor of Kings|2015|Mobile|TiMi Studio|Honor of Kings|600000|74
+Mobile Legends: Bang Bang|Mobile Legends: Bang Bang|2016|Mobile|Moonton|Mobile Legends|500000|70
+Hay Day|Hay Day|2012|Mobile|Supercell|Hay Day|300000|82
+Pokémon Café ReMix|Pokémon Café ReMix|2020|Mobile / Switch|Genius Sonority|Pokémon|30000|78
+Animal Crossing: Pocket Camp|Animal Crossing: Pocket Camp|2017|Mobile|Nintendo EPD / NDcube|Animal Crossing|150000|80
+Fire Emblem Heroes|Fire Emblem Heroes|2017|Mobile|Intelligent Systems|Fire Emblem|200000|80
+Super Mario Run|Super Mario Run|2016|Mobile|Nintendo EPD|Super Mario|300000|70
+Grand Theft Auto: San Andreas|Grand Theft Auto: San Andreas (2004)|2004|PlayStation 2|Rockstar North|Grand Theft Auto|1300000|96
+Grand Theft Auto: Vice City|Grand Theft Auto: Vice City (2002)|2002|PlayStation 2|Rockstar North|Grand Theft Auto|700000|95
+Grand Theft Auto III|Grand Theft Auto III (2001)|2001|PlayStation 2|DMA Design|Grand Theft Auto|500000|92
+Grand Theft Auto VI|Grand Theft Auto VI|2026|PlayStation 5 / Xbox Series|Rockstar North|Grand Theft Auto|900000|90
+Grand Theft Auto: Chinatown Wars|Grand Theft Auto: Chinatown Wars|2009|Nintendo DS|Rockstar Leeds|Grand Theft Auto|80000|90
+Bully (video game)|Bully (2006)|2006|PlayStation 2|Rockstar Vancouver|Bully|200000|92
+Manhunt (video game)|Manhunt|2003|PlayStation 2|Rockstar North|Manhunt|80000|80
+Need for Speed: Most Wanted (2005 video game)|Need for Speed: Most Wanted (2005)|2005|PlayStation 2 / PC|EA Black Box|Need for Speed|500000|94
+Need for Speed: Underground 2|Need for Speed: Underground 2|2004|PlayStation 2 / PC|EA Black Box|Need for Speed|450000|95
+Burnout 3: Takedown|Burnout 3: Takedown|2004|PlayStation 2 / Xbox|Criterion Games|Burnout|200000|94
+Spider-Man 2 (2004 video game)|Spider-Man 2 (2004)|2004|PlayStation 2|Treyarch|Spider-Man|250000|93
+Super Mario Bros. Deluxe|Super Mario Bros. Deluxe|1999|Game Boy Color|Nintendo R&D2|Super Mario|60000|86
+Mario Kart: Super Circuit|Mario Kart: Super Circuit|2001|Game Boy Advance|Intelligent Systems|Mario Kart|70000|84
+Tony Hawk's Underground|Tony Hawk's Underground|2003|PlayStation 2|Neversoft|Tony Hawk's|110000|90
+SSX Tricky|SSX Tricky|2001|PlayStation 2|EA Canada|SSX|130000|93
+Timesplitters 2|TimeSplitters 2|2002|PlayStation 2|Free Radical Design|TimeSplitters|110000|92
+Ty the Tasmanian Tiger|Ty the Tasmanian Tiger|2002|PlayStation 2|Krome Studios|Ty|40000|80
+Kingdom Hearts: Chain of Memories|Kingdom Hearts: Chain of Memories|2004|Game Boy Advance|Jupiter|Kingdom Hearts|80000|82
+Dragon Ball Z: Budokai Tenkaichi 3|Dragon Ball Z: Budokai Tenkaichi 3|2007|PlayStation 2 / Wii|Spike|Dragon Ball|300000|94
+Naruto: Ultimate Ninja Storm|Naruto: Ultimate Ninja Storm|2008|PlayStation 3|CyberConnect2|Naruto|120000|86
+Guitar Hero III: Legends of Rock|Guitar Hero III: Legends of Rock|2007|PlayStation 2 / Xbox 360 / Wii|Neversoft|Guitar Hero|300000|90
+Rock Band (video game)|Rock Band|2007|Xbox 360 / PlayStation 3|Harmonix|Rock Band|150000|90
+Just Dance 2|Just Dance 2|2010|Wii|Ubisoft Paris|Just Dance|150000|80
+SingStar|SingStar|2004|PlayStation 2|SCE London Studio|SingStar|120000|80
+Buzz! The Music Quiz|Buzz! The Music Quiz|2005|PlayStation 2|Relentless Software|Buzz!|60000|78
+Pro Evolution Soccer 6|Pro Evolution Soccer 6|2006|PlayStation 2|Konami|Pro Evolution Soccer|200000|93
+FIFA 14|FIFA 14|2013|Multi|EA Canada|EA Sports FC|200000|78
+Wii Play|Wii Play|2006|Wii|Nintendo EAD|Wii|150000|62
