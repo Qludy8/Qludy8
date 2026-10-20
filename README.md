@@ -12,7 +12,6 @@ ou, pour les jeux absents de Steam, la jaquette officielle de son article Wikip�
 Prérequis : **Node.js ≥ 22.9** (SQLite est intégré à Node).
 
 ```bash
-
 npm install
 npm start            # http://localhost:4848 (l’adresse pour un téléphone sur le même Wi-Fi s’affiche aussi)
 npm test             # 16 tests : catalogue, tirages, garanties, recyclage, marché, échanges, missions, portefeuille
