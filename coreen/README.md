@@ -6,7 +6,7 @@ Elle fonctionne hors connexion. Toutes les données restent sur le téléphone, 
 ## Contenu
 
 - **Alphabet** : voyelles, consonnes, lettres composées et doubles, avec la prononciation (voix coréenne du téléphone), des conseils en français, un atelier pour construire des syllabes et des quiz de lecture.
-- **Vocabulaire** : environ 180 mots classés en 6 thèmes. Trois façons de s’entraîner : quiz (coréen → français, français → coréen, écoute), cartes mémoire à glisser, et jeu des paires contre la montre. Une répétition espacée (boîtes de Leitner) fait revenir plus souvent les mots oubliés.
+- **Vocabulaire** : plus de 150 mots classés en 6 thèmes. Trois façons de s’entraîner : quiz (coréen → français, français → coréen, écoute), cartes mémoire à glisser, et jeu des paires contre la montre. Une répétition espacée (boîtes de Leitner) fait revenir plus souvent les mots oubliés.
 - **Générateur de phrases**, selon cinq critères :
   - le niveau ;
   - le thème ;
