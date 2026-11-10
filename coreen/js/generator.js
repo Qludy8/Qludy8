@@ -1,7 +1,7 @@
 // Générateur de phrases coréennes (avec traduction française) selon des critères.
 import { conjugate, particle, romanize } from './hangul.js';
-import { NOUNS, PLACES } from './data/vocab.js';
-import { VERBS, TIMES, verbLabel } from './data/verbs.js';
+import { NOUNS, PLACES } from './content/vocab.js';
+import { VERBS, TIMES, verbLabel } from './content/verbs.js';
 
 export const TENSE_LABEL = { present: 'Présent', past: 'Passé', future: 'Futur' };
 export const STYLE_LABEL = { polite: 'Poli', formal: 'Formel', casual: 'Familier' };

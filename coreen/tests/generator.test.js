@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generate, rng, finishFrench, negArticle } from '../js/generator.js';
 import { WORDS } from '../js/words.js';
-import { THEMES } from '../js/data/vocab.js';
+import { THEMES } from '../js/content/vocab.js';
 
 test('élisions et négation française', () => {
   assert.equal(finishFrench('je aime le café.'), 'J’aime le café.');

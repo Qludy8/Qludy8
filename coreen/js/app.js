@@ -2,7 +2,7 @@
 import { $, $$, esc, speak, canSpeak, hasKoreanVoice, sfx, haptic, toast, countUp, pulse, ICONS } from './ui.js';
 import * as store from './store.js';
 import { romanize, compose, CHO, JUNG, JONG } from './hangul.js';
-import { JAMO_SETS, CONSONANTS, VOWELS } from './data/jamo.js';
+import { JAMO_SETS, CONSONANTS, VOWELS } from './content/jamo.js';
 import { WORDS, wordsOf, THEMES } from './words.js';
 import { hangulQuiz, vocabQuiz } from './quiz.js';
 import { flashcards, pairs } from './games.js';

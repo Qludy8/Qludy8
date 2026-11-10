@@ -1,6 +1,6 @@
 // Liste unifiée de tous les mots du lexique (noms, lieux, verbes, expressions).
-import { NOUNS, PLACES, EXTRA, THEMES } from './data/vocab.js';
-import { VERBS, verbLabel } from './data/verbs.js';
+import { NOUNS, PLACES, EXTRA, THEMES } from './content/vocab.js';
+import { VERBS, verbLabel } from './content/verbs.js';
 
 const all = [
   ...NOUNS.map((x) => ({ kr: x.kr, fr: x.fr, t: x.t })),

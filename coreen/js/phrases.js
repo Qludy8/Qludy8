@@ -2,7 +2,7 @@
 import { $, $$, esc, shuffle, sfx, haptic, speak, canSpeak, confetti, countUp, pulse, floatXp, toast, ICONS } from './ui.js';
 import { addXp, get, save, dayKey, dayNumber } from './store.js';
 import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
-import { THEMES } from './data/vocab.js';
+import { THEMES } from './content/vocab.js';
 
 const CRITERIA = [
   { key: 'level', label: 'Niveau', options: [['1', 'Débutant'], ['2', 'Intermédiaire'], ['3', 'Avancé']],

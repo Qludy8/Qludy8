@@ -2,7 +2,7 @@
 import { $, $$, esc, shuffle, sfx, haptic, speak, canSpeak, confetti, countUp, pulse, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get } from './store.js';
 import { romanize, compose, CHO, JUNG, JONG } from './hangul.js';
-import { JAMO_SETS, VOWELS, CONSONANTS } from './data/jamo.js';
+import { JAMO_SETS, VOWELS, CONSONANTS } from './content/jamo.js';
 import { WORDS, wordsOf, THEMES } from './words.js';
 
 /**
