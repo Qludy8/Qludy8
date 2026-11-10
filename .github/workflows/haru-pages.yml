@@ -1,0 +1,38 @@
+# Publie l'application Haru (dossier coreen/) sur GitHub Pages.
+# Prérequis : Settings → Pages → Source : « GitHub Actions ».
+name: Haru – GitHub Pages
+
+on:
+  push:
+    branches: [claude/kyara-weapons-card-game-g53sy3, ccr-b11f4f0e-w54v1k]
+    paths: ['coreen/**', '.github/workflows/haru-pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: haru-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests
+        run: node --test coreen/tests/*.test.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: coreen
+      - id: deployment
+        uses: actions/deploy-pages@v4
