@@ -41,7 +41,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '18'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '19'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -415,7 +415,7 @@ function lexicon(el) {
 let guideCat = 'pron';
 const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
 const guideList = () => course().guide[lang()] || course().guide.fr;
-const GUIDE_CATS = ['pron', 'gram'];
+const GUIDE_CATS = ['pron', 'gram', 'adv'];
 
 function guide(el, q) {
   if (q.id) return lesson(el, q.id, q.step);

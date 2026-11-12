@@ -5,6 +5,9 @@ import { JAMO_SETS, VOWELS, CONSONANTS } from '../content/jamo.js';
 import { AWKWARD } from '../content/awkward.js';
 import { GUIDE } from '../content/guide.js';
 import { GUIDE_EN } from '../content/guide.en.js';
+import { GUIDE_KO_PLUS } from '../content/guide.plus.js';
+import { GUIDE_KO_ADV } from '../content/guide.adv.js';
+import { localize } from '../content/guide.util.js';
 import { pick } from '../generator.js';
 
 const L = (fr, en) => ({ fr, en });
@@ -334,5 +337,8 @@ export const KO = {
   wordRead: () => '',
   render,
   awkward,
-  guide: { fr: GUIDE, en: GUIDE_EN },
+  guide: {
+    fr: [...GUIDE, ...localize([...GUIDE_KO_PLUS, ...GUIDE_KO_ADV], 'fr')],
+    en: [...GUIDE_EN, ...localize([...GUIDE_KO_PLUS, ...GUIDE_KO_ADV], 'en')],
+  },
 };

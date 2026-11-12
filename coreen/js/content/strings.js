@@ -64,7 +64,7 @@ export const STRINGS = {
     'daily.more': 'Générer d’autres phrases',
 
     'lex.search': 'Rechercher (français, anglais ou {lang})', 'lex.mastery': 'Maîtrise', 'lex.none': 'Aucun mot trouvé.',
-    'guide.pron': 'Prononciation', 'guide.gram': 'Grammaire', 'guide.remember': 'À retenir', 'guide.prev': 'Précédente', 'guide.next': 'Suivante',
+    'guide.pron': 'Prononciation', 'guide.gram': 'Grammaire', 'guide.adv': 'Avancé', 'guide.remember': 'À retenir', 'guide.prev': 'Précédente', 'guide.next': 'Suivante',
 
     'progress.total': 'Encore {left} XP avant le niveau {n} · {xp} XP au total', 'progress.streak': 'jours de suite', 'progress.active': 'jours actifs',
     'progress.today': 'XP aujourd’hui', 'progress.mastered': 'mots maîtrisés', 'progress.seen': 'mots vus', 'progress.lessons': 'leçons lues',
@@ -156,7 +156,7 @@ export const STRINGS = {
     'daily.more': 'Generate more sentences',
 
     'lex.search': 'Search (English, French or {lang})', 'lex.mastery': 'Mastery', 'lex.none': 'No words found.',
-    'guide.pron': 'Pronunciation', 'guide.gram': 'Grammar', 'guide.remember': 'Remember', 'guide.prev': 'Previous', 'guide.next': 'Next',
+    'guide.pron': 'Pronunciation', 'guide.gram': 'Grammar', 'guide.adv': 'Advanced', 'guide.remember': 'Remember', 'guide.prev': 'Previous', 'guide.next': 'Next',
 
     'progress.total': '{left} XP to level {n} · {xp} XP in total', 'progress.streak': 'day streak', 'progress.active': 'active days',
     'progress.today': 'XP today', 'progress.mastered': 'words mastered', 'progress.seen': 'words seen', 'progress.lessons': 'lessons read',

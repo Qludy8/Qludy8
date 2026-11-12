@@ -4,6 +4,9 @@ import { KANA_SETS, kanaToRomaji, particleRomaji, toHira } from './kana.js';
 import { KANJI_NUM, KANJI_LIFE, KANJI_ACTION } from '../content/kanji.js';
 import { GUIDE_JA } from '../content/guide.ja.js';
 import { GUIDE_JA_EN } from '../content/guide.ja.en.js';
+import { GUIDE_JA_PLUS } from '../content/guide.ja.plus.js';
+import { GUIDE_JA_ADV } from '../content/guide.ja.adv.js';
+import { localize } from '../content/guide.util.js';
 import { AWKWARD } from '../content/awkward.js';
 import { AWKWARD_EN } from './ko.js';
 import { pick } from '../generator.js';
@@ -408,5 +411,8 @@ export const JA = {
   wordRead: (w) => (w.r && toHira(w.tl) !== w.r ? w.r : ''),
   render,
   awkward,
-  guide: { fr: GUIDE_JA, en: GUIDE_JA_EN },
+  guide: {
+    fr: [...GUIDE_JA, ...localize([...GUIDE_JA_PLUS, ...GUIDE_JA_ADV], 'fr')],
+    en: [...GUIDE_JA_EN, ...localize([...GUIDE_JA_PLUS, ...GUIDE_JA_ADV], 'en')],
+  },
 };
