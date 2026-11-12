@@ -908,3 +908,15 @@ ruby rt { font-size: .45em; color: var(--muted); font-weight: 600; letter-spacin
 .launch p { font-size: 1.2rem; opacity: .9; }
 .launch-tap { margin-top: 40px; padding: 10px 18px; border-radius: 99px; background: rgb(255 255 255 / .18); font-weight: 800; animation: breathe2 1.8s ease-in-out infinite; }
 @keyframes breathe2 { 50% { transform: scale(1.06); background: rgb(255 255 255 / .28); } }
+
+/* ---------- Kana regroupés et kanji ---------- */
+.jamo .pair { display: inline-flex; gap: 6px; align-items: baseline; font-size: calc(1.45rem * var(--krs)); }
+.jamo .k2, .jd-big .k2 { color: var(--accent); }
+.jd-big .k2 { margin-left: 8px; }
+.jamo-grid.pairs { grid-template-columns: repeat(4, 1fr); }
+.jamo-grid.pairs.wide { grid-template-columns: repeat(2, 1fr); }
+.jamo-grid.kanji { grid-template-columns: repeat(4, 1fr); }
+.jamo-grid.kanji .kr { font-size: calc(2rem * var(--krs)); }
+.jamo-grid.kanji small { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kanji-read { margin: 4px 0 6px; }
+.ex-say { text-align: left; color: var(--accent); font-weight: 700; }

@@ -172,3 +172,18 @@ test('service worker : tous les fichiers de l’application sont mis en cache', 
   const walk = (rel) => readdirSync(new URL(rel, root), { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? walk(rel + d.name + '/') : [rel + d.name]));
   for (const f of walk('js/')) assert.ok(sw.includes(`'./${f}'`), 'absent du cache : ' + f);
 });
+
+test('japonais : kana regroupés et kanji', async () => {
+  const { KANJI_NUM, KANJI_LIFE, KANJI_ACTION } = await import('../js/content/kanji.js');
+  const sets = JA.script.sets;
+  for (const k of ['base', 'voiced', 'combo']) for (const x of sets[k].items) assert.ok(x.j && x.j2 && x.r && x.j !== x.j2, x.j);
+  const all = [...KANJI_NUM, ...KANJI_LIFE, ...KANJI_ACTION];
+  assert.ok(all.length >= 70);
+  assert.equal(new Set(all.map((x) => x.j)).size, all.length);
+  for (const x of all) {
+    assert.match(x.j, /^[一-龯]$/, x.j);
+    assert.ok(x.on && x.kun && x.mean.fr && x.mean.en && x.ex.length === 4 && x.ex[0].includes(x.j), x.j);
+    assert.match(x.say, /^[ぁ-ゖ]+$/, x.j);
+  }
+  for (let i = 0; i < 50; i++) assert.ok(JA.script.randomSyllable().rom, 'syllabe');
+});

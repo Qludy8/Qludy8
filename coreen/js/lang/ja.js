@@ -1,6 +1,7 @@
 // Cours de japonais : conjugaison, rendu des phrases, phrases « gênantes », kana, vocabulaire de base.
 import { NOUNS, PLACES, VERBS, verbLabel } from '../content/concepts.js';
 import { KANA_SETS, kanaToRomaji, particleRomaji, toHira } from './kana.js';
+import { KANJI_NUM, KANJI_LIFE, KANJI_ACTION } from '../content/kanji.js';
 import { GUIDE_JA } from '../content/guide.ja.js';
 import { GUIDE_JA_EN } from '../content/guide.ja.en.js';
 import { AWKWARD } from '../content/awkward.js';
@@ -360,17 +361,24 @@ function buildWords() {
 
 const pickR = (a) => a[Math.floor(Math.random() * a.length)];
 function randomSyllable() {
-  const items = [...KANA_SETS.hira.items, ...KANA_SETS.hiraD.items, ...KANA_SETS.hiraY.items];
+  const items = [...KANA_SETS.base.items, ...KANA_SETS.voiced.items, ...KANA_SETS.combo.items];
   const n = 1 + Math.floor(Math.random() * 2);
+  const kata = Math.random() < 0.4; // un mot sur trois environ en katakana
   let text = '';
-  let rom = '';
   for (let i = 0; i < n; i++) {
     const k = pickR(items);
-    text += k.j;
+    text += kata ? k.j2 : k.j;
   }
-  rom = kanaToRomaji(text);
-  return { text, rom };
+  return { text, rom: kanaToRomaji(text) };
 }
+
+// Kanji : trois groupes affichés après les kana.
+const SCRIPT_SETS = {
+  ...KANA_SETS,
+  kanjiNum: { label: L('Kanji · nombres et temps', 'Kanji · numbers & time'), kind: 'kanji', items: KANJI_NUM },
+  kanjiLife: { label: L('Kanji · gens et lieux', 'Kanji · people & places'), kind: 'kanji', items: KANJI_LIFE },
+  kanjiAction: { label: L('Kanji · actions et qualités', 'Kanji · actions & qualities'), kind: 'kanji', items: KANJI_ACTION },
+};
 
 export const JA = {
   id: 'ja',
@@ -388,7 +396,7 @@ export const JA = {
   testVoice: 'こんにちは。はじめまして。',
   script: {
     title: L('Kana', 'Kana'),
-    sets: KANA_SETS,
+    sets: SCRIPT_SETS,
     builder: false,
     randomSyllable,
     syllableLabel: L('Syllabes', 'Syllables'),

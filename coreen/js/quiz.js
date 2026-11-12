@@ -156,22 +156,36 @@ export function scriptQuiz(el, set) {
   const S = C.script;
   let questions;
   let title;
-  if (S.sets[set]) {
+  if (S.sets[set]?.kind === 'kanji') {
     const items = S.sets[set].items;
-    const others = [...items, ...(S.sets[set].decoys || [])];
+    title = tr(S.sets[set].label);
+    const readings = (x) => [x.on, x.kun].filter((r) => r && r !== '—').join(' · ');
+    const explain = (x) => `<span class="kr">${x.j}</span> · ${esc(readings(x))} = ${esc(tr(x.mean))}<br>${t('kanji.example')} <span class="kr">${esc(x.ex[0])}</span> (${esc(x.ex[1])}) : ${esc(tr({ fr: x.ex[2], en: x.ex[3] }))}`;
+    questions = shuffle(items).slice(0, len()).map((x, k) => {
+      const others = items.filter((o) => o.j !== x.j);
+      const base = { say: x.say, explain: explain(x) };
+      if (k % 3 === 0) return mcq({ ...base, prompt: `<span class="qkr">${x.j}</span>`, sub: t('kanji.whatMeans') }, { label: tr(x.mean) }, others.map((o) => ({ label: tr(o.mean) })));
+      if (k % 3 === 1) return mcq({ ...base, prompt: `<span class="qkr">${x.j}</span>`, sub: t('kanji.whichReading') }, { label: readings(x), kr: true }, others.map((o) => ({ label: readings(o), kr: true })));
+      return mcq({ ...base, prompt: `<span class="qlatin">${esc(tr(x.mean))}</span>`, sub: t('kanji.whichKanji') }, { label: x.j, kr: true }, others.map((o) => ({ label: o.j, kr: true })));
+    });
+  } else if (S.sets[set]) {
+    // Les kana regroupent hiragana (j) et katakana (j2) : chaque question tire l'une des deux formes.
+    const form = (x) => (x.j2 && Math.random() < 0.5 ? { ...x, j: x.j2 } : x);
+    const items = S.sets[set].items.map(form);
+    const others = [...items, ...(S.sets[set].decoys || []).map(form)];
     title = tr(S.sets[set].label);
     questions = shuffle(items).slice(0, len()).map((x, k) => {
       if (k % 3 === 2) {
         return mcq(
           { prompt: `<span class="qlatin">${esc(romLabel(x))}</span>`, sub: t('quiz.whichLetter'), say: x.say, explain: esc(tr(x.tip)) },
           { label: x.j, kr: true },
-          others.filter((o) => o.j !== x.j).map((o) => ({ label: o.j, kr: true })),
+          others.filter((o) => o.r !== x.r).map((o) => ({ label: o.j, kr: true })),
         );
       }
       return mcq(
         { prompt: `<span class="qkr">${x.j}</span>`, sub: t('quiz.howRead'), say: x.say, explain: esc(tr(x.tip)) },
         { label: romLabel(x) },
-        others.filter((o) => o.j !== x.j).map((o) => ({ label: romLabel(o) })),
+        others.filter((o) => o.r !== x.r).map((o) => ({ label: romLabel(o) })),
       );
     });
   } else if (set === 'syllables') {

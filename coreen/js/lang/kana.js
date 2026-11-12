@@ -52,15 +52,13 @@ const TIPS = {
   ja: L('« dja »', '“ja” as in “jar”'),
 };
 const tip = (r) => TIPS[r] || TIPS[r.slice(0, 2)] || L(`« ${r} »`, `“${r}”`);
-const item = ([k, r], kata) => ({ j: kata ? toKata(k) : k, r, say: kata ? toKata(k) : k, tip: tip(r) });
+// Chaque son regroupe sa forme hiragana (j) et katakana (j2).
+const item = ([k, r]) => ({ j: k, j2: toKata(k), r, say: k, tip: tip(r) });
 
 export const KANA_SETS = {
-  hira: { label: L('Hiragana', 'Hiragana'), items: BASE.map((x) => item(x)) },
-  hiraD: { label: L('Hiragana が', 'Hiragana が'), items: DAKUTEN.map((x) => item(x)), decoys: BASE.map((x) => item(x)) },
-  hiraY: { label: L('Hiragana きゃ', 'Hiragana きゃ'), items: YOON.map((x) => item(x)) },
-  kata: { label: L('Katakana', 'Katakana'), items: BASE.map((x) => item(x, true)) },
-  kataD: { label: L('Katakana ガ', 'Katakana ガ'), items: DAKUTEN.map((x) => item(x, true)), decoys: BASE.map((x) => item(x, true)) },
-  kataY: { label: L('Katakana キャ', 'Katakana キャ'), items: YOON.map((x) => item(x, true)) },
+  base: { label: L('Kana あ ア', 'Kana あ ア'), items: BASE.map(item) },
+  voiced: { label: L('Sons が ガ', 'Sounds が ガ'), items: DAKUTEN.map(item), decoys: BASE.map(item) },
+  combo: { label: L('Combinés きゃ キャ', 'Combined きゃ キャ'), items: YOON.map(item) },
 };
 
 // ---------- Rōmaji (Hepburn modifié) ----------

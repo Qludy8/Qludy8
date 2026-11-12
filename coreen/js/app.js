@@ -295,14 +295,20 @@ function script(el) {
   const grid = $('.jamo-grid', el);
   const detail = $('.jamo-detail', el);
   function renderGrid() {
-    const items = S.sets[scriptSet[C.id]].items;
-    grid.classList.toggle('wide', items[0]?.j.length > 1);
+    const set = S.sets[scriptSet[C.id]];
+    const items = set.items;
+    const kanji = set.kind === 'kanji';
+    grid.classList.toggle('wide', !kanji && items[0]?.j.length > 1);
+    grid.classList.toggle('pairs', !!items[0]?.j2);
+    grid.classList.toggle('kanji', kanji);
     grid.innerHTML = items.map((x, i) => `
       <button class="jamo" style="--i:${Math.min(i, 30)}" data-i="${i}">
-        <span class="kr">${x.j}</span><small>${x.r || '∅ / ng'}</small>
+        ${x.j2 ? `<span class="kr pair"><span>${x.j}</span><span class="k2">${x.j2}</span></span>` : `<span class="kr">${x.j}</span>`}
+        <small>${kanji ? esc(tr(x.mean).split(/[,;]/)[0]) : x.r || '∅ / ng'}</small>
       </button>`).join('');
     detail.hidden = true;
     $('.quiz-set', el).href = `#/hquiz?set=${scriptSet[C.id]}`;
+    $('.quiz-set', el).textContent = kanji ? t('kanji.quiz') : t('script.quizSet');
   }
   grid.addEventListener('click', (e) => {
     const b = e.target.closest('.jamo');
@@ -312,8 +318,21 @@ function script(el) {
     haptic(5);
     $$('.jamo', grid).forEach((j) => j.classList.toggle('on', j === b));
     detail.hidden = false;
+    if (x.mean) {
+      // Kanji : sens, lectures on / kun et mot d'exemple à écouter
+      detail.innerHTML = `
+        <div class="jd-big kr">${x.j}</div>
+        <div>
+          <b>${esc(tr(x.mean))}</b>
+          <p class="kanji-read"><span class="muted small">on</span> <span class="kr">${esc(x.on)}</span> · <span class="muted small">kun</span> <span class="kr">${esc(x.kun)}</span></p>
+          <button class="link ex-say" data-say="${esc(x.ex[0])}"><span class="kr">${esc(x.ex[0])}</span> <span class="kr muted small">${esc(x.ex[1])}</span> · ${esc(tr({ fr: x.ex[2], en: x.ex[3] }))}</button>
+        </div>`;
+      $('.ex-say', detail).addEventListener('click', (ev) => speak(ev.currentTarget.dataset.say));
+      pulse(detail, 'pop');
+      return;
+    }
     detail.innerHTML = `
-      <div class="jd-big kr">${x.j}</div>
+      <div class="jd-big kr">${x.j}${x.j2 ? `<span class="k2">${x.j2}</span>` : ''}</div>
       <div>
         <b>${x.r ? esc(x.r) : t('quiz.silent')}</b>${x.name ? ` <span class="muted kr">· ${x.name}</span>` : ''}
         <p>${esc(tr(x.tip))}</p>
@@ -590,7 +609,7 @@ function settings(el) {
           <span class="muted small">${t('set.autoHelp')}</span></div>
         <div class="set-row col"><span>${t('set.textSize', { lang: tr(C.name).toLowerCase() })}</span>${seg('krLarge', [['false', t('set.normal')], ['true', t('set.large')]], s.krLarge)}</div>
         ${toggle('motion', t('set.motion'), s.motion)}
-        ${document.documentElement.requestFullscreen ? toggle('fullscreen', t('set.fullscreen'), s.fullscreen) : ''}
+        ${document.documentElement.requestFullscreen ? toggle('fullscreenTap', t('set.fullscreen'), s.fullscreenTap) : ''}
       </div>
 
       <h2>${t('set.learning')}</h2>
@@ -767,8 +786,8 @@ document.addEventListener('pointerdown', (e) => {
 
 // Plein écran réel (Android) : masque la barre système en bas, que le manifeste ne cache pas toujours.
 // Le navigateur exige un geste de l'utilisateur : on le demande au premier toucher.
-const installed = matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)').matches;
-const wantsFullscreen = () => installed && store.get().settings.fullscreen && !document.fullscreenElement && !!document.documentElement.requestFullscreen;
+const installed = matchMedia('(display-mode: standalone), (display-mode: minimal-ui)').matches; // déjà en plein écran via le manifeste : rien à faire
+const wantsFullscreen = () => installed && store.get().settings.fullscreenTap && !document.fullscreenElement && !!document.documentElement.requestFullscreen;
 function enterFullscreen() {
   if (!wantsFullscreen()) return;
   document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
@@ -802,7 +821,7 @@ function launchScreen() {
   box.addEventListener('keydown', go, { once: true });
 }
 addEventListener('haru:settings', () => {
-  if (!store.get().settings.fullscreen && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  if (!store.get().settings.fullscreenTap && document.fullscreenElement) document.exitFullscreen().catch(() => {});
 });
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
