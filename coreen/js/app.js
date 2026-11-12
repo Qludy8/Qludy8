@@ -768,12 +768,39 @@ document.addEventListener('pointerdown', (e) => {
 // Plein écran réel (Android) : masque la barre système en bas, que le manifeste ne cache pas toujours.
 // Le navigateur exige un geste de l'utilisateur : on le demande au premier toucher.
 const installed = matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)').matches;
+const wantsFullscreen = () => installed && store.get().settings.fullscreen && !document.fullscreenElement && !!document.documentElement.requestFullscreen;
 function enterFullscreen() {
-  const root = document.documentElement;
-  if (!installed || !store.get().settings.fullscreen || document.fullscreenElement || !root.requestFullscreen) return;
-  root.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  if (!wantsFullscreen()) return;
+  document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
 }
-document.addEventListener('click', enterFullscreen);
+// Tous les gestes qui autorisent le plein écran (le simple défilement ne compte pas pour le navigateur).
+for (const type of ['pointerup', 'touchend', 'click', 'keydown']) document.addEventListener(type, enterFullscreen, { passive: true });
+
+/**
+ * Écran d'ouverture : le navigateur interdit le plein écran sans geste de l'utilisateur.
+ * À l'ouverture de l'application installée, un premier toucher sur cet écran active le plein écran
+ * et masque la barre du téléphone dès le départ.
+ */
+function launchScreen() {
+  if (!wantsFullscreen() || matchMedia('(display-mode: fullscreen)').matches) return;
+  const box = document.createElement('div');
+  box.className = 'launch';
+  box.innerHTML = `
+    <div class="launch-inner">
+      <img src="icons/icon.svg" alt="">
+      <h1>Haru</h1>
+      <p class="kr">${course().id === 'ja' ? '今日も頑張ろう！' : '오늘도 화이팅!'}</p>
+      <span class="launch-tap">${t('launch.tap')}</span>
+    </div>`;
+  document.body.append(box);
+  const go = () => {
+    enterFullscreen();
+    box.classList.add('out');
+    setTimeout(() => box.remove(), 350);
+  };
+  box.addEventListener('pointerup', go, { once: true });
+  box.addEventListener('keydown', go, { once: true });
+}
 addEventListener('haru:settings', () => {
   if (!store.get().settings.fullscreen && document.fullscreenElement) document.exitFullscreen().catch(() => {});
 });
@@ -785,3 +812,4 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 applySettings();
 if (hasCourse()) dailyPhrases(); // précalcul pour un premier clic sans délai
 route();
+if (hasCourse()) launchScreen();

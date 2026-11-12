@@ -894,3 +894,17 @@ ruby rt { font-size: .45em; color: var(--muted); font-weight: 600; letter-spacin
 .course-chip { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 12px; padding: 6px 12px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 800; }
 .script-help { margin-top: 18px; line-height: 1.5; }
 .sets.scroll { margin-bottom: 8px; }
+
+/* ---------- Écran d'ouverture (active le plein écran au premier toucher) ---------- */
+.launch {
+  position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; cursor: pointer;
+  background: linear-gradient(160deg, var(--c-home), var(--c-guide) 130%); color: #fff; text-align: center;
+  transition: opacity .35s ease, transform .35s ease;
+}
+.launch.out { opacity: 0; transform: scale(1.06); pointer-events: none; }
+.launch-inner { display: grid; justify-items: center; gap: 6px; }
+.launch img { width: 104px; height: 104px; border-radius: 30px; box-shadow: 0 8px 0 rgb(0 0 0 / .18); animation: celEmoji 1s var(--spring) both; }
+.launch h1 { font-size: 2.6rem; margin-top: 14px; }
+.launch p { font-size: 1.2rem; opacity: .9; }
+.launch-tap { margin-top: 40px; padding: 10px 18px; border-radius: 99px; background: rgb(255 255 255 / .18); font-weight: 800; animation: breathe2 1.8s ease-in-out infinite; }
+@keyframes breathe2 { 50% { transform: scale(1.06); background: rgb(255 255 255 / .28); } }

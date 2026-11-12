@@ -81,6 +81,7 @@ export const STRINGS = {
     'set.install': 'Installer sur le téléphone', 'set.installIos': 'bouton Partager → « Sur l’écran d’accueil ».', 'set.installAndroid': 'menu ⋮ → « Installer l’application ».',
     'set.updates': 'Les mises à jour arrivent toutes seules : ferme l’application puis rouvre-la avec internet.', 'set.haru': '« une journée »',
 
+    'launch.tap': 'Touche l’écran pour commencer',
     'cel.level': 'Niveau {n} !', 'cel.levelText.ko': '대박 ! Tu progresses vite, continue comme ça.', 'cel.levelText.ja': 'すごい！ Tu progresses vite, continue comme ça.',
     'cel.goal': 'Objectif du jour atteint !', 'cel.goalStreak': '{n} jours de suite, bravo !', 'cel.goalFirst': 'Reviens demain pour lancer ta série.',
   },
@@ -165,6 +166,7 @@ export const STRINGS = {
     'set.install': 'Install on your phone', 'set.installIos': 'Share button → “Add to Home Screen”.', 'set.installAndroid': 'menu ⋮ → “Install app”.',
     'set.updates': 'Updates arrive on their own: close the app and reopen it with internet.', 'set.haru': '“one day”',
 
+    'launch.tap': 'Tap the screen to start',
     'cel.level': 'Level {n}!', 'cel.levelText.ko': '대박! You’re making fast progress, keep it up.', 'cel.levelText.ja': 'すごい！ You’re making fast progress, keep it up.',
     'cel.goal': 'Daily goal reached!', 'cel.goalStreak': '{n} days in a row, well done!', 'cel.goalFirst': 'Come back tomorrow to start your streak.',
   },
