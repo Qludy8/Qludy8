@@ -850,3 +850,10 @@ body.focus .top-actions { display: none; }
 .crit-group.dim { opacity: .4; }
 .th-emoji { font-size: 1.6rem; flex: 0 0 auto; }
 .theme-row { padding-left: 12px; }
+
+/* Lexique : filtres qui ne chevauchent plus la liste, toucher sans zoom */
+.seg.scroll { padding-top: 2px; padding-bottom: 8px; margin-bottom: 6px; }
+.lexicon .words { margin-top: 8px; }
+.lexicon .row-main.pressed, .journal .row-main.pressed { transform: none; box-shadow: none; }
+.row.flash { animation: flash .6s ease; }
+@keyframes flash { 0% { background: var(--accent-soft); border-color: var(--accent); } 100% { background: var(--surface); } }

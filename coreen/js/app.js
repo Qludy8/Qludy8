@@ -329,7 +329,7 @@ function lexicon(el) {
     const r = e.target.closest('.say-row');
     if (r) {
       speak(r.dataset.kr);
-      pulse(r, 'bump');
+      pulse(r.closest('li'), 'flash'); // simple surbrillance, sans zoom
     }
   });
   render();
@@ -410,6 +410,7 @@ function settings(el) {
           <span class="muted small">Automatique suit le réglage du téléphone.</span></div>
         <div class="set-row col"><span>Taille du texte coréen</span>${seg('krLarge', [['false', 'Normale'], ['true', 'Grande']], s.krLarge)}</div>
         ${toggle('motion', 'Animations', s.motion)}
+        ${document.documentElement.requestFullscreen ? toggle('fullscreen', 'Plein écran (masque les barres du téléphone)', s.fullscreen) : ''}
       </div>
 
       <h2>Apprentissage</h2>
@@ -470,6 +471,7 @@ function settings(el) {
     s[inp.name] = inp.checked;
     store.save();
     applySettings();
+    dispatchEvent(new Event('haru:settings'));
     sfx.tap();
     haptic(5);
   }));
@@ -667,6 +669,19 @@ document.addEventListener('pointerdown', (e) => {
   if (b) b.classList.add('pressed');
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => document.addEventListener(t, () => $$('.pressed').forEach((b) => b.classList.remove('pressed'))));
+
+// Plein écran réel (Android) : masque la barre système en bas, que le manifeste ne cache pas toujours.
+// Le navigateur exige un geste de l'utilisateur : on le demande au premier toucher.
+const installed = matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)').matches;
+function enterFullscreen() {
+  const root = document.documentElement;
+  if (!installed || !store.get().settings.fullscreen || document.fullscreenElement || !root.requestFullscreen) return;
+  root.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+}
+document.addEventListener('click', enterFullscreen);
+addEventListener('haru:settings', () => {
+  if (!store.get().settings.fullscreen && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+});
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('./sw.js').catch(() => {});

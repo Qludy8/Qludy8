@@ -5,7 +5,7 @@ import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator
 import { THEMES } from './content/vocab.js';
 
 const CRITERIA = [
-  { key: 'mood', label: 'Ton', options: [['normal', 'Normal'], ['awkward', 'Gênant 😳']],
+  { key: 'mood', label: 'Ton', options: [['normal', 'Normal'], ['awkward', 'Gênant']],
     help: { normal: 'phrases du quotidien', awkward: 'phrases drôles et embarrassantes (le niveau et le thème sont ignorés)' } },
   { key: 'level', label: 'Niveau', options: [['1', 'Débutant'], ['2', 'Intermédiaire'], ['3', 'Avancé']],
     help: { 1: 'Sujet + verbe', 2: '+ un moment (hier, demain…)', 3: '+ un lieu' } },
@@ -124,7 +124,7 @@ function phraseCard(p, { roman }) {
       <span class="pill">${TENSE_LABEL[p.meta.tense]}</span>
       <span class="pill">${STYLE_LABEL[p.meta.style]}</span>
       <span class="pill">${FORM_LABEL[p.meta.form]}</span>
-      ${p.meta.mood === 'awkward' ? '<span class="pill awkward">😳 Gênant</span>' : ''}
+      ${p.meta.mood === 'awkward' ? '<span class="pill awkward">Gênant</span>' : ''}
     </div>
     <div class="phrase-kr kr">${p.kr.split(' ').map((w, i) => `<span style="--i:${i}">${esc(w)}</span>`).join(' ')}</div>
     ${roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : ''}
@@ -172,7 +172,7 @@ export function phrasesScreen(el) {
       if (h) h.textContent = c.help?.[crit[c.key]] ? ' · ' + c.help[crit[c.key]] : '';
     }
     const label = (k) => CRITERIA.find((c) => c.key === k).options.find(([v]) => v === crit[k])[1];
-    $('.crit-sum', el).textContent = crit.mood === 'awkward' ? ['Gênant 😳', label('style')].join(' · ') : [label('level'), label('theme'), label('style')].join(' · ');
+    $('.crit-sum', el).textContent = crit.mood === 'awkward' ? ['Gênant', label('style')].join(' · ') : [label('level'), label('theme'), label('style')].join(' · ');
     el.querySelector('.phrases').classList.toggle('awkward-on', crit.mood === 'awkward');
     for (const k of ['level', 'theme']) $(`.seg[data-key="${k}"]`, el).closest('.crit-group').classList.toggle('dim', crit.mood === 'awkward');
   }
