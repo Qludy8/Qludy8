@@ -1,5 +1,5 @@
 // Moteur de quiz à choix multiples + quiz de hangeul et de vocabulaire.
-import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get } from './store.js';
 import { romanize, compose, CHO, JUNG, JONG } from './hangul.js';
 import { JAMO_SETS, VOWELS, CONSONANTS } from './content/jamo.js';
@@ -63,6 +63,7 @@ export function runQuiz(el, { questions, title, again, back }) {
     if (ok) {
       sfx.ok();
       haptic(8);
+      burst(right);
       combo++;
       if (!q.retry) {
         firstTry++;
@@ -219,7 +220,7 @@ export function vocabQuiz(el, theme, mode) {
     questions,
     title: mode === 'review' ? 'Révision' : THEMES[theme] || 'Tous les thèmes',
     again: () => vocabQuiz(el, theme, mode),
-    back: mode === 'review' ? '#/home' : '#/learn',
+    back: mode === 'review' ? '#/home' : '#/words',
   });
 }
 

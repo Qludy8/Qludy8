@@ -1,5 +1,5 @@
 // Haru (하루) — application d'entraînement au coréen. Navigation et écrans principaux.
-import { $, $$, esc, speak, canSpeak, hasKoreanVoice, sfx, haptic, toast, countUp, pulse, ICONS } from './ui.js';
+import { $, $$, esc, speak, canSpeak, hasKoreanVoice, sfx, haptic, toast, countUp, pulse, celebrate, ICONS } from './ui.js';
 import * as store from './store.js';
 import { romanize, compose, CHO, JUNG, JONG } from './hangul.js';
 import { JAMO_SETS, CONSONANTS, VOWELS } from './content/jamo.js';
@@ -16,33 +16,39 @@ const tabs = $('#tabs');
 let installEvent = null;
 
 // ---------- Écrans ----------
+// tab : onglet (et couleur) de l'écran ; back : adresse du bouton retour ; focus : plein écran (jeux)
 const SCREENS = {
   home: { title: 'Haru', tab: 'home', render: home },
-  learn: { title: 'Apprendre', tab: 'learn', render: learn },
+  hangul: { title: 'Hangeul', tab: 'hangul', render: hangul },
+  words: { title: 'Mots', tab: 'words', render: words },
   phrases: { title: 'Phrases', tab: 'phrases', render: phrasesScreen },
-  progress: { title: 'Progrès', tab: 'progress', render: progress },
-  settings: { title: 'Réglages', tab: 'settings', render: settings },
-  guide: { title: 'Guide', tab: 'learn', back: '#/learn', render: guide },
-  hangul: { title: 'Alphabet', tab: 'learn', back: '#/learn', render: hangul },
-  lexicon: { title: 'Lexique', tab: 'learn', back: '#/learn', render: lexicon },
-  hquiz: { title: 'Quiz hangeul', back: '#/hangul', focus: true, render: (el, q) => hangulQuiz(el, q.set || 'vowels') },
-  quiz: { title: 'Quiz', back: '#/learn', focus: true, render: (el, q) => vocabQuiz(el, q.t || 'all', q.mode) },
-  cards: { title: 'Cartes mémoire', back: '#/learn', focus: true, render: (el, q) => flashcards(el, q.t || 'all') },
-  pairs: { title: 'Jeu des paires', back: '#/learn', focus: true, render: (el) => pairs(el) },
-  daily: { title: 'Défi du jour', back: '#/home', focus: true, render: dailyScreen },
+  guide: { title: 'Guide', tab: 'guide', render: guide },
+  progress: { title: 'Progrès', tab: 'stats', top: 'progress', back: '#/home', render: progress },
+  settings: { title: 'Réglages', tab: 'settings', top: 'settings', back: '#/home', render: settings },
+  lexicon: { title: 'Lexique', tab: 'words', back: '#/words', render: lexicon },
+  hquiz: { title: 'Quiz hangeul', tab: 'hangul', back: '#/hangul', focus: true, render: (el, q) => hangulQuiz(el, q.set || 'vowels') },
+  quiz: { title: 'Quiz', tab: 'words', back: '#/words', focus: true, render: (el, q) => vocabQuiz(el, q.t || 'all', q.mode) },
+  cards: { title: 'Cartes mémoire', tab: 'words', back: '#/words', focus: true, render: (el, q) => flashcards(el, q.t || 'all') },
+  pairs: { title: 'Jeu des paires', tab: 'words', back: '#/words', focus: true, render: (el) => pairs(el) },
+  daily: { title: 'Défi du jour', tab: 'phrases', back: '#/home', focus: true, render: dailyScreen },
 };
+const ALIASES = { learn: 'words' }; // anciennes adresses
 
 function route() {
-  const [path, query = ''] = location.hash.replace(/^#\/?/, '').split('?');
+  let [path, query = ''] = location.hash.replace(/^#\/?/, '').split('?');
+  path = ALIASES[path] || path;
   const name = SCREENS[path] ? path : 'home';
   const params = Object.fromEntries(new URLSearchParams(query));
   const s = SCREENS[name];
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+  $$('.celebrate').forEach((c) => c.remove()); // ferme une célébration restée ouverte
   titleEl.textContent = s.title;
   backEl.hidden = !s.back;
   backEl.dataset.href = params.mode === 'review' ? '#/home' : s.back || '';
   document.body.classList.toggle('focus', !!s.focus);
+  document.body.dataset.tab = s.tab;
   $$('a', tabs).forEach((a) => a.classList.toggle('on', a.dataset.tab === s.tab));
+  $$('[data-top]').forEach((a) => a.classList.toggle('on', a.dataset.top === s.top));
   view.innerHTML = '';
   view.scrollTop = 0;
   window.scrollTo(0, 0);
@@ -58,10 +64,10 @@ window.addEventListener('hashchange', route);
 // ---------- Accueil ----------
 function greeting() {
   const h = new Date().getHours();
-  if (h < 5) return { kr: '안녕하세요', fr: 'Bonsoir, oiseau de nuit' };
-  if (h < 12) return { kr: '좋은 아침이에요', fr: 'Bonjour !' };
-  if (h < 18) return { kr: '안녕하세요', fr: 'Bon après-midi !' };
-  return { kr: '좋은 저녁이에요', fr: 'Bonsoir !' };
+  if (h < 5) return { kr: '안녕하세요', fr: 'Bonsoir, oiseau de nuit 🦉' };
+  if (h < 12) return { kr: '좋은 아침이에요', fr: 'Bonjour ! ☀️' };
+  if (h < 18) return { kr: '안녕하세요', fr: 'Bon après-midi ! 🌤️' };
+  return { kr: '좋은 저녁이에요', fr: 'Bonsoir ! 🌙' };
 }
 
 function home(el) {
@@ -77,7 +83,7 @@ function home(el) {
 
   el.innerHTML = `
     <div class="screen home">
-      <section class="hero">
+      <section class="hero-card">
         <div>
           <p class="muted small cap">${esc(date)}</p>
           <h1 class="kr">${g.kr}</h1>
@@ -89,18 +95,18 @@ function home(el) {
         </div>
       </section>
 
-      <div class="stats3">
-        <div class="stat ${streak ? 'hot' : ''}"><span class="ico">${ICONS.flame}</span><b>${streak}</b><span>jour${streak > 1 ? 's' : ''} de suite</span></div>
-        <div class="stat"><b>Niv. ${lv.lv}</b><div class="mini-bar"><i style="--w:${lv.progress}"></i></div><span>${lv.toNext} XP avant le suivant</span></div>
-        <div class="stat"><b>${store.mastered()}</b><span>mots maîtrisés</span></div>
+      <div class="stats-row">
+        <div class="stat-pill ${streak ? 'hot' : ''}"><span class="ico flame">${ICONS.flame}</span><div><b>${streak}</b><span>jour${streak > 1 ? 's' : ''} de suite</span></div></div>
+        <a class="stat-pill" href="#/progress"><span class="ico level">${lv.lv}</span><div><b>Niveau ${lv.lv}</b><span>${lv.toNext} XP avant le ${lv.lv + 1}</span></div></a>
       </div>
 
       ${installEvent ? '<button class="card install"><b>Installer Haru</b><span class="muted">Ajoute l’application à ton écran d’accueil</span></button>' : ''}
 
       <a class="card daily-cta ${dailyDone ? 'done' : ''}" href="#/daily">
-        <div>
+        <span class="d-emoji">${dailyDone ? '🌸' : '🎯'}</span>
+        <div style="flex:1">
           <span class="eyebrow">Défi du jour</span>
-          <b>${dailyDone ? 'Terminé, bravo ! 🌸' : '3 phrases à reconstituer'}</b>
+          <b>${dailyDone ? 'Terminé, bravo !' : '3 phrases à reconstituer'}</b>
           <span class="muted small">${dailyDone ? 'Tu peux le refaire pour t’entraîner' : 'Débutant → avancé · +10 XP minimum'}</span>
         </div>
         <span class="chev">›</span>
@@ -116,24 +122,23 @@ function home(el) {
         <button class="pod-fr"><span>${esc(pod.fr)}</span><em>Toucher pour voir la traduction</em></button>
       </section>
 
-      <h2>S’entraîner</h2>
+      <h2>On s’entraîne ?</h2>
       <div class="grid2">
-        <a class="tile-link" href="#/quiz?mode=review" style="--i:0">
+        <a class="tile-link" href="#/quiz?mode=review" style="--i:0; --tc: var(--c-words)">
+          <span class="t-emoji">🧠</span>
           <span class="tl-kr kr">복습</span><b>Révision</b>
           <span class="muted small">${due ? `${due} mot${due > 1 ? 's' : ''} à revoir` : 'Mots du jour'}</span>
           ${due ? `<span class="badge">${due}</span>` : ''}
         </a>
-        <a class="tile-link" href="#/phrases" style="--i:1"><span class="tl-kr kr">문장</span><b>Générer</b><span class="muted small">Une phrase sur mesure</span></a>
-        <a class="tile-link" href="#/hangul" style="--i:2"><span class="tl-kr kr">한글</span><b>Alphabet</b><span class="muted small">Lettres et syllabes</span></a>
-        <a class="tile-link" href="#/pairs" style="--i:3"><span class="tl-kr kr">짝</span><b>Paires</b><span class="muted small">Contre la montre</span></a>
+        <a class="tile-link" href="#/phrases" style="--i:1; --tc: var(--c-phrases)">
+          <span class="t-emoji">🎲</span>
+          <span class="tl-kr kr">문장</span><b>Générer</b><span class="muted small">Une phrase sur mesure</span>
+        </a>
       </div>
     </div>`;
 
   countUp($('.goal-ring .n', el), tx);
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    $('.goal-ring', el)?.classList.add('go');
-    $('.mini-bar', el)?.classList.add('go');
-  }));
+  requestAnimationFrame(() => requestAnimationFrame(() => $('.goal-ring', el)?.classList.add('go')));
   $('.pod-say', el)?.addEventListener('click', () => speak(pod.kr));
   $('.pod-fr', el).addEventListener('click', (e) => {
     e.currentTarget.classList.add('shown');
@@ -147,29 +152,35 @@ function home(el) {
   });
 }
 
-// ---------- Apprendre ----------
-function learn(el) {
-  const themes = Object.entries(THEMES);
+// ---------- Mots (vocabulaire) ----------
+const THEME_STYLE = {
+  food: ['🍜', 'var(--c-phrases)'],
+  daily: ['🏠', 'var(--c-home)'],
+  leisure: ['🎬', 'var(--c-guide)'],
+  city: ['🚇', 'var(--c-stats)'],
+  study: ['📚', 'var(--c-words)'],
+  basics: ['👋', 'var(--c-hangul)'],
+};
+
+function words(el) {
+  const due = store.dueCount(WORDS);
   el.innerHTML = `
-    <div class="screen learn">
+    <div class="screen words">
       <div class="grid2">
-        <a class="tile-link" href="#/hangul" style="--i:0"><span class="tl-kr kr">ㄱㄴㄷ</span><b>Alphabet</b><span class="muted small">Apprendre à lire</span></a>
-        <a class="tile-link" href="#/pairs" style="--i:1"><span class="tl-kr kr">짝</span><b>Paires</b><span class="muted small">Jeu de rapidité</span></a>
-        <a class="tile-link" href="#/quiz?t=all" style="--i:2"><span class="tl-kr kr">퀴즈</span><b>Quiz mélangé</b><span class="muted small">Tous les thèmes</span></a>
-        <a class="tile-link" href="#/lexicon" style="--i:3"><span class="tl-kr kr">단어</span><b>Lexique</b><span class="muted small">${WORDS.length} mots</span></a>
+        <a class="tile-link" href="#/quiz?t=all" style="--i:0; --tc: var(--c-words)"><span class="t-emoji">❓</span><span class="tl-kr kr">퀴즈</span><b>Quiz mélangé</b><span class="muted small">Tous les thèmes</span></a>
+        <a class="tile-link" href="#/pairs" style="--i:1; --tc: var(--c-guide)"><span class="t-emoji">⚡</span><span class="tl-kr kr">짝</span><b>Paires</b><span class="muted small">Contre la montre</span></a>
+        <a class="tile-link" href="#/quiz?mode=review" style="--i:2; --tc: var(--c-home)"><span class="t-emoji">🧠</span><span class="tl-kr kr">복습</span><b>Révision</b><span class="muted small">${due ? `${due} à revoir` : 'Mots à consolider'}</span>${due ? `<span class="badge">${due}</span>` : ''}</a>
+        <a class="tile-link" href="#/lexicon" style="--i:3; --tc: var(--c-stats)"><span class="t-emoji">🔎</span><span class="tl-kr kr">단어</span><b>Lexique</b><span class="muted small">${WORDS.length} mots</span></a>
       </div>
-      <h2>Guide</h2>
-      <div class="grid2">
-        <a class="tile-link" href="#/guide?c=pron" style="--i:4"><span class="tl-kr kr">발음</span><b>Prononciation</b><span class="muted small">${GUIDE.filter((g) => g.cat === 'pron').length} règles</span></a>
-        <a class="tile-link" href="#/guide?c=gram" style="--i:5"><span class="tl-kr kr">문법</span><b>Grammaire</b><span class="muted small">${GUIDE.filter((g) => g.cat === 'gram').length} leçons</span></a>
-      </div>
-      <h2>Vocabulaire par thème</h2>
+      <h2>Par thème</h2>
       <ul class="list themes">
-        ${themes.map(([k, label], i) => {
+        ${Object.entries(THEMES).map(([k, label], i) => {
           const ws = wordsOf(k);
           const m = ws.filter((w) => store.box(w.id) >= 3).length;
+          const [emoji, color] = THEME_STYLE[k] || ['📘', 'var(--accent)'];
           return `
-          <li class="theme-row" style="--i:${i}">
+          <li class="theme-row" style="--i:${i}; --tc: ${color}">
+            <span class="th-emoji">${emoji}</span>
             <div class="theme-info">
               <b>${esc(label)}</b>
               <span class="muted small">${m} / ${ws.length} maîtrisés</span>
@@ -568,6 +579,7 @@ function lesson(el, id) {
     return;
   }
   guideCat = g.cat;
+  backEl.hidden = false;
   backEl.dataset.href = `#/guide?c=${g.cat}`;
   titleEl.textContent = GUIDE_CATS[g.cat];
   const st = store.get();
@@ -625,6 +637,19 @@ function onSay(e) {
 }
 
 // ---------- Démarrage ----------
+const LEVEL_EMOJI = ['🌱', '🌿', '🌸', '🌳', '⭐', '🌟', '🏅', '🏆', '👑', '🐉'];
+// Affichées tout de suite, au moment où les XP sont gagnés (fin de série, phrase réussie…).
+addEventListener('haru:levelup', (e) => celebrate({
+  emoji: LEVEL_EMOJI[Math.min(e.detail - 2, LEVEL_EMOJI.length - 1)] || '🎉',
+  title: `Niveau ${e.detail} !`,
+  text: '대박 ! Tu progresses vite, continue comme ça.',
+  button: '화이팅 !',
+}));
+addEventListener('haru:goal', (e) => {
+  if (document.querySelector('.celebrate')) return; // un niveau vient déjà d'être fêté
+  celebrate({ emoji: '🔥', title: 'Objectif du jour atteint !', text: e.detail > 1 ? `${e.detail} jours de suite, bravo !` : 'Reviens demain pour lancer ta série.' });
+});
+
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   installEvent = e;

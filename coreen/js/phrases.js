@@ -1,10 +1,12 @@
 // Générateur de phrases, exercice « reconstituer » et défi du jour.
-import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, burst, ICONS } from './ui.js';
 import { addXp, get, save, dayKey, dayNumber } from './store.js';
 import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
 import { THEMES } from './content/vocab.js';
 
 const CRITERIA = [
+  { key: 'mood', label: 'Ton', options: [['normal', 'Normal'], ['awkward', 'Gênant 😳']],
+    help: { normal: 'phrases du quotidien', awkward: 'phrases drôles et embarrassantes (le niveau et le thème sont ignorés)' } },
   { key: 'level', label: 'Niveau', options: [['1', 'Débutant'], ['2', 'Intermédiaire'], ['3', 'Avancé']],
     help: { 1: 'Sujet + verbe', 2: '+ un moment (hier, demain…)', 3: '+ un lieu' } },
   { key: 'theme', label: 'Thème', options: [['all', 'Tous'], ...Object.entries(THEMES).filter(([k]) => k !== 'basics')] },
@@ -13,7 +15,7 @@ const CRITERIA = [
     help: { polite: '-요 : le plus courant', formal: '-니다 : travail, annonces', casual: 'entre amis proches' } },
   { key: 'form', label: 'Forme', options: [['random', 'Au hasard'], ...Object.entries(FORM_LABEL)] },
 ];
-const DEFAULT_CRIT = { level: '1', theme: 'all', tense: 'random', style: 'polite', form: 'random' };
+const DEFAULT_CRIT = { mood: 'normal', level: '1', theme: 'all', tense: 'random', style: 'polite', form: 'random' };
 
 let current = null; // dernière phrase générée
 let mode = 'read';
@@ -101,6 +103,7 @@ export function reconstruct(box, phrase, onSolved) {
       line.insertAdjacentHTML('beforeend', `<span class="end-punct kr">${esc(phrase.end)}</span>`);
       sfx.ok();
       haptic(12);
+      burst(line, 16);
       autoSpeak(phrase.kr);
       onSolved?.(!helped, line);
     } else {
@@ -121,6 +124,7 @@ function phraseCard(p, { roman }) {
       <span class="pill">${TENSE_LABEL[p.meta.tense]}</span>
       <span class="pill">${STYLE_LABEL[p.meta.style]}</span>
       <span class="pill">${FORM_LABEL[p.meta.form]}</span>
+      ${p.meta.mood === 'awkward' ? '<span class="pill awkward">😳 Gênant</span>' : ''}
     </div>
     <div class="phrase-kr kr">${p.kr.split(' ').map((w, i) => `<span style="--i:${i}">${esc(w)}</span>`).join(' ')}</div>
     ${roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : ''}
@@ -168,7 +172,9 @@ export function phrasesScreen(el) {
       if (h) h.textContent = c.help?.[crit[c.key]] ? ' · ' + c.help[crit[c.key]] : '';
     }
     const label = (k) => CRITERIA.find((c) => c.key === k).options.find(([v]) => v === crit[k])[1];
-    $('.crit-sum', el).textContent = [label('level'), label('theme'), label('style')].join(' · ');
+    $('.crit-sum', el).textContent = crit.mood === 'awkward' ? ['Gênant 😳', label('style')].join(' · ') : [label('level'), label('theme'), label('style')].join(' · ');
+    el.querySelector('.phrases').classList.toggle('awkward-on', crit.mood === 'awkward');
+    for (const k of ['level', 'theme']) $(`.seg[data-key="${k}"]`, el).closest('.crit-group').classList.toggle('dim', crit.mood === 'awkward');
   }
   $$('.seg', el).forEach((seg) => seg.addEventListener('click', (e) => {
     const b = e.target.closest('.seg-btn');

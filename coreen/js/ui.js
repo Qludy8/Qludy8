@@ -92,6 +92,45 @@ export function floatXp(n, from) {
   setTimeout(() => el.remove(), 1100);
 }
 
+/** Petite gerbe de pastilles colorées autour d'un élément (bonne réponse). */
+export function burst(el, n = 12) {
+  if (reducedMotion() || !el) return;
+  const r = el.getBoundingClientRect();
+  const css = getComputedStyle(document.documentElement);
+  const colors = ['--c-home', '--c-hangul', '--c-words', '--c-phrases', '--c-guide', '--gold'].map((v) => css.getPropertyValue(v).trim());
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('i');
+    d.className = 'burst';
+    const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 50 + Math.random() * 40;
+    d.style.left = r.left + r.width / 2 - 5 + 'px';
+    d.style.top = r.top + r.height / 2 - 5 + 'px';
+    d.style.background = colors[i % colors.length];
+    d.style.setProperty('--dx', Math.cos(a) * dist + 'px');
+    d.style.setProperty('--dy', Math.sin(a) * dist + 'px');
+    document.body.append(d);
+    setTimeout(() => d.remove(), 750);
+  }
+}
+
+/** Fenêtre de célébration (niveau, objectif…). */
+export function celebrate({ emoji, title, text, button = 'Continuer' }) {
+  const box = document.createElement('div');
+  box.className = 'celebrate';
+  box.innerHTML = `<div class="cel-card" role="dialog" aria-modal="true">
+    <div class="cel-emoji">${emoji}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>
+    <button class="btn primary">${esc(button)}</button></div>`;
+  document.body.append(box);
+  sfx.win();
+  confetti();
+  const close = () => {
+    box.classList.add('out');
+    setTimeout(() => box.remove(), 200);
+  };
+  box.querySelector('.btn').addEventListener('click', close);
+  box.addEventListener('click', (e) => e.target === box && close());
+}
+
 export function confetti() {
   if (reducedMotion()) return;
   const c = document.createElement('canvas');

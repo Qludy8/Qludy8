@@ -1,5 +1,5 @@
 // Cartes mémoire (avec glissement) et jeu des paires.
-import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, confetti, countUp, pulse, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get, save } from './store.js';
 import { romanize } from './hangul.js';
 import { WORDS, wordsOf, THEMES } from './words.js';
@@ -89,7 +89,7 @@ export function flashcards(el, theme) {
         <div class="xp-won">+<span class="n">0</span> XP</div>
         <div class="stack">
           <button class="btn primary again">Nouvelle série</button>
-          <a class="btn ghost" href="#/learn">Terminer</a>
+          <a class="btn ghost" href="#/words">Terminer</a>
         </div>
       </div>`;
     countUp($('.xp-won .n', el), xp);
@@ -183,6 +183,7 @@ export function pairs(el) {
     if (s.id === t.id && s.kr !== t.kr) {
       sel.classList.remove('sel');
       [sel, b].forEach((x) => x.classList.add('done'));
+      burst(b, 8);
       sfx.ok();
       haptic(8);
       found++;
@@ -221,7 +222,7 @@ export function pairs(el) {
           <div class="xp-won">+<span class="n">0</span> XP</div>
           <div class="stack">
             <button class="btn primary again">Rejouer</button>
-            <a class="btn ghost" href="#/learn">Terminer</a>
+            <a class="btn ghost" href="#/words">Terminer</a>
           </div>
         </div>`;
       countUp($('.xp-won .n', el), xp);

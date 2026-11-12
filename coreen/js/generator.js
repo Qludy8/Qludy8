@@ -2,6 +2,7 @@
 import { conjugate, particle, romanize } from './hangul.js';
 import { NOUNS, PLACES } from './content/vocab.js';
 import { VERBS, TIMES, verbLabel } from './content/verbs.js';
+import { AWKWARD } from './content/awkward.js';
 
 export const TENSE_LABEL = { present: 'Présent', past: 'Passé', future: 'Futur' };
 export const STYLE_LABEL = { polite: 'Poli', formal: 'Formel', casual: 'Familier' };
@@ -103,6 +104,7 @@ const SUBJECTS = {
  *          style: polite|formal|casual, form: affirm|neg|question|want|random }
  */
 export function generate(opts = {}, random = Math.random) {
+  if (opts.mood === 'awkward') return generateAwkward(opts, random);
   const r = random;
   const level = Number(opts.level) || 1;
   const style = opts.style || 'polite';
@@ -275,5 +277,57 @@ export function generate(opts = {}, random = Math.random) {
     notes: [...new Set(notes)],
     adjusted,
     meta: { level, tense, style, form, theme: theme || 'all' },
+  };
+}
+
+// ---------- Ton « gênant » ----------
+const MARKERS = {
+  polite: { je: '저는', moi: '저를', mon: '제' },
+  formal: { je: '저는', moi: '저를', mon: '제' },
+  casual: { je: '나는', moi: '나를', mon: '내' },
+};
+const ALL_TENSES = ['present', 'past', 'future'];
+
+/** Phrase drôle et embarrassante, conjuguée selon le temps et la politesse demandés. */
+export function generateAwkward(opts = {}, r = Math.random) {
+  const style = opts.style || 'polite';
+  const adjusted = [];
+  const kind = opts.form === 'question' ? 'ask' : opts.form === 'affirm' ? 'say' : null;
+  if (opts.form === 'neg' || opts.form === 'want') adjusted.push('En ton gênant, il n’y a que des affirmations et des questions.');
+  let pool = AWKWARD.filter((x) => !kind || x.kind === kind);
+  let tense = !opts.tense || opts.tense === 'random' ? null : opts.tense;
+  const fit = pool.filter((x) => !tense || (x.tenses || ALL_TENSES).includes(tense));
+  if (fit.length) pool = fit;
+  const e = pick(r, pool);
+  const tenses = e.tenses || ALL_TENSES;
+  if (!tense || !tenses.includes(tense)) {
+    if (tense) adjusted.push(`Cette phrase existe seulement au ${tenses.map((t) => TENSE_LABEL[t].toLowerCase()).join(' ou au ')}.`);
+    tense = pick(r, tenses);
+  }
+  const question = e.kind === 'ask';
+  const m = MARKERS[style];
+  const pre = e.pre.replace(/\{(je|moi|mon)\}/g, (_, k) => m[k]);
+  const krText = pre + ' ' + conjugate(e.v, tense, style, question);
+  const fr = question ? e.fr[tense][style === 'casual' ? 0 : 1] : e.fr[tense];
+
+  const words = [];
+  if (e.pre.includes('{je}')) words.push({ kr: m.je.slice(0, -1), fr: style === 'casual' ? 'je (familier)' : 'je (poli)' });
+  words.push(...e.w.map(([kr, f]) => ({ kr, fr: f })));
+  const notes = [];
+  if (e.pre.includes('{je}')) notes.push('는 / 은 : particule de thème, « quant à… »');
+  if (question && !e.pre.includes('{je}')) notes.push('Le « tu / vous » est sous-entendu : en coréen, on l’omet quand il est évident.');
+  if (e.note) notes.push(e.note);
+  notes.push(ENDING_NOTE[style][tense]);
+
+  return {
+    kr: krText,
+    fr,
+    rom: romanize(krText),
+    tiles: krText.replace(/[.?]$/, '').split(' '),
+    end: krText.slice(-1),
+    words,
+    notes,
+    adjusted,
+    meta: { level: Number(opts.level) || 1, tense, style, form: question ? 'question' : 'affirm', theme: 'all', mood: 'awkward' },
   };
 }

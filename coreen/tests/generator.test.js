@@ -58,3 +58,19 @@ test('guide : leçons valides', async () => {
     }
   }
 });
+
+test('ton gênant : toutes les combinaisons', async () => {
+  const { AWKWARD } = await import('../js/content/awkward.js');
+  const r = rng(3);
+  for (let i = 0; i < 1500; i++) {
+    const o = { mood: 'awkward', style: ['polite', 'formal', 'casual'][i % 3], tense: ['present', 'past', 'future', 'random'][i % 4], form: ['affirm', 'question', 'neg', 'want', 'random'][i % 5] };
+    const p = generate(o, r);
+    assert.match(p.kr, /^[가-힣 ]+[.?]$/, p.kr);
+    assert.ok(!/[{}]/.test(p.kr) && p.fr && !/undefined/.test(p.fr), p.kr + ' / ' + p.fr);
+    if (o.style === 'formal') assert.ok(/(니다|니까)[.?]$/.test(p.kr), p.kr);
+    if (o.style === 'casual') assert.ok(!/요[.?]$/.test(p.kr) && !/(^| )(저[는를]|제) /.test(p.kr), p.kr);
+    if (o.form === 'question') assert.ok(p.kr.endsWith('?') && p.fr.endsWith('?'), p.kr);
+    assert.equal(p.tiles.join(' ') + p.end, p.kr);
+  }
+  for (const e of AWKWARD) for (const t of e.tenses || ['present', 'past', 'future']) assert.ok(e.fr[t], e.pre + ' ' + t);
+});

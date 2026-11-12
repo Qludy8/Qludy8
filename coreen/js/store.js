@@ -49,10 +49,16 @@ export const dayNumber = (d = new Date()) => Math.floor((d.getTime() - d.getTime
 
 // ---------- XP, niveau, série ----------
 export function addXp(n) {
-  state.xp += n;
+  const before = level().lv;
   const k = dayKey();
-  state.days[k] = (state.days[k] || 0) + n;
+  const dayBefore = state.days[k] || 0;
+  state.xp += n;
+  state.days[k] = dayBefore + n;
   save();
+  // Événements pour les célébrations (niveau gagné, objectif du jour atteint)
+  const after = level().lv;
+  if (after > before) dispatchEvent(new CustomEvent('haru:levelup', { detail: after }));
+  if (dayBefore < state.goal && state.days[k] >= state.goal) dispatchEvent(new CustomEvent('haru:goal', { detail: streak() }));
 }
 
 export const todayXp = () => state.days[dayKey()] || 0;
