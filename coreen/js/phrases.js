@@ -462,7 +462,7 @@ export function dailyScreen(el, q = {}) {
         ${xp ? '<div class="xp-won">+<span class="n">0</span> XP</div>' : `<p class="muted">${t('daily.already')}</p>`}
         <div class="stack">
           ${q.step ? `<a class="btn primary" href="#/road">${t('road.back')}</a>` : `<a class="btn primary" href="#/phrases">${t('daily.more')}</a>`}
-          <a class="btn ghost" href="#/home">${t('tab.home')}</a>
+          <a class="btn ghost" href="#/road">${t('road.title')}</a>
         </div>
       </div>`;
     if (xp) countUp($('.xp-won .n', el), xp);

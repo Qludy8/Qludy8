@@ -67,28 +67,8 @@ export function roadState() {
   return { units, cur, next, total, done };
 }
 
-/** Carte de l'accueil : module en cours et prochaine étape. */
-export function roadCard() {
-  const R = roadState();
-  if (!R.units.length) return '';
-  const u = R.cur || R.units[R.units.length - 1];
-  const k = R.units.indexOf(u);
-  const sub = R.next ? t('road.nextStep', { name: stepInfo(R.next).title }) : R.done === R.total ? t('road.allDone') : t('road.unitDone');
-  return `
-      <a class="card road-cta" href="#/road" style="--tc: ${u.color}">
-        <span class="gl kr">${esc(u.glyph)}</span>
-        <div class="road-cta-text">
-          <span class="eyebrow">${t('road.title')} · ${t('road.unitShort', { n: k + 1 })}</span>
-          <b>${esc(tr(u.title))}</b>
-          <span class="muted small">${esc(sub)}</span>
-        </div>
-        <div class="mini-bar"><i style="--w:${R.done / R.total}"></i></div>
-        <span class="btn small primary">${R.done ? t('road.continue') : t('road.start')}</span>
-      </a>`;
-}
-
 const starRow = (n) => `<span class="rn-stars" aria-label="${n} / 3">${[1, 2, 3].map((k) => `<i class="${k <= n ? 'on' : ''}">${ICONS.star}</i>`).join('')}</span>`;
-const OFFSETS = [0, 1, 1.6, 1, 0, -1, -1.6, -1]; // tracé sinueux
+const OFFSETS = [-1, -0.4, 0.4, 1, 0.4, -0.4]; // tracé sinueux : jamais au centre, le texte se place du côté libre
 
 export function roadScreen(el) {
   const st = store.get();
@@ -113,7 +93,7 @@ export function roadScreen(el) {
       </section>
       ${R.units.map((u, k) => `
       <section class="ru ${u.open ? '' : 'locked'} ${u.complete ? 'complete' : ''}" style="--tc: ${u.color}" data-u="${u.id}">
-        <header class="ru-head">
+        <div class="ru-stick"><header class="ru-head">
           <span class="ru-glyph kr">${esc(u.glyph)}</span>
           <div class="ru-text">
             <span class="ru-n">${t('road.unitN', { n: k + 1, total: R.units.length })}</span>
@@ -121,7 +101,7 @@ export function roadScreen(el) {
             <span class="ru-sub">${esc(tr(u.sub))}</span>
           </div>
           <span class="ru-count">${u.complete ? ICONS.check : u.open ? `${u.done} / ${u.steps.length}` : LOCK}</span>
-        </header>
+        </header></div>
         ${u.open ? '' : `<div class="ru-lock"><span class="muted small">${t('road.locked')}</span><button class="btn small ghost ru-open">${t('road.unlock')}</button></div>`}
         <div class="ru-path">
           <svg class="ru-line" aria-hidden="true"></svg>
@@ -131,9 +111,8 @@ export function roadScreen(el) {
             const x = OFFSETS[n % OFFSETS.length];
             const inner = `
               <span class="rn-btn kr ${info.glyph.length > 2 ? 'long' : ''}">${s.done ? ICONS.check : u.open ? esc(info.glyph) : LOCK}</span>
-              ${cur ? `<span class="rn-go">${R.done ? t('road.continue') : t('road.start')}</span>` : ''}
-              <span class="rn-label"><b>${esc(info.title)}</b><span>${esc(info.type)}</span>${s.stars ? starRow(s.stars) : ''}</span>`;
-            const cls = `rn ${s.done ? 'done' : ''} ${cur ? 'cur' : ''}`;
+              <span class="rn-label"><b>${esc(info.title)}</b><span>${esc(info.type)}</span>${s.stars ? starRow(s.stars) : ''}${cur ? `<span class="rn-go">${R.done ? t('road.continue') : t('road.start')}</span>` : ''}</span>`;
+            const cls = `rn ${x > 0 ? 'right' : 'left'} ${s.done ? 'done' : ''} ${cur ? 'cur' : ''}`;
             return u.open
               ? `<a class="${cls}" href="${info.href}" style="--x:${x}">${inner}</a>`
               : `<div class="${cls}" style="--x:${x}">${inner}</div>`;
@@ -153,20 +132,27 @@ export function roadScreen(el) {
     roadScreen(el);
   }));
 
-  // Tracé entre les étapes : coloré jusqu'à la dernière étape faite
+  // Tracé en pointillés entre les étapes, du bas d'un cercle au haut du suivant (sans passer sous les cercles ni les textes)
   function draw() {
     $$('.ru-path', el).forEach((path) => {
       const svg = $('.ru-line', path);
       const box = path.getBoundingClientRect();
       const pts = $$('.rn', path).map((r) => {
-        const b = $('.rn-btn', r).getBoundingClientRect();
-        return { x: b.left + b.width / 2 - box.left, y: b.top + b.height / 2 - box.top, done: r.classList.contains('done') };
+        const b = $('.rn-btn', r);
+        // offsetTop/offsetLeft : positions stables, sans l'effet des animations d'apparition
+        const x = r.offsetLeft + b.offsetLeft + b.offsetWidth / 2;
+        const top = r.offsetTop + b.offsetTop;
+        return { x, top, bottom: top + b.offsetHeight, done: r.classList.contains('done') };
       });
       svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+      const GAP = 10;
       svg.innerHTML = pts.slice(1).map((p, i) => {
         const a = pts[i];
-        const my = (a.y + p.y) / 2;
-        return `<path class="${a.done && p.done ? 'on' : ''}" d="M${a.x} ${a.y} C${a.x} ${my} ${p.x} ${my} ${p.x} ${p.y}"/>`;
+        const y1 = a.bottom + GAP;
+        const y2 = p.top - GAP;
+        if (y2 <= y1) return '';
+        const bend = (y2 - y1) * 0.55;
+        return `<path class="${a.done && p.done ? 'on' : ''}" d="M${a.x} ${y1} C${a.x} ${y1 + bend} ${p.x} ${y2 - bend} ${p.x} ${y2}"/>`;
       }).join('');
     });
   }

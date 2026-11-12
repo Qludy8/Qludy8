@@ -5,7 +5,7 @@ export const STRINGS = {
     all: 'Tous', allThemes: 'Tous les thèmes', back: 'Retour', continue: 'Continuer', finish: 'Terminer', playAgain: 'Rejouer',
     listen: 'Écouter', delete: 'Supprimer', review: 'Révision', level: 'Niveau {n}', decimal: ',',
     'tab.home': 'Accueil', 'tab.words': 'Mots', 'tab.phrases': 'Phrases', 'tab.guide': 'Guide',
-    'title.words': 'Mots', 'title.phrases': 'Phrases', 'title.guide': 'Guide', 'title.progress': 'Progrès', 'title.settings': 'Réglages',
+    'title.words': 'Mots', 'title.phrases': 'Phrases', 'title.guide': 'Guide', 'title.progress': 'Progrès', 'title.profile': 'Profil', 'phrase.generator': 'Générateur de phrases', 'title.settings': 'Réglages',
     'title.lexicon': 'Lexique', 'title.scriptQuiz': 'Quiz {name}', 'title.quiz': 'Quiz', 'title.cards': 'Cartes mémoire', 'title.pairs': 'Paires', 'title.daily': 'Défi du jour',
 
     'welcome.tagline': 'Une langue, un peu chaque jour.', 'welcome.question': 'Quelle langue veux-tu apprendre ?',
@@ -66,7 +66,7 @@ export const STRINGS = {
     'lex.search': 'Rechercher (français, anglais ou {lang})', 'lex.mastery': 'Maîtrise', 'lex.none': 'Aucun mot trouvé.',
     'guide.pron': 'Prononciation', 'guide.gram': 'Grammaire', 'guide.remember': 'À retenir', 'guide.prev': 'Précédente', 'guide.next': 'Suivante',
 
-    'progress.total': '{xp} XP au total · {left} XP avant le niveau {n}', 'progress.streak': 'jours de suite', 'progress.active': 'jours actifs',
+    'progress.total': 'Encore {left} XP avant le niveau {n} · {xp} XP au total', 'progress.streak': 'jours de suite', 'progress.active': 'jours actifs',
     'progress.today': 'XP aujourd’hui', 'progress.mastered': 'mots maîtrisés', 'progress.seen': 'mots vus', 'progress.lessons': 'leçons lues',
     'progress.weeks': '5 dernières semaines', 'progress.lActive': 'actif', 'progress.lHalf': 'mi-objectif', 'progress.lGoal': 'objectif atteint',
     'progress.saved1': '{n} phrase enregistrée', 'progress.savedN': '{n} phrases enregistrées', 'progress.savedHint': 'Touche l’étoile d’une phrase générée pour l’ajouter',
@@ -97,7 +97,7 @@ export const STRINGS = {
     all: 'All', allThemes: 'All themes', back: 'Back', continue: 'Continue', finish: 'Done', playAgain: 'Play again',
     listen: 'Listen', delete: 'Delete', review: 'Review', level: 'Level {n}', decimal: '.',
     'tab.home': 'Home', 'tab.words': 'Words', 'tab.phrases': 'Sentences', 'tab.guide': 'Guide',
-    'title.words': 'Words', 'title.phrases': 'Sentences', 'title.guide': 'Guide', 'title.progress': 'Progress', 'title.settings': 'Settings',
+    'title.words': 'Words', 'title.phrases': 'Sentences', 'title.guide': 'Guide', 'title.progress': 'Progress', 'title.profile': 'Profile', 'phrase.generator': 'Sentence generator', 'title.settings': 'Settings',
     'title.lexicon': 'Word list', 'title.scriptQuiz': '{name} quiz', 'title.quiz': 'Quiz', 'title.cards': 'Flashcards', 'title.pairs': 'Pairs', 'title.daily': 'Daily challenge',
 
     'welcome.tagline': 'A language, a little every day.', 'welcome.question': 'Which language do you want to learn?',
@@ -158,7 +158,7 @@ export const STRINGS = {
     'lex.search': 'Search (English, French or {lang})', 'lex.mastery': 'Mastery', 'lex.none': 'No words found.',
     'guide.pron': 'Pronunciation', 'guide.gram': 'Grammar', 'guide.remember': 'Remember', 'guide.prev': 'Previous', 'guide.next': 'Next',
 
-    'progress.total': '{xp} XP in total · {left} XP to level {n}', 'progress.streak': 'day streak', 'progress.active': 'active days',
+    'progress.total': '{left} XP to level {n} · {xp} XP in total', 'progress.streak': 'day streak', 'progress.active': 'active days',
     'progress.today': 'XP today', 'progress.mastered': 'words mastered', 'progress.seen': 'words seen', 'progress.lessons': 'lessons read',
     'progress.weeks': 'Last 5 weeks', 'progress.lActive': 'active', 'progress.lHalf': 'half goal', 'progress.lGoal': 'goal reached',
     'progress.saved1': '{n} saved sentence', 'progress.savedN': '{n} saved sentences', 'progress.savedHint': 'Tap the star on a generated sentence to add it',

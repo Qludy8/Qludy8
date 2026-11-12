@@ -108,6 +108,7 @@ export function addXp(n) {
   state.xp += n;
   state.days[k] = dayBefore + n;
   save();
+  dispatchEvent(new CustomEvent('haru:xp'));
   // Événements pour les célébrations (niveau gagné, objectif du jour atteint)
   const after = level().lv;
   if (after > before) dispatchEvent(new CustomEvent('haru:levelup', { detail: after }));
@@ -121,7 +122,8 @@ export function level(xp = state.xp) {
   const lv = Math.floor(Math.sqrt(xp / 25)) + 1;
   const start = 25 * (lv - 1) ** 2;
   const next = 25 * lv ** 2;
-  return { lv, progress: (xp - start) / (next - start), toNext: next - xp };
+  // into / span : XP gagnés dans le niveau en cours et XP à gagner pour le terminer (le compteur repart de zéro à chaque niveau)
+  return { lv, progress: (xp - start) / (next - start), toNext: next - xp, into: xp - start, span: next - start };
 }
 
 /** Jours consécutifs avec l'objectif quotidien atteint (aujourd'hui compte s'il est atteint). */

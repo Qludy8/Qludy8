@@ -240,7 +240,7 @@ export function vocabQuiz(el, theme, mode, step) {
     title: mode === 'review' ? t('review') : theme && theme !== 'all' ? tr(THEMES[theme]) : t('allThemes'),
     again: () => vocabQuiz(el, theme, mode, step),
     step,
-    back: mode === 'review' ? '#/home' : '#/words',
+    back: '#/words',
   });
 }
 

@@ -8,7 +8,7 @@ import { course, hasCourse, setCourse, COURSES, t, tr, lang, gloss } from './cou
 import { scriptQuiz, vocabQuiz, wordsOf } from './quiz.js';
 import { flashcards, pairs } from './games.js';
 import { phrasesScreen, dailyScreen, dailyPhrases, phraseOfDay, phraseText, meaning, roadPhrases } from './phrases.js';
-import { roadScreen, roadCard, findStep } from './road.js';
+import { roadScreen, findStep } from './road.js';
 
 const view = $('#view');
 const titleEl = $('#title');
@@ -19,30 +19,29 @@ let installEvent = null;
 // ---------- Écrans ----------
 // tab : onglet (et couleur) ; back : adresse du bouton retour ; focus : plein écran (jeux)
 const SCREENS = {
-  welcome: { title: () => 'Haru', tab: 'home', bare: true, render: welcome },
-  home: { title: () => 'Haru', tab: 'home', render: home },
+  welcome: { title: () => 'Haru', tab: 'road', bare: true, render: welcome },
+  road: { title: () => t('road.title'), tab: 'road', render: roadScreen },
   hangul: { title: () => tr(course().script.title), tab: 'hangul', render: script },
   words: { title: () => t('title.words'), tab: 'words', render: words },
-  phrases: { title: () => t('title.phrases'), tab: 'phrases', render: phrasesScreen },
+  phrases: { title: () => t('title.phrases'), tab: 'phrases', render: phrasesTab },
   guide: { title: () => t('title.guide'), tab: 'guide', render: guide },
-  progress: { title: () => t('title.progress'), tab: 'stats', top: 'progress', back: '#/home', render: progress },
-  settings: { title: () => t('title.settings'), tab: 'settings', top: 'settings', back: '#/home', render: settings },
+  profile: { title: () => t('title.profile'), tab: 'profile', render: profile },
+  settings: { title: () => t('title.settings'), tab: 'settings', top: 'settings', back: '#/profile', render: settings },
   lexicon: { title: () => t('title.lexicon'), tab: 'words', back: '#/words', render: lexicon },
   hquiz: { title: () => t('title.scriptQuiz', { name: tr(course().script.title) }), tab: 'hangul', back: '#/hangul', focus: true, render: (el, q) => scriptQuiz(el, q.set || Object.keys(course().script.sets)[0], q.step) },
   quiz: { title: () => t('title.quiz'), tab: 'words', back: '#/words', focus: true, render: (el, q) => vocabQuiz(el, q.t || 'all', q.mode, q.step) },
   cards: { title: () => t('title.cards'), tab: 'words', back: '#/words', focus: true, render: (el, q) => flashcards(el, q.t || 'all', q.step) },
   pairs: { title: () => t('title.pairs'), tab: 'words', back: '#/words', focus: true, render: (el, q) => pairs(el, q.step) },
-  daily: { title: () => t('title.daily'), tab: 'phrases', back: '#/home', focus: true, render: dailyScreen },
-  road: { title: () => t('road.title'), tab: 'home', back: '#/home', render: roadScreen },
+  daily: { title: () => t('title.daily'), tab: 'phrases', back: '#/phrases', focus: true, render: dailyScreen },
   rphrase: { title: () => t('title.phrases'), tab: 'phrases', back: '#/road', focus: true, render: (el, q) => {
     const s = findStep(q.step);
     if (s?.kind === 'phrase') roadPhrases(el, s);
     else location.hash = '#/road';
   } },
 };
-const ALIASES = { learn: 'words' }; // anciennes adresses
+const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '14'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '15'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -54,7 +53,7 @@ try {
 function route() {
   let [path, query = ''] = location.hash.replace(/^#\/?/, '').split('?');
   path = ALIASES[path] || path;
-  let name = SCREENS[path] ? path : 'home';
+  let name = SCREENS[path] ? path : 'road';
   if (!hasCourse() || choosing) name = 'welcome';
   const params = Object.fromEntries(new URLSearchParams(query));
   const s = SCREENS[name];
@@ -62,9 +61,9 @@ function route() {
   $$('.celebrate').forEach((c) => c.remove()); // ferme une célébration restée ouverte
   renderChrome();
   titleEl.textContent = s.title();
-  document.title = name === 'home' || name === 'welcome' ? 'Haru' : `${s.title()} · Haru`;
+  document.title = name === 'welcome' ? 'Haru' : `${s.title()} · Haru`;
   backEl.hidden = !s.back;
-  backEl.dataset.href = params.step ? '#/road' : params.mode === 'review' ? '#/home' : s.back || '';
+  backEl.dataset.href = params.step ? '#/road' : s.back || '';
   document.body.classList.toggle('focus', !!s.focus || !!s.bare);
   document.body.classList.toggle('bare', !!s.bare);
   document.body.dataset.tab = s.tab;
@@ -79,12 +78,28 @@ function route() {
 /** Libellés des onglets et de l'en-tête dans la langue choisie. */
 function renderChrome() {
   document.documentElement.lang = lang();
-  const labels = { home: t('tab.home'), hangul: tr(course().script.title), words: t('tab.words'), phrases: t('tab.phrases'), guide: t('tab.guide') };
+  const labels = { road: t('road.title'), hangul: tr(course().script.title), words: t('tab.words'), phrases: t('tab.phrases'), guide: t('tab.guide'), profile: t('title.profile') };
   $$('a', tabs).forEach((a) => { $('.tl', a).textContent = labels[a.dataset.tab]; });
-  $('[data-top="progress"]').setAttribute('aria-label', t('title.progress'));
+  levelChip();
   $('[data-top="settings"]').setAttribute('aria-label', t('title.settings'));
   backEl.setAttribute('aria-label', t('back'));
 }
+
+/** Pastille de niveau dans l'en-tête : numéro du niveau et avancement dans ce niveau. */
+function levelChip() {
+  const chip = $('.lv-chip');
+  const lv = store.level();
+  chip.setAttribute('aria-label', `${t('level', { n: lv.lv })} · ${lv.into} / ${lv.span} XP`);
+  $('.lv-n', chip).textContent = lv.lv;
+  $('.lv-meter i', chip).style.width = `${Math.round(lv.progress * 100)}%`;
+}
+addEventListener('haru:xp', levelChip);
+
+// La hauteur de l'en-tête sert à caler les bandeaux de module du parcours juste en dessous.
+const topbar = $('.topbar');
+const syncTopbar = () => document.documentElement.style.setProperty('--topbar-h', `${topbar.offsetHeight}px`);
+new ResizeObserver(syncTopbar).observe(topbar);
+syncTopbar();
 
 backEl.addEventListener('click', () => {
   sfx.tap();
@@ -129,7 +144,7 @@ function welcome(el) {
     applySettings();
     sfx.win();
     haptic(10);
-    location.hash = '#/home';
+    location.hash = '#/road';
     route();
   }));
 }
@@ -143,40 +158,14 @@ function greetingSub() {
   return t('greet.evening');
 }
 
-function home(el) {
+/** Onglet Phrases : défi et phrase du jour, puis le générateur. */
+function phrasesTab(el) {
+  phrasesScreen(el);
   const st = store.get();
   const C = course();
-  const tx = store.todayXp();
-  const lv = store.level();
-  const streak = store.streak();
-  const due = store.dueCount(C.words);
   const dailyDone = (st.daily[store.dayKey()] || 0) >= 3;
   const pod = phraseOfDay();
-  const date = new Date().toLocaleDateString(lang() === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  el.innerHTML = `
-    <div class="screen home">
-      <section class="hero-card">
-        <div>
-          <p class="muted small cap">${esc(date)}</p>
-          <h1 class="kr">${esc(C.greeting(new Date().getHours()))}</h1>
-          <p class="muted">${greetingSub()}</p>
-        </div>
-        <div class="goal-ring" style="--p:${Math.min(1, tx / st.goal)}" aria-label="${t('home.goal')}">
-          <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50"/><circle class="val" cx="60" cy="60" r="50"/></svg>
-          <div><b class="n">0</b><span>/ ${st.goal} XP</span></div>
-        </div>
-      </section>
-
-      <div class="stats-row">
-        <div class="stat-pill ${streak ? 'hot' : ''}"><span class="ico flame">${ICONS.flame}</span><div><b>${streak}</b><span>${t(streak > 1 ? 'home.days' : 'home.day')}</span></div></div>
-        <a class="stat-pill" href="#/progress"><span class="ico level">${lv.lv}</span><div><b>${t('level', { n: lv.lv })}</b><span>${t('home.toNext', { xp: lv.toNext, n: lv.lv + 1 })}</span></div></a>
-      </div>
-
-      ${roadCard()}
-
-      ${installEvent ? `<button class="card install"><b>${t('home.install')}</b><span class="muted">${t('home.installSub')}</span></button>` : ''}
-
+  $('.phrases', el).insertAdjacentHTML('afterbegin', `
       <a class="card daily-cta ${dailyDone ? 'done' : ''}" href="#/daily">
         <span class="gl kr ${dailyDone ? 'ok' : ''}" style="--tc: var(--gold)">${dailyDone ? ICONS.check : C.id === 'ja' ? '今日' : '오늘'}</span>
         <div style="flex:1">
@@ -186,7 +175,6 @@ function home(el) {
         </div>
         <span class="chev">›</span>
       </a>
-
       <section class="card pod">
         <div class="pod-head">
           <span class="eyebrow">${t('home.pod')}</span>
@@ -196,33 +184,11 @@ function home(el) {
         ${st.settings.roman ? `<p class="muted small">${esc(pod.rom)}</p>` : ''}
         <button class="pod-fr"><span>${esc(meaning(pod))}</span><em>${t('home.tapTranslate')}</em></button>
       </section>
-
-      <h2>${t('home.train')}</h2>
-      <div class="grid2">
-        <a class="tile-link" href="#/quiz?mode=review" style="--i:0; --tc: var(--c-words)">
-          <span class="tl-kr kr">${C.id === 'ja' ? '復習' : '복습'}</span><b>${t('review')}</b>
-          <span class="muted small">${due ? t(due > 1 ? 'words.dueN' : 'words.due1', { n: due }) : t('home.wordsOfDay')}</span>
-          ${due ? `<span class="badge">${due}</span>` : ''}
-        </a>
-        <a class="tile-link" href="#/phrases" style="--i:1; --tc: var(--c-phrases)">
-          <span class="tl-kr kr">${C.id === 'ja' ? '文' : '문장'}</span><b>${t('home.generate')}</b><span class="muted small">${t('home.generateSub')}</span>
-        </a>
-      </div>
-    </div>`;
-
-  countUp($('.goal-ring .n', el), tx);
-  requestAnimationFrame(() => requestAnimationFrame(() => $('.road-cta .mini-bar', el)?.classList.add('go')));
-  requestAnimationFrame(() => requestAnimationFrame(() => $('.goal-ring', el)?.classList.add('go')));
+      <h2>${t('phrase.generator')}</h2>`);
   $('.pod-say', el)?.addEventListener('click', () => speak(pod.tl));
   $('.pod-fr', el).addEventListener('click', (e) => {
     e.currentTarget.classList.add('shown');
     sfx.tap();
-  });
-  $('.install', el)?.addEventListener('click', async () => {
-    installEvent.prompt();
-    await installEvent.userChoice;
-    installEvent = null;
-    route();
   });
 }
 
@@ -551,9 +517,12 @@ function onSay(e) {
 }
 
 // ---------- Progrès ----------
-function progress(el) {
+function profile(el) {
   const st = store.get();
   const lv = store.level();
+  const C = course();
+  const tx = store.todayXp();
+  const date = new Date().toLocaleDateString(lang() === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   const days = [];
   const d = new Date();
   d.setDate(d.getDate() - 34);
@@ -568,11 +537,22 @@ function progress(el) {
 
   el.innerHTML = `
     <div class="screen progress-screen">
-      <p class="course-chip"><span class="kr">${course().native}</span> ${esc(tr(course().name))}</p>
+      <section class="hero-card">
+        <div>
+          <p class="muted small cap">${esc(date)}</p>
+          <h1 class="kr">${esc(C.greeting(new Date().getHours()))}</h1>
+          <p class="muted">${greetingSub()} · ${esc(tr(C.name))}</p>
+        </div>
+        <div class="goal-ring" style="--p:${Math.min(1, tx / st.goal)}" aria-label="${t('home.goal')}">
+          <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50"/><circle class="val" cx="60" cy="60" r="50"/></svg>
+          <div><b class="n">0</b><span>/ ${st.goal} XP</span></div>
+        </div>
+      </section>
+
       <section class="card level-card">
         <div class="lv-badge">${lv.lv}</div>
         <div class="lv-info">
-          <b>${t('level', { n: lv.lv })}</b>
+          <div class="lv-line"><b>${t('level', { n: lv.lv })}</b><span class="lv-xp">${lv.into} / ${lv.span} XP</span></div>
           <div class="xp-bar"><i style="--w:${lv.progress}"></i></div>
           <span class="muted small">${t('progress.total', { xp: st.xp, left: lv.toNext, n: lv.lv + 1 })}</span>
         </div>
@@ -599,8 +579,23 @@ function progress(el) {
         <span class="muted small">${t('progress.savedHint')}</span></div>
         <span class="chev">›</span>
       </a>
+
+      <div class="stack profile-actions">
+        ${installEvent ? `<button class="btn primary install">${t('home.install')}</button>` : ''}
+        <a class="btn ghost" href="#/settings">${t('title.settings')}</a>
+      </div>
     </div>`;
-  requestAnimationFrame(() => requestAnimationFrame(() => $('.xp-bar', el)?.classList.add('go')));
+  countUp($('.goal-ring .n', el), tx);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    $('.xp-bar', el)?.classList.add('go');
+    $('.goal-ring', el)?.classList.add('go');
+  }));
+  $('.install', el)?.addEventListener('click', async () => {
+    installEvent.prompt();
+    await installEvent.userChoice;
+    installEvent = null;
+    route();
+  });
 }
 
 // ---------- Réglages ----------
@@ -789,7 +784,7 @@ addEventListener('haru:goal', (e) => {
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   installEvent = e;
-  if (!location.hash || location.hash === '#/home') route();
+  if (location.hash.startsWith('#/profile')) route();
 });
 
 $$('a', tabs).forEach((a) => a.addEventListener('click', () => {
