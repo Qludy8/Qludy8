@@ -41,7 +41,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '15'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '16'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -80,6 +80,8 @@ function renderChrome() {
   document.documentElement.lang = lang();
   const labels = { road: t('road.title'), hangul: tr(course().script.title), words: t('tab.words'), phrases: t('tab.phrases'), guide: t('tab.guide'), profile: t('title.profile') };
   $$('a', tabs).forEach((a) => { $('.tl', a).textContent = labels[a.dataset.tab]; });
+  // Onglet de l'écriture : un caractère de la langue apprise en guise d'icône
+  $('[data-tab="hangul"] .ti', tabs).innerHTML = `<span class="ti-glyph kr">${course().id === 'ja' ? 'あ' : '한'}</span>`;
   levelChip();
   $('[data-top="settings"]').setAttribute('aria-label', t('title.settings'));
   backEl.setAttribute('aria-label', t('back'));

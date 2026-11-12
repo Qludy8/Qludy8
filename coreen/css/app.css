@@ -1028,3 +1028,8 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 
 /* En-tête opaque : le contenu qui défile ne transparaît plus derrière le titre */
 .topbar { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* Onglet de l'écriture : caractère (한 / あ) à la place de l'icône */
+.ti-glyph { display: grid; place-items: center; width: 22px; height: 22px; font-size: 1.25rem; font-weight: 800; line-height: 1; transition: transform .3s var(--spring); }
+#tabs a.on .ti-glyph { transform: translateY(-2px) scale(1.08); }
+@media (min-width: 900px) { #tabs a.on .ti-glyph { transform: none; } }
