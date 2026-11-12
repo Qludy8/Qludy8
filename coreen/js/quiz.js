@@ -1,13 +1,16 @@
-// Moteur de quiz à choix multiples + quiz de hangeul et de vocabulaire.
+// Moteur de quiz à choix multiples + quiz d'écriture (hangeul / kana) et de vocabulaire.
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get } from './store.js';
-import { romanize, compose, CHO, JUNG, JONG } from './hangul.js';
-import { JAMO_SETS, VOWELS, CONSONANTS } from './content/jamo.js';
-import { WORDS, wordsOf, THEMES } from './words.js';
+import { course, t, tr, gloss } from './course.js';
+import { THEMES } from './content/concepts.js';
+
+const wordsOf = (theme) => (!theme || theme === 'all' ? course().words : course().words.filter((w) => w.t === theme));
+const len = () => get().settings.quizLen || 10;
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 /**
  * Lance une série de questions.
- * question = { prompt (html), sub?, say? (texte coréen à prononcer), auto? (prononcer à l'affichage),
+ * question = { prompt (html), sub?, say? (texte à prononcer), auto? (prononcer à l'affichage),
  *              options: [{ label, kr? }], correct, explain? (html), onAnswer?(ok) }
  */
 export function runQuiz(el, { questions, title, again, back }) {
@@ -27,7 +30,7 @@ export function runQuiz(el, { questions, title, again, back }) {
       <div class="qstage"></div>
       <div class="sheet" hidden>
         <div class="sheet-msg"></div>
-        <button class="btn primary sheet-next">Continuer</button>
+        <button class="btn primary sheet-next">${t('continue')}</button>
       </div>
     </div>`;
   const stage = $('.qstage', el);
@@ -40,17 +43,17 @@ export function runQuiz(el, { questions, title, again, back }) {
     bar.style.width = `${(done / total) * 100}%`;
     stage.innerHTML = `
       <div class="qcard pop">
-        ${q.retry ? '<span class="tag">À revoir</span>' : ''}
+        ${q.retry ? `<span class="tag">${t('quiz.retry')}</span>` : ''}
         <div class="qprompt">${q.prompt}</div>
         ${q.sub ? `<div class="qsub">${esc(q.sub)}</div>` : ''}
-        ${q.say && canSpeak() ? `<button class="icon-btn speak" aria-label="Écouter">${ICONS.sound}</button>` : ''}
+        ${q.say && canSpeak() ? `<button class="icon-btn speak" aria-label="${t('listen')}">${ICONS.sound}</button>` : ''}
       </div>
       <div class="options">
         ${q.options.map((o, i) => `<button class="opt ${o.kr ? 'kr' : ''}" style="--i:${i}" data-i="${i}">${esc(o.label)}</button>`).join('')}
       </div>`;
     $('.speak', stage)?.addEventListener('click', () => speak(q.say));
     $('.listen-big', stage)?.addEventListener('click', () => speak(q.say));
-    if (q.auto && q.say) setTimeout(() => speak(q.say), 250); // écoute : toujours lu
+    if (q.auto && q.say) setTimeout(() => speak(q.say), 250);
     $$('.opt', stage).forEach((b) => b.addEventListener('click', () => answer(q, Number(b.dataset.i), b)));
   }
 
@@ -76,7 +79,7 @@ export function runQuiz(el, { questions, title, again, back }) {
       combo = 0;
     }
     if (!q.retry) q.onAnswer?.(ok);
-    comboEl.textContent = combo >= 3 ? `Série ×${combo}` : '';
+    comboEl.textContent = combo >= 3 ? t('quiz.combo', { n: combo }) : '';
     if (combo >= 3) pulse(comboEl, 'bump');
 
     queue.shift();
@@ -84,8 +87,8 @@ export function runQuiz(el, { questions, title, again, back }) {
     else queue.push({ ...q, retry: true, ...reshuffle(q) });
 
     sheet.className = `sheet ${ok ? 'ok' : 'ko'}`;
-    $('.sheet-msg', sheet).innerHTML = `<strong>${ok ? pick(['Bravo !', 'Parfait !', 'Exact !', '잘했어요 !']) : 'Pas tout à fait'}</strong>
-      ${ok ? '' : `<div>Réponse : <b class="${q.options[q.correct].kr ? 'kr' : ''}">${esc(q.options[q.correct].label)}</b></div>`}
+    $('.sheet-msg', sheet).innerHTML = `<strong>${ok ? pick(t('quiz.cheers').split('|')) : t('quiz.notQuite')}</strong>
+      ${ok ? '' : `<div>${t('quiz.answer')} <b class="${q.options[q.correct].kr ? 'kr' : ''}">${esc(q.options[q.correct].label)}</b></div>`}
       ${q.explain ? `<div class="explain">${q.explain}</div>` : ''}`;
     sheet.hidden = false;
     $('.sheet-next', sheet).focus({ preventScroll: true });
@@ -114,12 +117,12 @@ export function runQuiz(el, { questions, title, again, back }) {
           <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52"/><circle class="val" cx="60" cy="60" r="52"/></svg>
           <div><b>${firstTry}</b><span>/ ${total}</span></div>
         </div>
-        <h2>${ratio === 1 ? 'Sans faute !' : ratio >= 0.7 ? 'Très bien !' : ratio >= 0.4 ? 'Bien joué, continue !' : 'On continue à s’entraîner'}</h2>
-        <p class="muted">${title || ''}</p>
+        <h2>${ratio === 1 ? t('quiz.perfect') : ratio >= 0.7 ? t('quiz.great') : ratio >= 0.4 ? t('quiz.good') : t('quiz.keepGoing')}</h2>
+        <p class="muted">${esc(title || '')}</p>
         <div class="xp-won">+<span class="n">0</span> XP</div>
         <div class="stack">
-          <button class="btn primary again">Rejouer</button>
-          <a class="btn ghost" href="${back}">Terminer</a>
+          <button class="btn primary again">${t('playAgain')}</button>
+          <a class="btn ghost" href="${back}">${t('finish')}</a>
         </div>
       </div>`;
     countUp($('.xp-won .n', el), xp);
@@ -129,9 +132,6 @@ export function runQuiz(el, { questions, title, again, back }) {
 
   show();
 }
-
-const pick = (a) => a[Math.floor(Math.random() * a.length)];
-const len = () => get().settings.quizLen || 10;
 
 /** Nouvel ordre des réponses pour une question reposée (sans modifier l'originale). */
 function reshuffle(q) {
@@ -148,79 +148,82 @@ function mcq(base, answer, decoys, n = 4) {
   return { ...base, options, correct: options.indexOf(answer) };
 }
 
-// ---------- Hangeul ----------
-const romLabel = (x) => (x.r === '' ? 'muette (ng en finale)' : x.r);
+// ---------- Écriture : hangeul ou kana ----------
+const romLabel = (x) => (x.r === '' ? t('quiz.silent') : x.r);
 
-export function hangulQuiz(el, set) {
+export function scriptQuiz(el, set) {
+  const C = course();
+  const S = C.script;
   let questions;
   let title;
-  if (JAMO_SETS[set]) {
-    const items = JAMO_SETS[set].items;
-    const others = [...items, ...(set === 'compound' ? VOWELS : set === 'double' ? CONSONANTS : [])];
-    title = JAMO_SETS[set].label;
+  if (S.sets[set]) {
+    const items = S.sets[set].items;
+    const others = [...items, ...(S.sets[set].decoys || [])];
+    title = tr(S.sets[set].label);
     questions = shuffle(items).slice(0, len()).map((x, k) => {
       if (k % 3 === 2) {
         return mcq(
-          { prompt: `<span class="qlatin">${esc(romLabel(x))}</span>`, sub: 'Quelle lettre se lit ainsi ?', say: x.say, explain: esc(x.tip) },
+          { prompt: `<span class="qlatin">${esc(romLabel(x))}</span>`, sub: t('quiz.whichLetter'), say: x.say, explain: esc(tr(x.tip)) },
           { label: x.j, kr: true },
           others.filter((o) => o.j !== x.j).map((o) => ({ label: o.j, kr: true })),
         );
       }
       return mcq(
-        { prompt: `<span class="qkr">${x.j}</span>`, sub: 'Comment se lit cette lettre ?', say: x.say, explain: esc(x.tip) },
+        { prompt: `<span class="qkr">${x.j}</span>`, sub: t('quiz.howRead'), say: x.say, explain: esc(tr(x.tip)) },
         { label: romLabel(x) },
         others.filter((o) => o.j !== x.j).map((o) => ({ label: romLabel(o) })),
       );
     });
   } else if (set === 'syllables') {
-    title = 'Lire des syllabes';
-    const cons = CONSONANTS.map((c) => CHO.indexOf(c.j));
-    const vows = VOWELS.map((v) => JUNG.indexOf(v.j));
-    const fins = [0, 0, 0, JONG.indexOf('ㄴ'), JONG.indexOf('ㅁ'), JONG.indexOf('ㅇ'), JONG.indexOf('ㄹ'), JONG.indexOf('ㄱ')];
-    const make = () => compose(pick(cons), pick(vows), pick(fins));
+    title = tr(S.syllableLabel);
     questions = Array.from({ length: len() }, () => {
-      const s = make();
+      const s = S.randomSyllable();
       const decoys = [];
-      while (decoys.length < 8) decoys.push({ label: romanize(make()) });
-      return mcq({ prompt: `<span class="qkr">${s}</span>`, sub: 'Comment se lit cette syllabe ?', say: s }, { label: romanize(s) }, decoys);
+      while (decoys.length < 8) decoys.push({ label: S.randomSyllable().rom });
+      return mcq({ prompt: `<span class="qkr">${s.text}</span>`, sub: t('quiz.howReadSyl'), say: s.text }, { label: s.rom }, decoys);
     });
   } else {
-    title = 'Lire des mots';
-    const pool = WORDS.filter((w) => !/[\s?]/.test(w.kr) && w.kr.length <= 4);
+    title = t('script.readWords');
+    // Pour le japonais, on lit le mot en kana (sa lecture) ; pour le coréen, le mot lui-même.
+    const pool = C.words.filter((w) => !/[\s?？]/.test(w.tl) && (w.r || w.tl).length <= 5);
+    const shown = (w) => (C.id === 'ja' ? w.r || w.tl : w.tl);
     questions = shuffle(pool).slice(0, len()).map((w) =>
       mcq(
-        { prompt: `<span class="qkr">${w.kr}</span>`, sub: 'Comment se lit ce mot ?', say: w.kr, explain: `Sens : ${esc(w.fr)}` },
-        { label: romanize(w.kr) },
-        pool.filter((o) => o.kr !== w.kr).map((o) => ({ label: romanize(o.kr) })),
+        { prompt: `<span class="qkr">${esc(shown(w))}</span>`, sub: t('quiz.howReadWord'), say: w.tl, explain: `${t('quiz.meaning')} ${esc(gloss(w))}` },
+        { label: C.wordRom(w) },
+        pool.filter((o) => o.tl !== w.tl).map((o) => ({ label: C.wordRom(o) })),
       ),
     );
   }
-  runQuiz(el, { questions, title, again: () => hangulQuiz(el, set), back: '#/hangul' });
+  runQuiz(el, { questions, title, again: () => scriptQuiz(el, set), back: '#/hangul' });
 }
 
 // ---------- Vocabulaire ----------
 export function vocabQuiz(el, theme, mode) {
+  const C = course();
   const pool = wordsOf(theme);
   const list = pickForReview(pool, len());
   const listen = canSpeak();
   const roman = get().settings.roman;
+  const sub = (w) => [C.wordRead(w), roman ? C.wordRom(w) : ''].filter(Boolean).join(' · ');
   const questions = list.map((w, k) => {
-    const decoys = shuffle(pool.length >= 8 ? pool : WORDS).filter((o) => o.id !== w.id);
+    const decoys = shuffle(pool.length >= 8 ? pool : C.words).filter((o) => o.id !== w.id);
     const kind = k % 3 === 2 && listen ? 'listen' : k % 2 ? 'fr2kr' : 'kr2fr';
-    const base = { say: w.kr, onAnswer: (ok) => review(w.id, ok), explain: roman ? `<span class="kr">${esc(w.kr)}</span> · ${esc(romanize(w.kr))} = ${esc(w.fr)}` : '' };
+    const base = { say: w.tl, onAnswer: (ok) => review(w.id, ok), explain: `<span class="kr">${esc(w.tl)}</span>${sub(w) ? ` · ${esc(sub(w))}` : ''} = ${esc(gloss(w))}` };
     if (kind === 'kr2fr') {
-      return mcq({ ...base, prompt: `<span class="qkr">${esc(w.kr)}</span>`, sub: roman ? romanize(w.kr) : 'Que signifie ce mot ?' }, { label: w.fr }, decoys.map((o) => ({ label: o.fr })));
+      return mcq({ ...base, prompt: `<span class="qkr">${esc(w.tl)}</span>`, sub: sub(w) || t('quiz.whatMeans') }, { label: gloss(w) }, decoys.map((o) => ({ label: gloss(o) })));
     }
     if (kind === 'fr2kr') {
-      return mcq({ ...base, say: null, prompt: `<span class="qlatin">${esc(w.fr)}</span>`, sub: 'Comment dit-on en coréen ?', explain: '' }, { label: w.kr, kr: true }, decoys.map((o) => ({ label: o.kr, kr: true })));
+      return mcq({ ...base, say: null, prompt: `<span class="qlatin">${esc(gloss(w))}</span>`, sub: t('quiz.howSay', { lang: tr(C.name).toLowerCase() }) }, { label: w.tl, kr: true }, decoys.map((o) => ({ label: o.tl, kr: true })));
     }
-    return mcq({ ...base, auto: true, prompt: `<button class="listen-big" aria-label="Réécouter">${ICONS.sound}</button>`, sub: 'Qu’as-tu entendu ?' }, { label: w.kr, kr: true }, decoys.map((o) => ({ label: o.kr, kr: true })));
+    return mcq({ ...base, auto: true, prompt: `<button class="listen-big" aria-label="${t('listen')}">${ICONS.sound}</button>`, sub: t('quiz.whatHeard') }, { label: w.tl, kr: true }, decoys.map((o) => ({ label: o.tl, kr: true })));
   });
   runQuiz(el, {
     questions,
-    title: mode === 'review' ? 'Révision' : THEMES[theme] || 'Tous les thèmes',
+    title: mode === 'review' ? t('review') : theme && theme !== 'all' ? tr(THEMES[theme]) : t('allThemes'),
     again: () => vocabQuiz(el, theme, mode),
     back: mode === 'review' ? '#/home' : '#/words',
   });
 }
 
+export { wordsOf };

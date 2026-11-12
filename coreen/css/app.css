@@ -35,6 +35,8 @@
   --c-guide: #e64980;
   --c-stats: #339af0;
   --kr-font: "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Malgun Gothic", sans-serif;
+  --ja-font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic", "Meiryo", sans-serif;
+  --tl-font: var(--kr-font);
   color-scheme: light;
 }
 
@@ -100,7 +102,7 @@ body {
   min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
-  font: 500 16px/1.45 "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, var(--kr-font);
+  font: 500 16px/1.45 "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, var(--tl-font);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }
@@ -112,7 +114,11 @@ h1, h2 { margin: 0; letter-spacing: -.01em; font-weight: 900; }
 h2 { font-size: 1.15rem; margin: 26px 0 10px; }
 b, strong { font-weight: 800; }
 p { margin: 0; }
-.kr { font-family: var(--kr-font); }
+/* .kr = texte dans la langue apprise (coréen ou japonais) */
+.kr { font-family: var(--tl-font); }
+:root[data-course="ja"] { --tl-font: var(--ja-font); }
+.lang-ko { font-family: var(--kr-font); }
+.lang-ja { font-family: var(--ja-font); }
 .muted { color: var(--muted); }
 .small { font-size: .85rem; }
 .center { text-align: center; }
@@ -366,7 +372,7 @@ body.focus #tabs { transform: translateY(110%); }
   text-align: center;
 }
 .qcard .speak { position: absolute; top: 8px; right: 8px; }
-.qkr { font-family: var(--kr-font); font-size: calc(3.4rem * var(--krs)); line-height: 1.15; }
+.qkr { font-family: var(--tl-font); font-size: calc(3.4rem * var(--krs)); line-height: 1.15; }
 .qlatin { font-size: 1.7rem; font-weight: 700; }
 .qsub { color: var(--muted); font-size: .9rem; }
 .listen-big {
@@ -446,7 +452,7 @@ body.focus #tabs { transform: translateY(110%); }
 }
 .face .speak { position: absolute; top: 10px; right: 10px; }
 .back { transform: rotateY(180deg); background: var(--accent-soft); }
-.kr-xl { font-family: var(--kr-font); font-size: calc(3.2rem * var(--krs)); line-height: 1.2; }
+.kr-xl { font-family: var(--tl-font); font-size: calc(3.2rem * var(--krs)); line-height: 1.2; }
 .fr-xl { font-size: 1.7rem; font-weight: 700; }
 .card-actions {
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px;
@@ -857,3 +863,34 @@ body.focus .top-actions { display: none; }
 .lexicon .row-main.pressed, .journal .row-main.pressed { transform: none; box-shadow: none; }
 .row.flash { animation: flash .6s ease; }
 @keyframes flash { 0% { background: var(--accent-soft); border-color: var(--accent); } 100% { background: var(--surface); } }
+
+/* ---------- Accueil du premier lancement ---------- */
+body.bare .topbar { visibility: hidden; }
+.welcome { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding-top: 4px; }
+.welcome .ui-lang { align-self: flex-end; }
+.w-logo img { width: 84px; height: 84px; border-radius: 24px; box-shadow: 0 6px 0 color-mix(in srgb, var(--c-home) 55%, #000); animation: celEmoji 1s var(--spring) both; margin-top: 10px; }
+.welcome h1 { font-size: 2.2rem; margin-top: 8px; }
+.welcome h2 { margin: 22px 0 6px; }
+.w-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin: 8px 0 16px; }
+.w-choice {
+  --tc: var(--accent);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 10px;
+  border-radius: 22px; border: 2px solid color-mix(in srgb, var(--tc) 40%, var(--line));
+  background: color-mix(in srgb, var(--tc) 10%, var(--surface)); box-shadow: 0 5px 0 color-mix(in srgb, var(--tc) 45%, var(--line));
+  animation: rise .5s var(--spring) both; animation-delay: calc(var(--i) * 90ms + 150ms);
+  transition: transform .15s var(--ease);
+}
+.w-choice.pressed { transform: translateY(4px); box-shadow: 0 1px 0 color-mix(in srgb, var(--tc) 45%, var(--line)); }
+.w-flag { font-size: 2.4rem; }
+.w-native { font-size: 1.5rem; font-weight: 800; color: var(--tc); }
+.w-choice b { font-size: 1.15rem; }
+
+/* ---------- Japonais : furigana, grilles de kana ---------- */
+.has-ruby { line-height: 2.1; }
+ruby rt { font-size: .45em; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+.small-ruby { font-size: 1.15rem; margin-top: 10px; }
+.jamo-grid.wide { grid-template-columns: repeat(3, 1fr); }
+.g-read { display: block; font-size: .7em; color: var(--muted); font-weight: 600; }
+.course-chip { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 12px; padding: 6px 12px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 800; }
+.script-help { margin-top: 18px; line-height: 1.5; }
+.sets.scroll { margin-bottom: 8px; }

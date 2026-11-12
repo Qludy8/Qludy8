@@ -1,12 +1,10 @@
-// Générateur de phrases coréennes (avec traduction française) selon des critères.
-import { conjugate, particle, romanize } from './hangul.js';
-import { NOUNS, PLACES } from './content/vocab.js';
-import { VERBS, TIMES, verbLabel } from './content/verbs.js';
-import { AWKWARD } from './content/awkward.js';
+// Générateur de phrases : choisit un « plan » (verbe, sujet, objet, lieu, moment, temps, forme),
+// puis le rend dans la langue apprise (module du cours) ainsi qu'en français et en anglais.
+import { NOUNS, PLACES, VERBS, TIMES } from './content/concepts.js';
 
-export const TENSE_LABEL = { present: 'Présent', past: 'Passé', future: 'Futur' };
-export const STYLE_LABEL = { polite: 'Poli', formal: 'Formel', casual: 'Familier' };
-export const FORM_LABEL = { affirm: 'Affirmative', neg: 'Négative', question: 'Question', want: 'Envie' };
+export const TENSE_LABEL = { present: { fr: 'Présent', en: 'Present' }, past: { fr: 'Passé', en: 'Past' }, future: { fr: 'Futur', en: 'Future' } };
+export const STYLE_LABEL = { polite: { fr: 'Poli', en: 'Polite' }, formal: { fr: 'Formel', en: 'Formal' }, casual: { fr: 'Familier', en: 'Casual' } };
+export const FORM_LABEL = { affirm: { fr: 'Affirmative', en: 'Statement' }, neg: { fr: 'Négative', en: 'Negative' }, question: { fr: 'Question', en: 'Question' }, want: { fr: 'Envie', en: 'Wish' } };
 
 /** Générateur pseudo-aléatoire reproductible (même graine → même phrase). */
 export function rng(seed) {
@@ -19,9 +17,56 @@ export function rng(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const pick = (r, list) => list[Math.floor(r() * list.length)];
+export const pick = (r, list) => list[Math.floor(r() * list.length)];
 
-// ---------- Conjugaison française ----------
+// ---------- Plan ----------
+export function makePlan(opts, r, lang) {
+  const level = Number(opts.level) || 1;
+  const form = !opts.form || opts.form === 'random' ? pick(r, ['affirm', 'affirm', 'neg', 'question', 'want']) : opts.form;
+  let tense = !opts.tense || opts.tense === 'random' ? pick(r, form === 'want' ? ['present', 'past'] : ['present', 'past', 'future']) : opts.tense;
+  const want = form === 'want';
+  const adjusted = [];
+  const has = (x) => x[lang] != null;
+  const theme = opts.theme && opts.theme !== 'all' ? opts.theme : null;
+  const preferTheme = (list) => {
+    const t = theme && list.filter((x) => x.t === theme);
+    return t && t.length ? t : list;
+  };
+
+  const wantable = (v) => ['obj', 'go', 'act'].includes(v.type) && !v.noWant;
+  const fits = (v) => has(v) && (!want || wantable(v)) && !(tense === 'future' && v.noFuture);
+  let pool = VERBS.filter((v) => fits(v) && (!theme || v.t.includes(theme)));
+  if (!pool.length) pool = VERBS.filter(fits);
+  const verb = pick(r, pool);
+  if (want && tense === 'future') {
+    tense = 'present';
+    adjusted.push({ fr: 'L’envie se pratique ici au présent ou au passé.', en: 'Wishes are practised here in the present or the past.' });
+  }
+  const time = level >= 2 ? pick(r, TIMES[tense]) : null;
+
+  let subj;
+  let thing = null;
+  if (verb.type === 'weather') subj = 'weather';
+  else if (verb.type === 'adj' && verb.subj !== 'person') {
+    subj = 'thing';
+    thing = pick(r, preferTheme(NOUNS.filter((x) => has(x) && verb.subj.includes(x.cat) && (!verb.only || verb.only.includes(x.id)) && (!x.frDef.startsWith('les ') || verb.fr.mp))));
+  } else subj = form === 'question' ? pick(r, ['you', 'you', 'friend']) : pick(r, ['me', 'me', 'friend', 'we']);
+
+  let place = null;
+  if (verb.type === 'go') place = pick(r, preferTheme(PLACES.filter(has)));
+  else if ((verb.type === 'obj' || verb.type === 'act') && verb.places.length && (level >= 3 || (verb.type === 'act' && level >= 2))) {
+    const ok = PLACES.filter((p) => has(p) && p.tags.some((t) => verb.places.includes(t)));
+    if (ok.length) place = pick(r, ok);
+  }
+  const obj = verb.type === 'obj'
+    ? pick(r, preferTheme(NOUNS.filter((x) => has(x) && verb.objs.includes(x.cat) && (!verb.only || verb.only.includes(x.id)) && !(subj === 'friend' && x.id === 'friend'))))
+    : null;
+  if (obj && obj.cat === 'vehicle') place = null; // « attendre le bus au café » : non
+
+  return { level, verb, subj, thing, obj, place, time, tense, form, neg: form === 'neg', question: form === 'question', want, adjusted, theme: theme || 'all' };
+}
+
+// ---------- Français ----------
 // Indices : 0 je, 1 tu, 2 il/elle, 3 nous, 4 vous, 5 ils/elles
 const AVOIR = ['ai', 'as', 'a', 'avons', 'avez', 'ont'];
 const ETRE = ['suis', 'es', 'est', 'sommes', 'êtes', 'sont'];
@@ -61,273 +106,130 @@ function frVerb(verb, tense, i, neg, want) {
   if (tense === 'future') return neg ? ['ne', ALLER[i], 'pas', f.inf] : [ALLER[i], f.inf];
   return neg ? ['ne', f.p[i], 'pas'] : [f.p[i]];
 }
-
 function frEtre(tense, i, neg) {
   if (tense === 'past') return neg ? ['ne', ETRE_IMP[i], 'pas'] : [ETRE_IMP[i]];
   if (tense === 'future') return neg ? ['ne', ALLER[i], 'pas', 'être'] : [ALLER[i], 'être'];
   return neg ? ['ne', ETRE[i], 'pas'] : [ETRE[i]];
 }
-
 function frWeather(w, tense, neg) {
   if (tense === 'past') return neg ? ['il', 'ne', 'faisait', 'pas', w] : ['il', 'faisait', w];
   if (tense === 'future') return neg ? ['il', 'ne', 'va', 'pas', 'faire', w] : ['il', 'va', 'faire', w];
   return neg ? ['il', 'ne', 'fait', 'pas', w] : ['il', 'fait', w];
 }
 
-// ---------- Notes de grammaire ----------
-const ENDING_NOTE = {
-  polite: {
-    present: '-아요 / -어요 : présent, style poli de tous les jours',
-    past: '-았어요 / -었어요 : passé, style poli',
-    future: '-(으)ㄹ 거예요 : futur ou intention, style poli',
-  },
-  formal: {
-    present: '-ㅂ니다 / -습니다 (question : -ㅂ니까 / -습니까) : présent, style formel (travail, annonces)',
-    past: '-았습니다 / -었습니다 : passé, style formel',
-    future: '-(으)ㄹ 겁니다 : futur, style formel',
-  },
-  casual: {
-    present: '-아 / -어 : présent familier, entre amis proches',
-    past: '-았어 / -었어 : passé familier',
-    future: '-(으)ㄹ 거야 : futur familier',
-  },
-};
+const FR_SUBJ = { me: ['je', 0], friend: ['mon ami', 2], we: ['nous', 3] };
 
-const SUBJECTS = {
-  me: { kr: { polite: '저', formal: '저', casual: '나' }, fr: 'je', i: 0, gloss: { polite: 'je (poli)', formal: 'je (poli)', casual: 'je (familier)' } },
-  friend: { kr: '친구', fr: 'mon ami', i: 2, gloss: 'ami(e)' },
-  we: { kr: '우리', fr: 'nous', i: 3, gloss: 'nous' },
-};
-
-/**
- * opts : { level: 1|2|3, theme: 'all'|clé de THEMES, tense: present|past|future|random,
- *          style: polite|formal|casual, form: affirm|neg|question|want|random }
- */
-export function generate(opts = {}, random = Math.random) {
-  if (opts.mood === 'awkward') return generateAwkward(opts, random);
-  const r = random;
-  const level = Number(opts.level) || 1;
-  const style = opts.style || 'polite';
-  const form = !opts.form || opts.form === 'random' ? pick(r, ['affirm', 'affirm', 'neg', 'question', 'want']) : opts.form;
-  let tense = !opts.tense || opts.tense === 'random' ? pick(r, form === 'want' ? ['present', 'past'] : ['present', 'past', 'future']) : opts.tense;
-  const neg = form === 'neg';
-  const question = form === 'question';
-  const want = form === 'want';
-  const adjusted = [];
-
-  let pool = VERBS.filter((v) => !opts.theme || opts.theme === 'all' || v.t.includes(opts.theme));
-  if (want) pool = pool.filter((v) => ['obj', 'go', 'act'].includes(v.type));
-  if (!pool.length) pool = VERBS.filter((v) => !want || ['obj', 'go', 'act'].includes(v.type));
-  const verb = pick(r, pool);
-
-  if (want && tense === 'future') {
-    tense = 'present';
-    adjusted.push('L’envie (-고 싶다) se pratique ici au présent ou au passé.');
-  }
-
-  const words = []; // glossaire { kr, fr }
-  const notes = [];
-  const kr = []; // morceaux coréens dans l'ordre
-  const theme = opts.theme && opts.theme !== 'all' ? opts.theme : null;
-  const preferTheme = (list) => {
-    const t = theme && list.filter((x) => x.t === theme);
-    return t && t.length ? t : list;
-  };
-
-  // --- Complément de temps (niveau 2+)
-  const time = level >= 2 ? pick(r, TIMES[tense]) : null;
-
-  // --- Sujet
-  let subjKr = null;
-  let subjFr;
-  let fi; // indice de conjugaison française
-  let third = false;
-  let thingSubject = null;
-
-  if (verb.type === 'weather') {
-    subjKr = particle('날씨', '이', '가');
-    words.push({ kr: '날씨', fr: 'temps (météo)' });
-    notes.push('가 / 이 : particule de sujet (가 après une voyelle)');
-  } else if (verb.type === 'adj' && verb.subj !== 'person') {
-    thingSubject = pick(r, preferTheme(NOUNS.filter((x) => verb.subj.includes(x.cat) && (!verb.only || verb.only.includes(x.kr)) && (!x.def.startsWith('les ') || verb.fr.mp))));
-    subjKr = particle(thingSubject.kr, '이', '가');
-    subjFr = thingSubject.def;
-    fi = thingSubject.def.startsWith('les ') ? 5 : 2;
-    words.push({ kr: thingSubject.kr, fr: thingSubject.fr });
-    notes.push('이 / 가 : particule de sujet (이 après une consonne, 가 après une voyelle)');
-  } else {
-    // En question, on s'adresse surtout à l'autre (« tu / vous ») ou on parle d'un ami.
-    const key = question ? pick(r, ['you', 'you', 'friend']) : pick(r, ['me', 'me', 'friend', 'we']);
-    if (key === 'you') {
-      fi = style === 'casual' ? 1 : 4;
-      subjFr = style === 'casual' ? 'tu' : 'vous';
-      notes.push('Le sujet « ' + subjFr + ' » est sous-entendu : en coréen, on l’omet quand il est évident.');
-    } else {
-      const s = SUBJECTS[key];
-      const base = typeof s.kr === 'string' ? s.kr : s.kr[style];
-      subjKr = particle(base, '은', '는');
-      subjFr = s.fr;
-      fi = s.i;
-      third = key === 'friend';
-      words.push({ kr: base, fr: typeof s.gloss === 'string' ? s.gloss : s.gloss[style] });
-      notes.push('는 / 은 : particule de thème, « quant à… » (는 après une voyelle)');
-    }
-  }
-
-  // --- Lieu
-  let place = null;
-  if (verb.type === 'go') {
-    place = pick(r, preferTheme(PLACES));
-  } else if ((verb.type === 'obj' || verb.type === 'act') && verb.places.length && (level >= 3 || (verb.type === 'act' && level >= 2))) {
-    const ok = PLACES.filter((p) => p.tags.some((t) => verb.places.includes(t)));
-    if (ok.length) place = pick(r, ok);
-  }
-
-  // --- Complément d'objet
-  const obj = verb.type === 'obj' ? pick(r, preferTheme(NOUNS.filter((x) => verb.objs.includes(x.cat) && (!verb.only || verb.only.includes(x.kr)) && !(third && x.kr === '친구')))) : null;
-  if (obj && obj.cat === 'vehicle' && verb.type === 'obj') place = null; // « attendre le bus au café » : non
-
-  // --- Ordre coréen : sujet, temps, lieu, objet, verbe (météo : temps avant le sujet)
-  if (verb.type === 'weather' || thingSubject) {
-    if (time) kr.push(time.kr);
-    kr.push(subjKr);
-  } else {
-    if (subjKr) kr.push(subjKr);
-    if (time) kr.push(time.kr);
-  }
-  if (time) words.push({ kr: time.kr, fr: time.fr });
-  if (place) {
-    const go = verb.type === 'go';
-    kr.push(place.kr + (go ? '에' : '에서'));
-    words.push({ kr: place.kr, fr: place.word });
-    notes.push(go ? '에 : destination, « à / vers »' : '에서 : lieu où se passe l’action');
-  }
-  if (obj) {
-    kr.push(particle(obj.kr, '을', '를'));
-    words.push({ kr: obj.kr, fr: obj.fr });
-    notes.push('을 / 를 : complément d’objet (을 après une consonne, 를 après une voyelle)');
-  }
-
-  // --- Verbe coréen
-  let vk = verb;
-  let prefix = '';
-  if (want) {
-    const aux = third
-      ? neg ? ['싶어하지 않', '싶어하지 않아', '싶어하지 않을'] : ['싶어하', '싶어해', '싶어할']
-      : neg ? ['싶지 않', '싶지 않아', '싶지 않을'] : ['싶', '싶어', '싶을'];
-    vk = { stem: verb.stem + '고 ' + aux[0], a: verb.stem + '고 ' + aux[1], f: verb.stem + '고 ' + aux[2] };
-    notes.push(third ? '-고 싶어하다 : envie d’une autre personne (싶다 est réservé à soi ou à la personne à qui l’on parle)' : '-고 싶다 : avoir envie de, vouloir');
-    if (neg) notes.push('-지 않다 : négation');
-  } else if (neg) {
-    if (verb.neg) {
-      vk = verb.neg;
-      notes.push(verb.neg.kr + ' : le contraire de ' + verb.kr + ' (pas de 안)');
-    } else if (verb.longNeg) {
-      vk = { stem: verb.stem + '지 않', a: verb.stem + '지 않아', f: verb.stem + '지 않을' };
-      notes.push('-지 않다 : négation (forme longue, naturelle avec les verbes en 하다)');
-    } else {
-      prefix = '안 ';
-      notes.push('안 + verbe : négation courte, placée juste avant le verbe');
-    }
-  }
-  kr.push(prefix + conjugate(vk, tense, style, question));
-  words.push({ kr: (neg && verb.neg ? verb.neg.kr : verb.kr), fr: neg && verb.neg ? 'ne pas être bon' : verbLabel(verb) });
-  notes.push(ENDING_NOTE[style][tense]);
-  if (question && style !== 'formal') notes.push('Question : même terminaison qu’à l’affirmative, avec une intonation montante.');
-
-  // --- Phrase française
+export function renderFr(p, style) {
+  const { verb, tense, neg, want } = p;
   let fr;
-  if (verb.type === 'weather') {
-    fr = frWeather(verb.fr.w, tense, neg);
-  } else if (verb.type === 'adj') {
+  if (p.subj === 'weather') fr = frWeather(verb.fr.w, tense, neg);
+  else if (p.subj === 'thing') {
+    const pl = p.thing.frDef.startsWith('les ');
+    const i = pl ? 5 : 2;
     const f = verb.fr;
-    let adj;
-    if (thingSubject) {
-      const pl = fi === 5;
-      adj = thingSubject.g === 'f' ? (pl ? f.fp : f.f) : (pl ? f.mp : f.m);
+    const adj = p.thing.g === 'f' ? (pl ? f.fp : f.f) : (pl ? f.mp : f.m);
+    fr = [p.thing.frDef, ...frEtre(tense, i, neg), adj];
+  } else {
+    const [s, i] = p.subj === 'you' ? (style === 'casual' ? ['tu', 1] : ['vous', 4]) : FR_SUBJ[p.subj];
+    if (verb.type === 'adj') {
+      const f = verb.fr;
+      fr = [s, ...frEtre(tense, i, neg), [f.x, f.x, f.m, f.xp, f.x][i]];
     } else {
-      adj = [f.x, f.x, f.m, f.xp, f.x][fi];
+      fr = [s, ...frVerb(verb, tense, i, neg, want)];
+      if (verb.fr.suf) fr.push(neg ? verb.fr.sufNeg : verb.fr.suf);
+      if (p.obj) {
+        const o = verb.art === 'def' ? p.obj.frDef : p.obj.frInd;
+        fr.push(neg && verb.art === 'ind' ? negArticle(o) : o);
+      }
+      if (p.place) fr.push(p.place.fr);
     }
-    fr = [subjFr, ...frEtre(tense, fi, neg), adj];
-  } else {
-    fr = [subjFr, ...frVerb(verb, tense, fi, neg, want)];
-    if (verb.fr.suf) fr.push(neg ? verb.fr.sufNeg : verb.fr.suf);
-    if (obj) {
-      const o = obj[verb.art];
-      fr.push(neg && verb.art === 'ind' ? negArticle(o) : o);
-    }
-    if (place) fr.push(place.fr);
   }
-  let frText;
-  if (question) {
-    frText = 'est-ce que ' + fr.join(' ') + (time ? ' ' + time.fr : '') + ' ?';
-  } else {
-    frText = (time ? time.fr + ', ' : '') + fr.join(' ') + '.';
-  }
-  frText = finishFrench(frText).replace(/\s\?$/, ' ?');
-
-  const krText = kr.join(' ');
-  return {
-    kr: krText,
-    fr: frText,
-    rom: romanize(krText),
-    tiles: krText.replace(/[.?]$/, '').split(' '),
-    end: krText.slice(-1),
-    words,
-    notes: [...new Set(notes)],
-    adjusted,
-    meta: { level, tense, style, form, theme: theme || 'all' },
-  };
+  const text = p.question
+    ? 'est-ce que ' + fr.join(' ') + (p.time ? ' ' + p.time.fr : '') + ' ?'
+    : (p.time ? p.time.fr + ', ' : '') + fr.join(' ') + '.';
+  return finishFrench(text).replace(/\s\?$/, ' ?');
 }
 
-// ---------- Ton « gênant » ----------
-const MARKERS = {
-  polite: { je: '저는', moi: '저를', mon: '제' },
-  formal: { je: '저는', moi: '저를', mon: '제' },
-  casual: { je: '나는', moi: '나를', mon: '내' },
-};
-const ALL_TENSES = ['present', 'past', 'future'];
+// ---------- Anglais ----------
+const EN_SUBJ = { me: ['I', 'i'], friend: ['my friend', 's'], we: ['we', 'p'], you: ['you', 'p'] };
+const EN_PLURAL = new Set(['clothes', 'shoes']);
 
-/** Phrase drôle et embarrassante, conjuguée selon le temps et la politesse demandés. */
-export function generateAwkward(opts = {}, r = Math.random) {
-  const style = opts.style || 'polite';
-  const adjusted = [];
-  const kind = opts.form === 'question' ? 'ask' : opts.form === 'affirm' ? 'say' : null;
-  if (opts.form === 'neg' || opts.form === 'want') adjusted.push('En ton gênant, il n’y a que des affirmations et des questions.');
-  let pool = AWKWARD.filter((x) => !kind || x.kind === kind);
-  let tense = !opts.tense || opts.tense === 'random' ? null : opts.tense;
-  const fit = pool.filter((x) => !tense || (x.tenses || ALL_TENSES).includes(tense));
-  if (fit.length) pool = fit;
-  const e = pick(r, pool);
-  const tenses = e.tenses || ALL_TENSES;
-  if (!tense || !tenses.includes(tense)) {
-    if (tense) adjusted.push(`Cette phrase existe seulement au ${tenses.map((t) => TENSE_LABEL[t].toLowerCase()).join(' ou au ')}.`);
-    tense = pick(r, tenses);
+function enBe(person, tense, neg) {
+  if (tense === 'past') return person === 'p' ? (neg ? "weren't" : 'were') : neg ? "wasn't" : 'was';
+  if (tense === 'future') return neg ? "won't be" : 'will be';
+  if (person === 'i') return neg ? 'am not' : 'am';
+  if (person === 's') return neg ? "isn't" : 'is';
+  return neg ? "aren't" : 'are';
+}
+function enBeQ(person, tense) {
+  if (tense === 'past') return person === 'p' ? 'were' : 'was';
+  if (tense === 'future') return 'will';
+  return person === 'i' ? 'am' : person === 's' ? 'is' : 'are';
+}
+function enAux(person, tense) {
+  if (tense === 'past') return 'did';
+  if (tense === 'future') return 'will';
+  return person === 's' ? 'does' : 'do';
+}
+
+export function renderEn(p) {
+  const { verb, tense, neg, want, question } = p;
+  const e = verb.en;
+  let subject;
+  let person;
+  if (p.subj === 'weather') [subject, person] = ['it', 's'];
+  else if (p.subj === 'thing') [subject, person] = [p.thing.enDef, EN_PLURAL.has(p.thing.id) ? 'p' : 's'];
+  else [subject, person] = EN_SUBJ[p.subj];
+
+  const tail = [];
+  if (verb.type === 'obj' && p.obj) tail.push(p.obj['en' + verb.enArt[0].toUpperCase() + verb.enArt.slice(1)]);
+  if (p.place) tail.push(verb.type === 'go' ? p.place.enTo : p.place.enAt);
+
+  let words;
+  if (verb.type === 'adj' || verb.type === 'weather') {
+    if (question) words = [enBeQ(person, tense), subject, ...(tense === 'future' ? ['be'] : []), e.adj];
+    else words = [subject, enBe(person, tense, neg), e.adj];
+  } else if (want) {
+    const wantForm = tense === 'past' ? 'wanted' : person === 's' ? 'wants' : 'want';
+    if (question) words = [enAux(person, tense), subject, 'want to', e.b];
+    else if (neg) words = [subject, (tense === 'past' ? "didn't" : person === 's' ? "doesn't" : "don't"), 'want to', e.b];
+    else words = [subject, wantForm, 'to', e.b];
+  } else if (question) {
+    words = [enAux(person, tense), subject, e.b];
+  } else if (neg) {
+    const aux = tense === 'past' ? "didn't" : tense === 'future' ? "won't" : person === 's' ? "doesn't" : "don't";
+    words = [subject, aux, e.b];
+  } else {
+    const v = tense === 'past' ? e.past : tense === 'future' ? 'will ' + e.b : person === 's' ? e.s : e.b;
+    words = [subject, v];
   }
-  const question = e.kind === 'ask';
-  const m = MARKERS[style];
-  const pre = e.pre.replace(/\{(je|moi|mon)\}/g, (_, k) => m[k]);
-  const krText = pre + ' ' + conjugate(e.v, tense, style, question);
-  const fr = question ? e.fr[tense][style === 'casual' ? 0 : 1] : e.fr[tense];
+  words.push(...tail);
+  let text = words.join(' ');
+  if (question) text += (p.time ? ' ' + p.time.en : '') + '?';
+  else text = (p.time ? p.time.en + ', ' : '') + text + '.';
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
-  const words = [];
-  if (e.pre.includes('{je}')) words.push({ kr: m.je.slice(0, -1), fr: style === 'casual' ? 'je (familier)' : 'je (poli)' });
-  words.push(...e.w.map(([kr, f]) => ({ kr, fr: f })));
-  const notes = [];
-  if (e.pre.includes('{je}')) notes.push('는 / 은 : particule de thème, « quant à… »');
-  if (question && !e.pre.includes('{je}')) notes.push('Le « tu / vous » est sous-entendu : en coréen, on l’omet quand il est évident.');
-  if (e.note) notes.push(e.note);
-  notes.push(ENDING_NOTE[style][tense]);
-
+// ---------- Assemblage ----------
+/**
+ * opts : { mood, level, theme, tense, style, form } ; course : module du cours (ko ou ja).
+ * Renvoie { tl, ruby?, rom, fr, en, tiles, sep, end, words, notes, adjusted, meta }.
+ */
+export function generate(opts = {}, random = Math.random, course) {
+  if (opts.mood === 'awkward') return course.awkward(opts, random);
+  let style = opts.style || 'polite';
+  const adjusted = [];
+  if (!course.styles.includes(style)) {
+    adjusted.push({ fr: 'Le japonais se pratique ici en style poli ou familier.', en: 'Japanese is practised here in polite or casual style.' });
+    style = 'polite';
+  }
+  const plan = makePlan(opts, random, course.id);
+  const out = course.render(plan, style);
   return {
-    kr: krText,
-    fr,
-    rom: romanize(krText),
-    tiles: krText.replace(/[.?]$/, '').split(' '),
-    end: krText.slice(-1),
-    words,
-    notes,
-    adjusted,
-    meta: { level: Number(opts.level) || 1, tense, style, form: question ? 'question' : 'affirm', theme: 'all', mood: 'awkward' },
+    ...out,
+    fr: renderFr(plan, style),
+    en: renderEn(plan),
+    adjusted: [...adjusted, ...plan.adjusted, ...(out.adjusted || [])],
+    meta: { level: plan.level, tense: plan.tense, style, form: plan.form, theme: plan.theme },
   };
 }

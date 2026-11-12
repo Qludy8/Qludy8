@@ -1,9 +1,11 @@
-# Haru (하루) — le coréen au quotidien
+# Haru (하루) — le coréen et le japonais au quotidien
 
-Application web installable (PWA) pour s’entraîner au coréen sur iPhone et Android.
+Application web installable (PWA) pour s’entraîner au **coréen** ou au **japonais** sur iPhone et Android, avec une interface en **français** ou en **anglais**. Au premier lancement, on choisit la langue à apprendre ; chaque langue garde sa propre progression.
 Elle fonctionne hors connexion. Toutes les données restent sur le téléphone, sans compte ni serveur.
 
 ## Contenu
+
+Tout ce qui suit existe pour les deux langues (hangeul pour le coréen, hiragana et katakana pour le japonais, avec furigana au-dessus des kanji).
 
 - **Alphabet** : voyelles, consonnes, lettres composées et doubles, avec la prononciation (voix coréenne du téléphone), des conseils en français, un atelier pour construire des syllabes et des quiz de lecture.
 - **Vocabulaire** : plus de 150 mots classés en 6 thèmes. Trois façons de s’entraîner : quiz (coréen → français, français → coréen, écoute), cartes mémoire à glisser, et jeu des paires contre la montre. Une répétition espacée (boîtes de Leitner) fait revenir plus souvent les mots oubliés.
@@ -17,6 +19,14 @@ Elle fonctionne hors connexion. Toutes les données restent sur le téléphone, 
   Chaque phrase est conjuguée et accordée correctement : particules 은/는, 이/가, 을/를 et 에/에서, irrégularités, négations 안 et -지 않다. Elle est accompagnée de sa traduction française, de sa romanisation et d’une explication grammaticale. Trois modes d’exercice : Lire, Traduire, Reconstituer.
 - **Défi du jour** : 3 nouvelles phrases à remettre dans l’ordre chaque jour.
 - **Progression** : XP, niveaux, série de jours, objectif quotidien et calendrier d’activité. La progression peut être exportée ou restaurée.
+
+## Organisation du code
+
+- `js/content/concepts.js` : vocabulaire partagé (coréen, japonais, français, anglais).
+- `js/generator.js` : plan de phrase + traductions française et anglaise.
+- `js/lang/ko.js`, `js/lang/ja.js`, `js/lang/kana.js` : rendu propre à chaque langue (conjugaison, particules, écriture).
+- `js/content/strings.js` : textes de l’interface en français et en anglais.
+- `js/content/guide*.js` : guides de prononciation et de grammaire.
 
 ## Tester sur un ordinateur
 

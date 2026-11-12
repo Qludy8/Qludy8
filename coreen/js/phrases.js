@@ -2,28 +2,52 @@
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, burst, ICONS } from './ui.js';
 import { addXp, get, save, dayKey, dayNumber } from './store.js';
 import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
-import { THEMES } from './content/vocab.js';
+import { THEMES } from './content/concepts.js';
+import { course, t, tr, lang } from './course.js';
 
-const CRITERIA = [
-  { key: 'mood', label: 'Ton', options: [['normal', 'Normal'], ['awkward', 'Gênant']],
-    help: { normal: 'phrases du quotidien', awkward: 'phrases drôles et embarrassantes (le niveau et le thème sont ignorés)' } },
-  { key: 'level', label: 'Niveau', options: [['1', 'Débutant'], ['2', 'Intermédiaire'], ['3', 'Avancé']],
-    help: { 1: 'Sujet + verbe', 2: '+ un moment (hier, demain…)', 3: '+ un lieu' } },
-  { key: 'theme', label: 'Thème', options: [['all', 'Tous'], ...Object.entries(THEMES).filter(([k]) => k !== 'basics')] },
-  { key: 'tense', label: 'Temps', options: [['random', 'Au hasard'], ...Object.entries(TENSE_LABEL)] },
-  { key: 'style', label: 'Politesse', options: Object.entries(STYLE_LABEL),
-    help: { polite: '-요 : le plus courant', formal: '-니다 : travail, annonces', casual: 'entre amis proches' } },
-  { key: 'form', label: 'Forme', options: [['random', 'Au hasard'], ...Object.entries(FORM_LABEL)] },
-];
+const STYLE_HELP = {
+  ko: { polite: { fr: '-요 : le plus courant', en: '-요: the most common' }, formal: { fr: '-니다 : travail, annonces', en: '-니다: work, announcements' }, casual: { fr: 'entre amis proches', en: 'between close friends' } },
+  ja: { polite: { fr: 'です・ます : le plus courant', en: 'です・ます: the most common' }, casual: { fr: 'forme simple, entre amis', en: 'plain form, between friends' } },
+};
+
+function criteria() {
+  const C = course();
+  return [
+    { key: 'mood', label: t('crit.tone'), options: [['normal', t('crit.normal')], ['awkward', t('crit.awkward')]],
+      help: { normal: t('crit.normalHelp'), awkward: t('crit.awkwardHelp') } },
+    { key: 'level', label: t('crit.level'), options: [['1', t('crit.beginner')], ['2', t('crit.intermediate')], ['3', t('crit.advanced')]],
+      help: { 1: t('crit.l1'), 2: t('crit.l2'), 3: t('crit.l3') } },
+    { key: 'theme', label: t('crit.theme'), options: [['all', t('all')], ...Object.entries(THEMES).filter(([k]) => k !== 'basics').map(([k, v]) => [k, tr(v)])] },
+    { key: 'tense', label: t('crit.tense'), options: [['random', t('crit.random')], ...Object.entries(TENSE_LABEL).map(([k, v]) => [k, tr(v)])] },
+    { key: 'style', label: t('crit.style'), options: C.styles.map((k) => [k, tr(STYLE_LABEL[k])]),
+      help: Object.fromEntries(Object.entries(STYLE_HELP[C.id]).map(([k, v]) => [k, tr(v)])) },
+    { key: 'form', label: t('crit.form'), options: [['random', t('crit.random')], ...Object.entries(FORM_LABEL).map(([k, v]) => [k, tr(v)])] },
+  ];
+}
 const DEFAULT_CRIT = { mood: 'normal', level: '1', theme: 'all', tense: 'random', style: 'polite', form: 'random' };
 
 let current = null; // dernière phrase générée
+let currentCourse = null;
 let mode = 'read';
+
+/** Traduction de la phrase dans la langue de l'interface. */
+export const meaning = (p) => (lang() === 'en' ? p.en : p.fr);
+const hasKanji = (s) => /[一-龯]/.test(s);
+
+/** Furigana seulement au-dessus des kanji : 食べます → 食(た)べます, お母さん → お母(かあ)さん. */
+function rubyWord(w, r) {
+  if (!hasKanji(w)) return esc(w);
+  let a = 0;
+  while (a < w.length && a < r.length && w[a] === r[a]) a++;
+  let z = 0;
+  while (z < w.length - a && z < r.length - a && w[w.length - 1 - z] === r[r.length - 1 - z]) z++;
+  return `${esc(w.slice(0, a))}<ruby>${esc(w.slice(a, w.length - z))}<rt>${esc(r.slice(a, r.length - z))}</rt></ruby>${esc(w.slice(w.length - z))}`;
+}
 
 // ---------- Exercice : reconstituer la phrase ----------
 /** Affiche des étiquettes à remettre dans l'ordre. onSolved(propre) : propre = sans indice ni solution. */
 export function reconstruct(box, phrase, onSolved) {
-  const tiles = phrase.tiles.map((t, i) => ({ t, i }));
+  const tiles = phrase.tiles.map((x, i) => ({ t: x, i }));
   let order = shuffle(tiles);
   if (tiles.length > 1) while (order.every((x, k) => x.i === k)) order = shuffle(tiles);
   const placed = [];
@@ -32,19 +56,19 @@ export function reconstruct(box, phrase, onSolved) {
 
   box.innerHTML = `
     <div class="recon">
-      <p class="recon-fr">${esc(phrase.fr)}</p>
-      <div class="answer-line" aria-label="Ta réponse"></div>
+      <p class="recon-fr">${esc(meaning(phrase))}</p>
+      <div class="answer-line" aria-label="${t('recon.answer')}"></div>
       <div class="bank"></div>
       <div class="recon-tools">
-        <button class="btn ghost small hint-btn">Indice</button>
-        <button class="btn ghost small sol-btn">Voir la solution</button>
+        <button class="btn ghost small hint-btn">${t('recon.hint')}</button>
+        <button class="btn ghost small sol-btn">${t('recon.solution')}</button>
       </div>
     </div>`;
   const line = $('.answer-line', box);
   const bank = $('.bank', box);
 
   function render() {
-    line.innerHTML = placed.map((x, k) => `<button class="chip kr placed" data-k="${k}">${esc(x.t)}</button>`).join('') + (placed.length ? '' : '<span class="placeholder">Touche les mots dans le bon ordre</span>');
+    line.innerHTML = placed.map((x, k) => `<button class="chip kr placed" data-k="${k}">${esc(x.t)}</button>`).join('') + (placed.length ? '' : `<span class="placeholder">${t('recon.placeholder')}</span>`);
     bank.innerHTML = order.map((x, k) => `<button class="chip kr ${placed.includes(x) ? 'used' : ''}" data-k="${k}" style="--i:${k}">${esc(x.t)}</button>`).join('');
   }
 
@@ -83,10 +107,10 @@ export function reconstruct(box, phrase, onSolved) {
     helped = true;
     // Recompose la phrase sans réutiliser deux fois la même étiquette (mots identiques possibles).
     const used = new Set();
-    placed.splice(0, placed.length, ...phrase.tiles.map((t) => {
-      const x = order.find((o) => o.t === t && !used.has(o));
-      used.add(x);
-      return x;
+    placed.splice(0, placed.length, ...phrase.tiles.map((x) => {
+      const o = order.find((y) => y.t === x && !used.has(y));
+      used.add(o);
+      return o;
     }));
     render();
     check();
@@ -104,7 +128,7 @@ export function reconstruct(box, phrase, onSolved) {
       sfx.ok();
       haptic(12);
       burst(line, 16);
-      autoSpeak(phrase.kr);
+      autoSpeak(phrase.tl);
       onSolved?.(!helped, line);
     } else {
       sfx.ko();
@@ -118,38 +142,53 @@ export function reconstruct(box, phrase, onSolved) {
 }
 
 // ---------- Carte de phrase ----------
+/** Texte de la phrase, mot par mot (avec furigana au-dessus des kanji en japonais). */
+export function phraseText(p) {
+  if (p.ruby) {
+    return p.ruby.map((x, i) => `<span style="--i:${i}">${rubyWord(x.w, x.r)}${esc(x.p || '')}</span>`).join('') + esc(p.end);
+  }
+  return p.tl.split(' ').map((w, i) => `<span style="--i:${i}">${esc(w)}</span>`).join(' ');
+}
+
 function phraseCard(p, { roman }) {
   return `
     <div class="phrase-meta">
-      <span class="pill">${TENSE_LABEL[p.meta.tense]}</span>
-      <span class="pill">${STYLE_LABEL[p.meta.style]}</span>
-      <span class="pill">${FORM_LABEL[p.meta.form]}</span>
-      ${p.meta.mood === 'awkward' ? '<span class="pill awkward">Gênant</span>' : ''}
+      <span class="pill">${tr(TENSE_LABEL[p.meta.tense])}</span>
+      <span class="pill">${tr(STYLE_LABEL[p.meta.style])}</span>
+      <span class="pill">${tr(FORM_LABEL[p.meta.form])}</span>
+      ${p.meta.mood === 'awkward' ? `<span class="pill awkward">${t('crit.awkward')}</span>` : ''}
     </div>
-    <div class="phrase-kr kr">${p.kr.split(' ').map((w, i) => `<span style="--i:${i}">${esc(w)}</span>`).join(' ')}</div>
+    <div class="phrase-kr kr ${p.ruby ? 'has-ruby' : ''}">${phraseText(p)}</div>
     ${roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : ''}
-    <div class="phrase-fr">${esc(p.fr)}</div>`;
+    <div class="phrase-fr">${esc(meaning(p))}</div>`;
 }
 
-function details(p) {
+export function details(p) {
   return `
     <details class="explain-box">
-      <summary>Vocabulaire et grammaire</summary>
-      <ul class="gloss">${p.words.map((w) => `<li><button class="link kr say" data-say="${esc(w.kr)}">${esc(w.kr)}</button><span>${esc(w.fr)}</span></li>`).join('')}</ul>
-      <ul class="notes">${p.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
+      <summary>${t('phrase.details')}</summary>
+      <ul class="gloss">${p.words.map((w) => `<li><button class="link kr say" data-say="${esc(w.tl)}">${esc(w.tl)}${w.r && w.r !== w.tl ? `<small class="g-read">${esc(w.r)}</small>` : ''}</button><span>${esc(tr(w))}</span></li>`).join('')}</ul>
+      <ul class="notes">${p.notes.map((n) => `<li>${esc(tr(n))}</li>`).join('')}</ul>
     </details>`;
 }
 
 // ---------- Écran Phrases ----------
 export function phrasesScreen(el) {
   const st = get();
+  const C = course();
+  if (currentCourse !== C.id) {
+    current = null;
+    currentCourse = C.id;
+  }
+  const CRITERIA = criteria();
   const crit = { ...DEFAULT_CRIT, ...(st.crit || {}) };
+  if (!C.styles.includes(crit.style)) crit.style = 'polite';
   const roman = st.settings.roman;
 
   el.innerHTML = `
     <div class="screen phrases">
       <details class="card crit" ${st.crit ? '' : 'open'}>
-        <summary><span>Critères</span><span class="crit-sum muted"></span></summary>
+        <summary><span>${t('crit.title')}</span><span class="crit-sum muted"></span></summary>
         ${CRITERIA.map((c) => `
           <div class="crit-group">
             <div class="crit-label">${c.label}<span class="crit-help muted" data-help="${c.key}"></span></div>
@@ -158,7 +197,7 @@ export function phrasesScreen(el) {
             </div>
           </div>`).join('')}
       </details>
-      <button class="btn primary big gen-btn">${ICONS.shuffle}<span>Générer une phrase</span></button>
+      <button class="btn primary big gen-btn">${ICONS.shuffle}<span>${t('phrase.generate')}</span></button>
       <div class="phrase-zone"></div>
       <section class="journal"></section>
     </div>`;
@@ -171,8 +210,8 @@ export function phrasesScreen(el) {
       const h = $(`[data-help="${c.key}"]`, el);
       if (h) h.textContent = c.help?.[crit[c.key]] ? ' · ' + c.help[crit[c.key]] : '';
     }
-    const label = (k) => CRITERIA.find((c) => c.key === k).options.find(([v]) => v === crit[k])[1];
-    $('.crit-sum', el).textContent = crit.mood === 'awkward' ? ['Gênant', label('style')].join(' · ') : [label('level'), label('theme'), label('style')].join(' · ');
+    const label = (k) => CRITERIA.find((c) => c.key === k).options.find(([v]) => v === crit[k])?.[1] ?? '';
+    $('.crit-sum', el).textContent = crit.mood === 'awkward' ? [t('crit.awkward'), label('style')].join(' · ') : [label('level'), label('theme'), label('style')].join(' · ');
     el.querySelector('.phrases').classList.toggle('awkward-on', crit.mood === 'awkward');
     for (const k of ['level', 'theme']) $(`.seg[data-key="${k}"]`, el).closest('.crit-group').classList.toggle('dim', crit.mood === 'awkward');
   }
@@ -189,23 +228,24 @@ export function phrasesScreen(el) {
 
   function showPhrase(animate) {
     if (!current) {
-      zone.innerHTML = `<div class="empty muted">Choisis tes critères puis génère une phrase pour t’exercer.</div>`;
+      zone.innerHTML = `<div class="empty muted">${t('phrase.empty')}</div>`;
       return;
     }
     const p = current;
-    const saved = st.journal.some((j) => j.kr === p.kr);
+    const same = (j) => (j.tl || j.kr) === p.tl;
+    const saved = st.journal.some(same);
     zone.innerHTML = `
       <div class="card phrase ${animate ? 'pop' : ''}">
         <div class="seg modes">
-          <button class="seg-btn ${mode === 'read' ? 'on' : ''}" data-m="read">Lire</button>
-          <button class="seg-btn ${mode === 'translate' ? 'on' : ''}" data-m="translate">Traduire</button>
-          <button class="seg-btn ${mode === 'build' ? 'on' : ''}" data-m="build">Reconstituer</button>
+          <button class="seg-btn ${mode === 'read' ? 'on' : ''}" data-m="read">${t('phrase.read')}</button>
+          <button class="seg-btn ${mode === 'translate' ? 'on' : ''}" data-m="translate">${t('phrase.translate')}</button>
+          <button class="seg-btn ${mode === 'build' ? 'on' : ''}" data-m="build">${t('phrase.build')}</button>
         </div>
-        ${p.adjusted.map((a) => `<p class="note muted">${esc(a)}</p>`).join('')}
+        ${p.adjusted.map((a) => `<p class="note muted">${esc(tr(a))}</p>`).join('')}
         <div class="phrase-body"></div>
         <div class="phrase-actions">
-          ${canSpeak() ? `<button class="icon-btn listen" aria-label="Écouter">${ICONS.sound}</button>` : ''}
-          <button class="icon-btn fav ${saved ? 'on' : ''}" aria-label="Enregistrer dans le carnet">${ICONS.star}</button>
+          ${canSpeak() ? `<button class="icon-btn listen" aria-label="${t('listen')}">${ICONS.sound}</button>` : ''}
+          <button class="icon-btn fav ${saved ? 'on' : ''}" aria-label="${t('phrase.save')}">${ICONS.star}</button>
         </div>
       </div>`;
     const body = $('.phrase-body', zone);
@@ -213,21 +253,21 @@ export function phrasesScreen(el) {
       body.innerHTML = phraseCard(p, { roman }) + details(p);
     } else if (mode === 'translate') {
       body.innerHTML = `
-        <p class="prompt-label muted">Traduis en coréen, à l’oral ou sur papier :</p>
-        <div class="phrase-fr big">${esc(p.fr)}</div>
+        <p class="prompt-label muted">${t('phrase.translatePrompt', { lang: tr(C.name).toLowerCase() })}</p>
+        <div class="phrase-fr big">${esc(meaning(p))}</div>
         <button class="reveal">
           <div class="blurred">${phraseCard(p, { roman })}</div>
-          <span class="reveal-label">Toucher pour voir la réponse</span>
+          <span class="reveal-label">${t('phrase.reveal')}</span>
         </button>
         <div class="self-check" hidden>
-          <button class="btn ko-btn">À retravailler</button>
-          <button class="btn ok-btn">Je l’avais !</button>
+          <button class="btn ko-btn">${t('phrase.rework')}</button>
+          <button class="btn ok-btn">${t('phrase.gotIt')}</button>
         </div>`;
       $('.reveal', body).addEventListener('click', (e) => {
         const r = e.currentTarget;
         if (r.classList.contains('shown')) return;
         r.classList.add('shown');
-        speak(p.kr);
+        speak(p.tl);
         $('.self-check', body).hidden = false;
         body.insertAdjacentHTML('beforeend', details(p));
       });
@@ -238,14 +278,14 @@ export function phrasesScreen(el) {
           floatXp(3, b);
           sfx.ok();
         } else sfx.tap();
-        $('.self-check', body).innerHTML = `<p class="muted">${ok ? 'Bien joué ! 👏' : 'Pas grave : génère-en une autre ou passe en mode Reconstituer.'}</p>`;
+        $('.self-check', body).innerHTML = `<p class="muted">${ok ? t('phrase.wellDone') : t('phrase.noWorries')}</p>`;
       }));
     } else {
       reconstruct(body, p, (clean, line) => {
         const xp = clean ? 5 : 2;
         addXp(xp);
         floatXp(xp, line);
-        body.insertAdjacentHTML('beforeend', `${roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : ''}${details(p)}`);
+        body.insertAdjacentHTML('beforeend', `${p.ruby ? `<div class="phrase-kr kr has-ruby small-ruby">${phraseText(p)}</div>` : ''}${roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : ''}${details(p)}`);
       });
     }
     $$('.modes .seg-btn', zone).forEach((b) => b.addEventListener('click', () => {
@@ -253,17 +293,17 @@ export function phrasesScreen(el) {
       sfx.tap();
       showPhrase(false);
     }));
-    $('.listen', zone)?.addEventListener('click', () => speak(p.kr));
+    $('.listen', zone)?.addEventListener('click', () => speak(p.tl));
     $('.fav', zone).addEventListener('click', (e) => {
       const b = e.currentTarget;
-      const k = st.journal.findIndex((j) => j.kr === p.kr);
+      const k = st.journal.findIndex(same);
       if (k >= 0) st.journal.splice(k, 1);
-      else st.journal.unshift({ kr: p.kr, fr: p.fr, rom: p.rom, date: dayKey() });
+      else st.journal.unshift({ tl: p.tl, fr: p.fr, en: p.en, rom: p.rom, date: dayKey() });
       save();
       b.classList.toggle('on', k < 0);
       pulse(b, 'bump');
       haptic(8);
-      toast(k < 0 ? 'Ajoutée au carnet' : 'Retirée du carnet');
+      toast(k < 0 ? t('journal.added') : t('journal.removed'));
       renderJournal();
     });
   }
@@ -278,10 +318,10 @@ export function phrasesScreen(el) {
     pulse(b, 'spin');
     sfx.tap();
     haptic(6);
-    current = generate(crit);
+    current = generate(crit, Math.random, course());
     $('.crit', el).open = false;
     showPhrase(true);
-    if (mode !== 'translate') autoSpeak(current.kr);
+    if (mode !== 'translate') autoSpeak(current.tl);
     zone.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 
@@ -292,21 +332,25 @@ export function phrasesScreen(el) {
       return;
     }
     j.innerHTML = `
-      <h2>Mon carnet <span class="muted">· ${st.journal.length}</span></h2>
+      <h2>${t('journal.title')} <span class="muted">· ${st.journal.length}</span></h2>
       <ul class="list">
         ${st.journal.map((x, k) => `
           <li class="row" style="--i:${Math.min(k, 10)}">
             <button class="row-main say-row" data-k="${k}">
-              <span class="kr">${esc(x.kr)}</span>
-              <span class="muted small">${esc(x.fr)}</span>
+              <span class="kr">${esc(x.tl || x.kr)}</span>
+              <span class="muted small">${esc(lang() === 'en' && x.en ? x.en : x.fr)}</span>
             </button>
-            <button class="icon-btn del" data-k="${k}" aria-label="Supprimer">${ICONS.trash}</button>
+            <button class="icon-btn del" data-k="${k}" aria-label="${t('delete')}">${ICONS.trash}</button>
           </li>`).join('')}
       </ul>`;
   }
   $('.journal', el).addEventListener('click', (e) => {
     const s = e.target.closest('.say-row');
-    if (s) speak(st.journal[s.dataset.k].kr);
+    if (s) {
+      const x = st.journal[s.dataset.k];
+      speak(x.tl || x.kr);
+      pulse(s.closest('li'), 'flash');
+    }
     const d = e.target.closest('.del');
     if (d) {
       const li = d.closest('li');
@@ -327,11 +371,11 @@ export function phrasesScreen(el) {
 // ---------- Défi du jour ----------
 export function dailyPhrases(date = new Date()) {
   const r = rng(dayNumber(date) * 7919);
-  return [1, 2, 3].map((level) => generate({ level, style: 'polite', tense: 'random', form: 'random', theme: 'all' }, r));
+  return [1, 2, 3].map((level) => generate({ level, style: 'polite', tense: 'random', form: 'random', theme: 'all' }, r, course()));
 }
 
 export function phraseOfDay() {
-  return generate({ level: 2, style: 'polite' }, rng(dayNumber() * 104729 + 1));
+  return generate({ level: 2, style: 'polite' }, rng(dayNumber() * 104729 + 1), course());
 }
 
 export function dailyScreen(el) {
@@ -346,14 +390,14 @@ export function dailyScreen(el) {
     el.innerHTML = `
       <div class="screen daily">
         <div class="dots">${list.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'cur' : ''}"></i>`).join('')}</div>
-        <p class="muted center">Phrase ${i + 1} sur ${list.length} · remets les mots dans l’ordre</p>
+        <p class="muted center">${t('daily.progress', { n: i + 1, total: list.length })}</p>
         <div class="card daily-card pop"></div>
-        <button class="btn primary next" hidden>${i + 1 < list.length ? 'Phrase suivante' : 'Terminer'}</button>
+        <button class="btn primary next" hidden>${i + 1 < list.length ? t('daily.next') : t('finish')}</button>
       </div>`;
     const p = list[i];
     reconstruct($('.daily-card', el), p, (ok) => {
       if (ok) clean++;
-      $('.daily-card', el).insertAdjacentHTML('beforeend', (get().settings.roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : '') + details(p));
+      $('.daily-card', el).insertAdjacentHTML('beforeend', (p.ruby ? `<div class="phrase-kr kr has-ruby small-ruby">${phraseText(p)}</div>` : '') + (get().settings.roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : '') + details(p));
       const n = $('.next', el);
       n.hidden = false;
       n.classList.add('pop');
@@ -381,12 +425,12 @@ export function dailyScreen(el) {
     el.innerHTML = `
       <div class="result screen">
         <div class="big-emoji">🌸</div>
-        <h2>Défi du jour terminé !</h2>
-        <p class="muted">${clean} phrase${clean > 1 ? 's' : ''} sur ${list.length} sans aide. Reviens demain pour de nouvelles phrases.</p>
-        ${xp ? '<div class="xp-won">+<span class="n">0</span> XP</div>' : '<p class="muted">Déjà validé aujourd’hui : pas de XP en plus, mais bel entraînement !</p>'}
+        <h2>${t('daily.done')}</h2>
+        <p class="muted">${t('daily.summary', { n: clean, total: list.length })}</p>
+        ${xp ? '<div class="xp-won">+<span class="n">0</span> XP</div>' : `<p class="muted">${t('daily.already')}</p>`}
         <div class="stack">
-          <a class="btn primary" href="#/phrases">Générer d’autres phrases</a>
-          <a class="btn ghost" href="#/home">Accueil</a>
+          <a class="btn primary" href="#/phrases">${t('daily.more')}</a>
+          <a class="btn ghost" href="#/home">${t('tab.home')}</a>
         </div>
       </div>`;
     if (xp) countUp($('.xp-won .n', el), xp);

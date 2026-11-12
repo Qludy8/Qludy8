@@ -1,42 +1,85 @@
 // Données de l'utilisateur, conservées uniquement sur le téléphone (localStorage).
+// Structure : réglages communs + une progression séparée par langue apprise (coréen, japonais).
 
 const KEY = 'haru.v1';
 const DAY = 86400000;
 
-const DEFAULTS = () => ({
+const SETTINGS = () => ({
+  roman: true, sound: true, haptics: true, rate: 0.85, theme: 'auto', krLarge: false, motion: true,
+  autoplay: true, quizLen: 10, fullscreen: true, lang: 'fr', course: null,
+});
+const COURSE = () => ({
   xp: 0,
   days: {}, // 'AAAA-MM-JJ' → XP gagnés ce jour-là
-  goal: 30,
   srs: {}, // id du mot → { b: boîte 0-5, due: jour, ok, ko }
   journal: [], // phrases enregistrées
   daily: {}, // 'AAAA-MM-JJ' → nombre de phrases du défi réussies
   best: {}, // records (ex. temps du jeu des paires)
-  settings: { roman: true, sound: true, haptics: true, rate: 0.85, theme: 'auto', krLarge: false, motion: true, autoplay: true, quizLen: 10, fullscreen: true },
   read: {}, // leçons du guide déjà lues
 });
+const ROOT = () => ({ v: 2, goal: 30, settings: SETTINGS(), courses: { ko: COURSE(), ja: COURSE() } });
 
-let state = load();
+let root = load();
+let state; // progression du cours actif (avec accès à settings et goal)
+selectCourse(root.settings.course || 'ko');
 
+/** Charge les données ; convertit l'ancien format (coréen seul) sans rien perdre. */
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const d = DEFAULTS();
-      const s = JSON.parse(raw);
-      return { ...d, ...s, settings: { ...d.settings, ...(s.settings || {}) } };
-    }
+    if (raw) return normalize(JSON.parse(raw));
   } catch { /* stockage indisponible : on repart de zéro */ }
-  return DEFAULTS();
+  return ROOT();
+}
+
+export function normalize(s) {
+  const r = ROOT();
+  if (s.v === 2) {
+    r.goal = s.goal ?? r.goal;
+    r.settings = { ...r.settings, ...(s.settings || {}) };
+    for (const k of Object.keys(r.courses)) r.courses[k] = { ...COURSE(), ...(s.courses?.[k] || {}) };
+    return r;
+  }
+  // Ancien format : tout appartenait au cours de coréen.
+  r.goal = s.goal ?? r.goal;
+  r.settings = { ...r.settings, ...(s.settings || {}), course: 'ko' };
+  const { settings, goal, ...rest } = s;
+  r.courses.ko = { ...COURSE(), ...rest };
+  return r;
+}
+
+function bind(c) {
+  Object.defineProperty(c, 'settings', { get: () => root.settings, enumerable: false, configurable: true });
+  Object.defineProperty(c, 'goal', { get: () => root.goal, set: (v) => { root.goal = v; }, enumerable: false, configurable: true });
+  return c;
+}
+
+/** Active la progression d'un cours. */
+export function selectCourse(id) {
+  root.courses[id] ||= COURSE();
+  state = bind(root.courses[id]);
 }
 
 export function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* navigation privée, quota… */ }
+  try { localStorage.setItem(KEY, JSON.stringify(root)); } catch { /* navigation privée, quota… */ }
 }
 
 export const get = () => state;
+export const exportAll = () => JSON.stringify(root);
+
+/** Restaure une sauvegarde (nouveau ou ancien format). Lève une erreur si le fichier est invalide. */
+export function importAll(data) {
+  if (!data || typeof data !== 'object' || !(data.v === 2 ? data.courses : typeof data.xp === 'number')) throw new Error('invalid');
+  root = normalize(data);
+  selectCourse(root.settings.course || 'ko');
+  save();
+}
 
 export function reset() {
-  state = DEFAULTS();
+  const keep = { lang: root.settings.lang, course: root.settings.course };
+  root = ROOT();
+  Object.assign(root.settings, keep);
+  selectCourse(keep.course || 'ko');
   save();
 }
 
@@ -58,7 +101,7 @@ export function addXp(n) {
   // Événements pour les célébrations (niveau gagné, objectif du jour atteint)
   const after = level().lv;
   if (after > before) dispatchEvent(new CustomEvent('haru:levelup', { detail: after }));
-  if (dayBefore < state.goal && state.days[k] >= state.goal) dispatchEvent(new CustomEvent('haru:goal', { detail: streak() }));
+  if (dayBefore < root.goal && state.days[k] >= root.goal) dispatchEvent(new CustomEvent('haru:goal', { detail: streak() }));
 }
 
 export const todayXp = () => state.days[dayKey()] || 0;
@@ -75,8 +118,8 @@ export function level(xp = state.xp) {
 export function streak() {
   let n = 0;
   const d = new Date();
-  if ((state.days[dayKey(d)] || 0) < state.goal) d.setDate(d.getDate() - 1);
-  while ((state.days[dayKey(d)] || 0) >= state.goal) {
+  if ((state.days[dayKey(d)] || 0) < root.goal) d.setDate(d.getDate() - 1);
+  while ((state.days[dayKey(d)] || 0) >= root.goal) {
     n++;
     d.setDate(d.getDate() - 1);
   }

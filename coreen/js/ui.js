@@ -1,5 +1,6 @@
 // Petits outils d'interface : voix, sons, vibrations, confettis, animations.
 import { get } from './store.js';
+import { course } from './course.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -7,26 +8,26 @@ export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 export const shuffle = (a) => a.map((x) => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map((p) => p[1]);
 export const reducedMotion = () => !get().settings.motion || matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// ---------- Synthèse vocale coréenne ----------
-let koVoice = null;
+// ---------- Synthèse vocale (langue du cours actif) ----------
+const PREFERRED = /yuna|sora|kyoko|otoya|google|siri/i;
 function findVoice() {
-  if (!('speechSynthesis' in window)) return;
+  if (!('speechSynthesis' in window)) return null;
+  const tag = course().tts;
   const voices = speechSynthesis.getVoices();
-  koVoice = voices.find((v) => v.lang === 'ko-KR' && /yuna|google|sora/i.test(v.name)) || voices.find((v) => v.lang?.toLowerCase().startsWith('ko')) || null;
+  return voices.find((v) => v.lang === tag && PREFERRED.test(v.name))
+    || voices.find((v) => v.lang?.replace('_', '-').toLowerCase().startsWith(tag.slice(0, 2))) || null;
 }
-if ('speechSynthesis' in window) {
-  findVoice();
-  speechSynthesis.addEventListener?.('voiceschanged', findVoice);
-}
+if ('speechSynthesis' in window) speechSynthesis.getVoices();
 export const canSpeak = () => 'speechSynthesis' in window;
-export const hasKoreanVoice = () => !!koVoice;
+export const hasVoice = () => !!findVoice();
 
 export function speak(text, rate) {
   if (!canSpeak()) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text.replace(/[.?]/g, ''));
-  u.lang = 'ko-KR';
-  if (koVoice) u.voice = koVoice;
+  const u = new SpeechSynthesisUtterance(text.replace(/[.?。？]/g, ''));
+  u.lang = course().tts;
+  const voice = findVoice();
+  if (voice) u.voice = voice;
   u.rate = rate ?? get().settings.rate;
   speechSynthesis.speak(u);
 }
