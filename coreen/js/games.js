@@ -1,12 +1,12 @@
 // Cartes mémoire (avec glissement) et jeu des paires.
-import { $, $$, esc, shuffle, sfx, haptic, speak, confetti, countUp, pulse, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, confetti, countUp, pulse, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get, save } from './store.js';
 import { romanize } from './hangul.js';
 import { WORDS, wordsOf, THEMES } from './words.js';
 
 // ---------- Cartes mémoire ----------
 export function flashcards(el, theme) {
-  const deck = pickForReview(wordsOf(theme), 12);
+  const deck = pickForReview(wordsOf(theme), get().settings.quizLen || 10);
   const roman = get().settings.roman;
   let i = 0;
   let known = 0;
@@ -42,7 +42,7 @@ export function flashcards(el, theme) {
       </div>`;
     const card = $('.flip', deckEl);
     actions.classList.remove('show');
-    setTimeout(() => speak(w.kr), 200);
+    setTimeout(() => autoSpeak(w.kr), 200);
     $('.speak', card).addEventListener('click', (e) => {
       e.stopPropagation();
       speak(w.kr);
@@ -172,7 +172,7 @@ export function pairs(el) {
         chrono.textContent = fmt(performance.now() - t0);
       }, 100);
     }
-    if (t.kr) speak(t.label);
+    if (t.kr) autoSpeak(t.label);
     if (!sel) {
       sel = b;
       b.classList.add('sel');

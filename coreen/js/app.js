@@ -7,6 +7,7 @@ import { WORDS, wordsOf, THEMES } from './words.js';
 import { hangulQuiz, vocabQuiz } from './quiz.js';
 import { flashcards, pairs } from './games.js';
 import { phrasesScreen, dailyScreen, dailyPhrases, phraseOfDay } from './phrases.js';
+import { GUIDE, GUIDE_CATS } from './content/guide.js';
 
 const view = $('#view');
 const titleEl = $('#title');
@@ -20,6 +21,8 @@ const SCREENS = {
   learn: { title: 'Apprendre', tab: 'learn', render: learn },
   phrases: { title: 'Phrases', tab: 'phrases', render: phrasesScreen },
   progress: { title: 'Progrès', tab: 'progress', render: progress },
+  settings: { title: 'Réglages', tab: 'settings', render: settings },
+  guide: { title: 'Guide', tab: 'learn', back: '#/learn', render: guide },
   hangul: { title: 'Alphabet', tab: 'learn', back: '#/learn', render: hangul },
   lexicon: { title: 'Lexique', tab: 'learn', back: '#/learn', render: lexicon },
   hquiz: { title: 'Quiz hangeul', back: '#/hangul', focus: true, render: (el, q) => hangulQuiz(el, q.set || 'vowels') },
@@ -155,6 +158,11 @@ function learn(el) {
         <a class="tile-link" href="#/quiz?t=all" style="--i:2"><span class="tl-kr kr">퀴즈</span><b>Quiz mélangé</b><span class="muted small">Tous les thèmes</span></a>
         <a class="tile-link" href="#/lexicon" style="--i:3"><span class="tl-kr kr">단어</span><b>Lexique</b><span class="muted small">${WORDS.length} mots</span></a>
       </div>
+      <h2>Guide</h2>
+      <div class="grid2">
+        <a class="tile-link" href="#/guide?c=pron" style="--i:4"><span class="tl-kr kr">발음</span><b>Prononciation</b><span class="muted small">${GUIDE.filter((g) => g.cat === 'pron').length} règles</span></a>
+        <a class="tile-link" href="#/guide?c=gram" style="--i:5"><span class="tl-kr kr">문법</span><b>Grammaire</b><span class="muted small">${GUIDE.filter((g) => g.cat === 'gram').length} leçons</span></a>
+      </div>
       <h2>Vocabulaire par thème</h2>
       <ul class="list themes">
         ${themes.map(([k, label], i) => {
@@ -187,6 +195,11 @@ function hangul(el) {
       <div class="jamo-grid"></div>
       <div class="jamo-detail card" hidden></div>
       <a class="btn primary quiz-set" href="#/hquiz?set=${hangulSet}">Quiz sur ces lettres</a>
+      <a class="card guide-link" href="#/guide?c=pron">
+        <span class="l-glyph kr">발음</span>
+        <span class="l-text"><b>Règles de prononciation</b><span class="muted small">Liaisons, consonnes finales, ㅎ, nasalisation…</span></span>
+        <span class="chev">›</span>
+      </a>
 
       <h2>Construire une syllabe</h2>
       <p class="muted small">Une syllabe coréenne s’écrit en bloc : consonne + voyelle (+ consonne finale facultative). Sans consonne, on écrit ㅇ (muet).</p>
@@ -311,7 +324,7 @@ function lexicon(el) {
   render();
 }
 
-// ---------- Progrès et réglages ----------
+// ---------- Progrès ----------
 function progress(el) {
   const st = store.get();
   const lv = store.level();
@@ -319,15 +332,12 @@ function progress(el) {
   const d = new Date();
   d.setDate(d.getDate() - 34);
   for (let i = 0; i < 35; i++) {
-    days.push({ k: store.dayKey(d), xp: st.days[store.dayKey(d)] || 0, wd: d.getDay() });
+    days.push({ k: store.dayKey(d), xp: st.days[store.dayKey(d)] || 0 });
     d.setDate(d.getDate() + 1);
   }
   const active = Object.values(st.days).filter((x) => x > 0).length;
-  const voiceMsg = !canSpeak()
-    ? 'La synthèse vocale n’est pas disponible sur cet appareil.'
-    : hasKoreanVoice()
-      ? 'Voix coréenne détectée ✓'
-      : 'Aucune voix coréenne détectée pour l’instant. Sur iPhone : Réglages → Accessibilité → Contenu énoncé → Voix → Coréen. Sur Android : Paramètres → Synthèse vocale → installer le coréen.';
+  const learned = Object.keys(st.srs).length;
+  const lessons = Object.keys(st.read || {}).length;
 
   el.innerHTML = `
     <div class="screen progress-screen">
@@ -343,69 +353,119 @@ function progress(el) {
       <div class="stats3">
         <div class="stat"><b>${store.streak()}</b><span>jours de suite</span></div>
         <div class="stat"><b>${active}</b><span>jours actifs</span></div>
-        <div class="stat"><b>${st.journal.length}</b><span>phrases au carnet</span></div>
+        <div class="stat"><b>${today()}</b><span>XP aujourd’hui</span></div>
+        <div class="stat"><b>${store.mastered()}</b><span>mots maîtrisés</span></div>
+        <div class="stat"><b>${learned}</b><span>mots vus</span></div>
+        <div class="stat"><b>${lessons} / ${GUIDE.length}</b><span>leçons lues</span></div>
       </div>
 
       <h2>5 dernières semaines</h2>
       <div class="card heat">
         ${days.map((x, i) => `<i style="--i:${i}" class="h${x.xp >= st.goal ? 3 : x.xp >= st.goal / 2 ? 2 : x.xp > 0 ? 1 : 0}" title="${x.k} : ${x.xp} XP"></i>`).join('')}
       </div>
+      <p class="muted small heat-legend"><i class="h1"></i> actif <i class="h2"></i> mi-objectif <i class="h3"></i> objectif atteint</p>
 
-      <h2>Réglages</h2>
+      <h2>Mon carnet de phrases</h2>
+      <a class="card daily-cta" href="#/phrases">
+        <div><b>${st.journal.length} phrase${st.journal.length > 1 ? 's' : ''} enregistrée${st.journal.length > 1 ? 's' : ''}</b>
+        <span class="muted small">Touche l’étoile d’une phrase générée pour l’ajouter</span></div>
+        <span class="chev">›</span>
+      </a>
+    </div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => $('.xp-bar', el)?.classList.add('go')));
+}
+const today = () => store.todayXp();
+
+// ---------- Réglages ----------
+const seg = (key, options, current) => `
+  <div class="seg set-seg" data-key="${key}">
+    ${options.map(([v, l]) => `<button class="seg-btn ${String(current) === String(v) ? 'on' : ''}" data-v="${v}">${l}</button>`).join('')}
+  </div>`;
+
+function settings(el) {
+  const st = store.get();
+  const s = st.settings;
+  const voiceMsg = !canSpeak()
+    ? 'La synthèse vocale n’est pas disponible sur cet appareil.'
+    : hasKoreanVoice()
+      ? 'Voix coréenne détectée ✓'
+      : 'Aucune voix coréenne détectée. iPhone : Réglages → Accessibilité → Contenu énoncé → Voix → Coréen. Android : Paramètres → Synthèse vocale → installer le coréen.';
+
+  el.innerHTML = `
+    <div class="screen settings-screen">
+      <h2 class="first">Apparence</h2>
       <div class="card settings">
-        <div class="set-row">
-          <span>Objectif quotidien</span>
-          <div class="seg goal-seg">${[10, 30, 50, 100].map((g) => `<button class="seg-btn ${st.goal === g ? 'on' : ''}" data-g="${g}">${g}</button>`).join('')}</div>
-        </div>
-        ${toggle('roman', 'Afficher la romanisation', st.settings.roman)}
-        ${toggle('sound', 'Effets sonores', st.settings.sound)}
-        ${toggle('haptics', 'Vibrations (Android)', st.settings.haptics)}
+        <div class="set-row col"><span>Thème</span>${seg('theme', [['auto', 'Automatique'], ['light', 'Clair'], ['dark', 'Sombre']], s.theme)}
+          <span class="muted small">Automatique suit le réglage du téléphone.</span></div>
+        <div class="set-row col"><span>Taille du texte coréen</span>${seg('krLarge', [['false', 'Normale'], ['true', 'Grande']], s.krLarge)}</div>
+        ${toggle('motion', 'Animations', s.motion)}
+      </div>
+
+      <h2>Apprentissage</h2>
+      <div class="card settings">
+        <div class="set-row col"><span>Objectif quotidien (XP)</span>${seg('goal', [[10, '10'], [30, '30'], [50, '50'], [100, '100']], st.goal)}</div>
+        <div class="set-row col"><span>Questions par série</span>${seg('quizLen', [[5, '5'], [10, '10'], [15, '15'], [20, '20']], s.quizLen)}
+          <span class="muted small">Quiz, cartes mémoire et quiz d’alphabet.</span></div>
+        ${toggle('roman', 'Afficher la romanisation', s.roman)}
+      </div>
+
+      <h2>Son</h2>
+      <div class="card settings">
+        ${toggle('autoplay', 'Lecture automatique du coréen', s.autoplay)}
+        ${toggle('sound', 'Effets sonores', s.sound)}
+        ${toggle('haptics', 'Vibrations (Android)', s.haptics)}
         <div class="set-row col">
-          <span>Vitesse de la voix <b class="rate-val">${st.settings.rate.toFixed(2).replace('.', ',')}</b></span>
+          <span>Vitesse de la voix <b class="rate-val">${s.rate.toFixed(2).replace('.', ',')}</b></span>
           <div class="rate-row">
-            <input type="range" class="rate" min="0.5" max="1.1" step="0.05" value="${st.settings.rate}">
+            <input type="range" class="rate" min="0.5" max="1.1" step="0.05" value="${s.rate}" aria-label="Vitesse de la voix">
             <button class="icon-btn test-voice" aria-label="Tester la voix">${ICONS.sound}</button>
           </div>
           <span class="muted small">${voiceMsg}</span>
         </div>
       </div>
 
-      <h2>Installer sur le téléphone</h2>
-      <div class="card install-help">
-        <p><b>iPhone (Safari)</b> : bouton Partager → « Sur l’écran d’accueil ».</p>
-        <p><b>Android (Chrome)</b> : menu ⋮ → « Installer l’application » ou « Ajouter à l’écran d’accueil ».</p>
-        <p class="muted small">Une fois installée, l’application fonctionne hors connexion. Tes données restent uniquement sur ce téléphone.</p>
-      </div>
-
       <h2>Mes données</h2>
       <div class="card data-actions">
+        <p class="muted small">Ta progression est enregistrée uniquement sur ce téléphone. Fais une sauvegarde de temps en temps.</p>
         <button class="btn ghost export">Exporter une sauvegarde</button>
         <label class="btn ghost import">Restaurer une sauvegarde<input type="file" accept="application/json,.json" hidden></label>
         <button class="btn danger reset">Tout réinitialiser</button>
       </div>
-      <p class="muted small center">Haru · 하루 · « une journée »</p>
+
+      <h2>Installer sur le téléphone</h2>
+      <div class="card install-help">
+        <p><b>iPhone (Safari)</b> : bouton Partager → « Sur l’écran d’accueil ».</p>
+        <p><b>Android (Chrome)</b> : menu ⋮ → « Installer l’application ».</p>
+        <p class="muted small">Les mises à jour arrivent toutes seules : ferme l’application puis rouvre-la avec internet.</p>
+      </div>
+      <p class="muted small center version">Haru · 하루 · « une journée »</p>
     </div>`;
 
-  requestAnimationFrame(() => requestAnimationFrame(() => $('.xp-bar', el)?.classList.add('go')));
-
-  $('.goal-seg', el).addEventListener('click', (e) => {
+  $$('.set-seg', el).forEach((g) => g.addEventListener('click', (e) => {
     const b = e.target.closest('.seg-btn');
     if (!b) return;
-    st.goal = Number(b.dataset.g);
+    const k = g.dataset.key;
+    const v = b.dataset.v;
+    if (k === 'goal') st.goal = Number(v);
+    else if (k === 'quizLen') s.quizLen = Number(v);
+    else if (k === 'krLarge') s.krLarge = v === 'true';
+    else s[k] = v;
     store.save();
+    applySettings();
     sfx.tap();
-    $$('.goal-seg .seg-btn', el).forEach((x) => x.classList.toggle('on', x === b));
-  });
+    $$('.seg-btn', g).forEach((x) => x.classList.toggle('on', x === b));
+  }));
   $$('.switch input', el).forEach((inp) => inp.addEventListener('change', () => {
-    st.settings[inp.name] = inp.checked;
+    s[inp.name] = inp.checked;
     store.save();
+    applySettings();
     sfx.tap();
     haptic(5);
   }));
   const rate = $('.rate', el);
   rate.addEventListener('input', () => {
-    st.settings.rate = Number(rate.value);
-    $('.rate-val', el).textContent = st.settings.rate.toFixed(2).replace('.', ',');
+    s.rate = Number(rate.value);
+    $('.rate-val', el).textContent = s.rate.toFixed(2).replace('.', ',');
   });
   rate.addEventListener('change', () => store.save());
   $('.test-voice', el).addEventListener('click', () => speak('안녕하세요. 만나서 반가워요.'));
@@ -433,6 +493,7 @@ function progress(el) {
   $('.reset', el).addEventListener('click', () => {
     if (confirm('Effacer toute ta progression ? Cette action est définitive.')) {
       store.reset();
+      applySettings();
       toast('Progression réinitialisée');
       route();
     }
@@ -444,6 +505,124 @@ const toggle = (name, label, on) => `
     <span>${label}</span>
     <input type="checkbox" name="${name}" ${on ? 'checked' : ''}><i></i>
   </label>`;
+
+/** Applique thème, taille du texte et animations. */
+const THEME_BG = { light: '#f6f4f0', dark: '#141416' };
+function applySettings() {
+  const s = store.get().settings;
+  const root = document.documentElement;
+  if (s.theme === 'auto') delete root.dataset.theme;
+  else root.dataset.theme = s.theme;
+  root.classList.toggle('kr-large', !!s.krLarge);
+  root.classList.toggle('no-motion', !s.motion);
+  // Couleur des barres du téléphone
+  $$('meta[name="theme-color"]').forEach((m) => {
+    const scheme = m.media.includes('dark') ? 'dark' : 'light';
+    m.content = THEME_BG[s.theme === 'auto' ? scheme : s.theme];
+  });
+}
+
+// ---------- Guide : prononciation et grammaire ----------
+let guideCat = 'pron';
+const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
+
+function guide(el, q) {
+  if (q.id) return lesson(el, q.id);
+  if (q.c && GUIDE_CATS[q.c]) guideCat = q.c;
+  const read = store.get().read || {};
+  el.innerHTML = `
+    <div class="screen guide">
+      <div class="seg cats">
+        ${Object.entries(GUIDE_CATS).map(([k, l]) => `<button class="seg-btn ${k === guideCat ? 'on' : ''}" data-c="${k}">${l}</button>`).join('')}
+      </div>
+      <ul class="list lessons"></ul>
+    </div>`;
+  const list = $('.lessons', el);
+  function render() {
+    const ls = GUIDE.filter((g) => g.cat === guideCat);
+    list.innerHTML = ls.map((g, i) => `
+      <li style="--i:${i}">
+        <a class="lesson-row" href="#/guide?id=${g.id}">
+          <span class="l-glyph kr">${esc(g.glyph)}</span>
+          <span class="l-text"><b>${esc(g.title)}</b><span class="muted small">${esc(g.sum)}</span></span>
+          <span class="l-check ${read[g.id] ? 'on' : ''}">${read[g.id] ? ICONS.check : '›'}</span>
+        </a>
+      </li>`).join('');
+  }
+  $('.cats', el).addEventListener('click', (e) => {
+    const b = e.target.closest('.seg-btn');
+    if (!b) return;
+    guideCat = b.dataset.c;
+    $$('.cats .seg-btn', el).forEach((x) => x.classList.toggle('on', x === b));
+    sfx.tap();
+    render();
+  });
+  render();
+}
+
+function lesson(el, id) {
+  const i = GUIDE.findIndex((g) => g.id === id);
+  const g = GUIDE[i];
+  if (!g) {
+    location.hash = '#/guide';
+    return;
+  }
+  guideCat = g.cat;
+  backEl.dataset.href = `#/guide?c=${g.cat}`;
+  titleEl.textContent = GUIDE_CATS[g.cat];
+  const st = store.get();
+  st.read ||= {};
+  if (!st.read[g.id]) {
+    st.read[g.id] = store.dayKey();
+    store.addXp(2);
+  }
+  const same = GUIDE.filter((x) => x.cat === g.cat);
+  const k = same.indexOf(g);
+  const next = same[k + 1];
+  const prev = same[k - 1];
+  const roman = st.settings.roman;
+
+  const block = (b) => {
+    if (b.p) return `<p class="g-p">${md(b.p)}</p>`;
+    if (b.tip) return `<div class="g-tip"><span class="eyebrow">À retenir</span>${md(b.tip)}</div>`;
+    if (b.table) {
+      const [head, ...rows] = b.table;
+      const cell = (c) => (/[가-힣ㄱ-ㅣ]/.test(c) ? `<span class="kr">${esc(c)}</span>` : md(c));
+      return `<div class="g-table-wrap"><table class="g-table"><thead><tr>${head.map((h) => `<th>${cell(h)}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${cell(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    }
+    if (b.ex) {
+      return `<ul class="g-ex">${b.ex.map(([kr, fr, pr]) => `
+        <li><button class="g-say" data-say="${esc(kr)}">
+          <span class="g-kr kr">${esc(kr)}${pr ? ` <span class="g-pr">[${esc(pr)}]</span>` : ''}</span>
+          ${roman ? `<span class="muted small">${esc(romanize(pr || kr))}</span>` : ''}
+          <span class="small">${esc(fr)}</span>
+        </button>${canSpeak() ? `<span class="g-icon">${ICONS.sound}</span>` : ''}</li>`).join('')}</ul>`;
+    }
+    return '';
+  };
+
+  el.innerHTML = `
+    <article class="screen lesson">
+      <div class="lesson-head">
+        <span class="l-glyph big kr">${esc(g.glyph)}</span>
+        <div><h1>${esc(g.title)}</h1><p class="muted">${esc(g.sum)}</p></div>
+      </div>
+      ${g.blocks.map(block).join('')}
+      <div class="lesson-nav">
+        ${prev ? `<a class="btn ghost" href="#/guide?id=${prev.id}">‹ Précédente</a>` : '<span></span>'}
+        ${next ? `<a class="btn primary" href="#/guide?id=${next.id}">Suivante ›</a>` : `<a class="btn primary" href="#/guide?c=${g.cat}">Terminer</a>`}
+      </div>
+    </article>`;
+  el.addEventListener('click', onSay);
+}
+
+function onSay(e) {
+  const b = e.target.closest('.g-say');
+  if (!b) return;
+  speak(b.dataset.say);
+  pulse(b.parentElement, 'bump');
+}
 
 // ---------- Démarrage ----------
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -467,6 +646,8 @@ document.addEventListener('pointerdown', (e) => {
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
+
+applySettings();
 
 // Précalcule le défi pour éviter un temps de latence au premier clic.
 dailyPhrases();

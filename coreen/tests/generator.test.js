@@ -46,3 +46,15 @@ test('lexique sans doublon', () => {
   assert.equal(new Set(WORDS.map((w) => w.id)).size, WORDS.length);
   for (const w of WORDS) assert.ok(w.kr && w.fr && w.t, JSON.stringify(w));
 });
+
+test('guide : leçons valides', async () => {
+  const { GUIDE, GUIDE_CATS } = await import('../js/content/guide.js');
+  assert.equal(new Set(GUIDE.map((g) => g.id)).size, GUIDE.length);
+  for (const g of GUIDE) {
+    assert.ok(GUIDE_CATS[g.cat] && g.title && g.sum && g.blocks.length, g.id);
+    for (const b of g.blocks) {
+      assert.ok(b.p || b.tip || b.table || b.ex, g.id);
+      for (const [kr, fr] of b.ex || []) assert.ok(/[가-힣]/.test(kr) && fr, `${g.id} : ${kr}`);
+    }
+  }
+});

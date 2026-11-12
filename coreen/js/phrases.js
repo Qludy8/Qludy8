@@ -1,5 +1,5 @@
 // Générateur de phrases, exercice « reconstituer » et défi du jour.
-import { $, $$, esc, shuffle, sfx, haptic, speak, canSpeak, confetti, countUp, pulse, floatXp, toast, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, ICONS } from './ui.js';
 import { addXp, get, save, dayKey, dayNumber } from './store.js';
 import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
 import { THEMES } from './content/vocab.js';
@@ -101,7 +101,7 @@ export function reconstruct(box, phrase, onSolved) {
       line.insertAdjacentHTML('beforeend', `<span class="end-punct kr">${esc(phrase.end)}</span>`);
       sfx.ok();
       haptic(12);
-      speak(phrase.kr);
+      autoSpeak(phrase.kr);
       onSolved?.(!helped, line);
     } else {
       sfx.ko();
@@ -275,7 +275,7 @@ export function phrasesScreen(el) {
     current = generate(crit);
     $('.crit', el).open = false;
     showPhrase(true);
-    if (mode !== 'translate') speak(current.kr);
+    if (mode !== 'translate') autoSpeak(current.kr);
     zone.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 

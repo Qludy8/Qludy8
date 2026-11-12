@@ -1,5 +1,5 @@
 // Moteur de quiz à choix multiples + quiz de hangeul et de vocabulaire.
-import { $, $$, esc, shuffle, sfx, haptic, speak, canSpeak, confetti, countUp, pulse, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get } from './store.js';
 import { romanize, compose, CHO, JUNG, JONG } from './hangul.js';
 import { JAMO_SETS, VOWELS, CONSONANTS } from './content/jamo.js';
@@ -50,7 +50,7 @@ export function runQuiz(el, { questions, title, again, back }) {
       </div>`;
     $('.speak', stage)?.addEventListener('click', () => speak(q.say));
     $('.listen-big', stage)?.addEventListener('click', () => speak(q.say));
-    if (q.auto && q.say) setTimeout(() => speak(q.say), 250);
+    if (q.auto && q.say) setTimeout(() => speak(q.say), 250); // écoute : toujours lu
     $$('.opt', stage).forEach((b) => b.addEventListener('click', () => answer(q, Number(b.dataset.i), b)));
   }
 
@@ -59,7 +59,7 @@ export function runQuiz(el, { questions, title, again, back }) {
     $$('.opt', stage).forEach((b) => (b.disabled = true));
     const right = $$('.opt', stage)[q.correct];
     right.classList.add('right');
-    if (q.say) speak(q.say);
+    if (q.say) autoSpeak(q.say);
     if (ok) {
       sfx.ok();
       haptic(8);
@@ -130,6 +130,7 @@ export function runQuiz(el, { questions, title, again, back }) {
 }
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const len = () => get().settings.quizLen || 10;
 
 /** Nouvel ordre des réponses pour une question reposée (sans modifier l'originale). */
 function reshuffle(q) {
@@ -156,7 +157,7 @@ export function hangulQuiz(el, set) {
     const items = JAMO_SETS[set].items;
     const others = [...items, ...(set === 'compound' ? VOWELS : set === 'double' ? CONSONANTS : [])];
     title = JAMO_SETS[set].label;
-    questions = shuffle(items).slice(0, 10).map((x, k) => {
+    questions = shuffle(items).slice(0, len()).map((x, k) => {
       if (k % 3 === 2) {
         return mcq(
           { prompt: `<span class="qlatin">${esc(romLabel(x))}</span>`, sub: 'Quelle lettre se lit ainsi ?', say: x.say, explain: esc(x.tip) },
@@ -176,7 +177,7 @@ export function hangulQuiz(el, set) {
     const vows = VOWELS.map((v) => JUNG.indexOf(v.j));
     const fins = [0, 0, 0, JONG.indexOf('ㄴ'), JONG.indexOf('ㅁ'), JONG.indexOf('ㅇ'), JONG.indexOf('ㄹ'), JONG.indexOf('ㄱ')];
     const make = () => compose(pick(cons), pick(vows), pick(fins));
-    questions = Array.from({ length: 10 }, () => {
+    questions = Array.from({ length: len() }, () => {
       const s = make();
       const decoys = [];
       while (decoys.length < 8) decoys.push({ label: romanize(make()) });
@@ -185,7 +186,7 @@ export function hangulQuiz(el, set) {
   } else {
     title = 'Lire des mots';
     const pool = WORDS.filter((w) => !/[\s?]/.test(w.kr) && w.kr.length <= 4);
-    questions = shuffle(pool).slice(0, 10).map((w) =>
+    questions = shuffle(pool).slice(0, len()).map((w) =>
       mcq(
         { prompt: `<span class="qkr">${w.kr}</span>`, sub: 'Comment se lit ce mot ?', say: w.kr, explain: `Sens : ${esc(w.fr)}` },
         { label: romanize(w.kr) },
@@ -199,7 +200,7 @@ export function hangulQuiz(el, set) {
 // ---------- Vocabulaire ----------
 export function vocabQuiz(el, theme, mode) {
   const pool = wordsOf(theme);
-  const list = pickForReview(pool, 10);
+  const list = pickForReview(pool, len());
   const listen = canSpeak();
   const roman = get().settings.roman;
   const questions = list.map((w, k) => {

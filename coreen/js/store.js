@@ -11,7 +11,8 @@ const DEFAULTS = () => ({
   journal: [], // phrases enregistrées
   daily: {}, // 'AAAA-MM-JJ' → nombre de phrases du défi réussies
   best: {}, // records (ex. temps du jeu des paires)
-  settings: { roman: true, sound: true, haptics: true, rate: 0.85 },
+  settings: { roman: true, sound: true, haptics: true, rate: 0.85, theme: 'auto', krLarge: false, motion: true, autoplay: true, quizLen: 10 },
+  read: {}, // leçons du guide déjà lues
 });
 
 let state = load();
