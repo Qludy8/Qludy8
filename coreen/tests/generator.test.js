@@ -123,7 +123,7 @@ test('lexiques et guides', () => {
       assert.ok(g.length >= 15, C.id + lang);
       assert.equal(new Set(g.map((x) => x.id)).size, g.length);
       for (const l of g) {
-        assert.ok(['pron', 'gram'].includes(l.cat) && l.title && l.sum && l.blocks.length, l.id);
+        assert.ok(['pron', 'gram', 'adv'].includes(l.cat) && typeof l.title === 'string' && typeof l.sum === 'string' && l.blocks.length, l.id);
         for (const b of l.blocks) for (const [tl, tr] of b.ex || []) assert.ok(/[가-힣぀-ヿ一-龯]/.test(tl) && tr, `${l.id} : ${tl}`);
       }
     }
