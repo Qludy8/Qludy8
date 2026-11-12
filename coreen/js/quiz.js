@@ -1,6 +1,6 @@
 // Moteur de quiz à choix multiples + quiz d'écriture (hangeul / kana) et de vocabulaire.
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
-import { addXp, review, pickForReview, get, markStep } from './store.js';
+import { addXp, review, pickForReview, get, markRoad, starsFor } from './store.js';
 import { course, t, tr, gloss } from './course.js';
 import { THEMES } from './content/concepts.js';
 
@@ -13,7 +13,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
  * question = { prompt (html), sub?, say? (texte à prononcer), auto? (prononcer à l'affichage),
  *              options: [{ label, kr? }], correct, explain? (html), onAnswer?(ok) }
  */
-export function runQuiz(el, { questions, title, again, back, onDone }) {
+export function runQuiz(el, { questions, title, again, back, step }) {
   const queue = questions.map((q) => ({ ...q, retry: false }));
   const total = questions.length;
   let done = 0;
@@ -107,8 +107,8 @@ export function runQuiz(el, { questions, title, again, back, onDone }) {
     bar.style.width = '100%';
     xp += 5;
     addXp(xp);
-    onDone?.();
     const ratio = firstTry / total;
+    if (step) markRoad(step, starsFor(ratio));
     if (ratio >= 0.7) {
       sfx.win();
       confetti();
@@ -125,7 +125,7 @@ export function runQuiz(el, { questions, title, again, back, onDone }) {
         <div class="xp-won">+<span class="n">0</span> XP</div>
         <div class="stack">
           <button class="btn primary again">${t('playAgain')}</button>
-          <a class="btn ghost" href="${back}">${t('finish')}</a>
+          <a class="btn ghost" href="${step ? '#/road' : back}">${step ? t('road.back') : t('finish')}</a>
         </div>
       </div>`;
     countUp($('.xp-won .n', el), xp);
@@ -154,7 +154,7 @@ function mcq(base, answer, decoys, n = 4) {
 // ---------- Écriture : hangeul ou kana ----------
 const romLabel = (x) => (x.r === '' ? t('quiz.silent') : x.r);
 
-export function scriptQuiz(el, set) {
+export function scriptQuiz(el, set, step) {
   const C = course();
   const S = C.script;
   let questions;
@@ -212,11 +212,11 @@ export function scriptQuiz(el, set) {
       ),
     );
   }
-  runQuiz(el, { questions, title, again: () => scriptQuiz(el, set), back: '#/hangul', onDone: () => markStep('script') });
+  runQuiz(el, { questions, title, again: () => scriptQuiz(el, set, step), back: '#/hangul', step });
 }
 
 // ---------- Vocabulaire ----------
-export function vocabQuiz(el, theme, mode) {
+export function vocabQuiz(el, theme, mode, step) {
   const C = course();
   const pool = wordsOf(theme);
   const list = pickForReview(pool, len());
@@ -238,7 +238,8 @@ export function vocabQuiz(el, theme, mode) {
   runQuiz(el, {
     questions,
     title: mode === 'review' ? t('review') : theme && theme !== 'all' ? tr(THEMES[theme]) : t('allThemes'),
-    again: () => vocabQuiz(el, theme, mode),
+    again: () => vocabQuiz(el, theme, mode, step),
+    step,
     back: mode === 'review' ? '#/home' : '#/words',
   });
 }

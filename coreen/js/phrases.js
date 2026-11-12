@@ -1,6 +1,6 @@
 // Générateur de phrases, exercice « reconstituer » et défi du jour.
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, burst, ICONS } from './ui.js';
-import { addXp, get, save, dayKey, dayNumber, markStep } from './store.js';
+import { addXp, get, save, dayKey, dayNumber, markRoad, starsFor } from './store.js';
 import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
 import { THEMES } from './content/concepts.js';
 import { course, t, tr, lang } from './course.js';
@@ -275,7 +275,6 @@ export function phrasesScreen(el) {
         const ok = b.classList.contains('ok-btn');
         if (ok) {
           addXp(3);
-          markStep('phrase');
           floatXp(3, b);
           sfx.ok();
         } else sfx.tap();
@@ -285,7 +284,6 @@ export function phrasesScreen(el) {
       reconstruct(body, p, (clean, line) => {
         const xp = clean ? 5 : 2;
         addXp(xp);
-        markStep('phrase');
         floatXp(xp, line);
         body.insertAdjacentHTML('beforeend', `${p.ruby ? `<div class="phrase-kr kr has-ruby small-ruby">${phraseText(p)}</div>` : ''}${roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : ''}${details(p)}`);
       });
@@ -380,14 +378,10 @@ export function phraseOfDay() {
   return generate({ level: 2, style: 'polite' }, rng(dayNumber() * 104729 + 1), course());
 }
 
-export function dailyScreen(el) {
-  const st = get();
-  const key = dayKey();
-  const list = dailyPhrases();
-  const already = (st.daily[key] || 0) >= list.length;
+/** Série de phrases à reconstituer, l'une après l'autre. onEnd(nombre de phrases réussies sans aide). */
+function phraseSeries(el, list, onEnd) {
   let i = 0;
   let clean = 0;
-
   function show() {
     el.innerHTML = `
       <div class="screen daily">
@@ -411,16 +405,51 @@ export function dailyScreen(el) {
     $('.next', el).addEventListener('click', () => {
       i++;
       if (i < list.length) show();
-      else finish();
+      else onEnd(clean);
     });
   }
+  show();
+}
 
-  function finish() {
+/** Étape « phrases » du parcours : trois phrases selon les critères de l'étape. */
+export function roadPhrases(el, step) {
+  const C = course();
+  const crit = { ...DEFAULT_CRIT, ...step.crit };
+  const list = [1, 2, 3].map(() => generate(crit, Math.random, C));
+  phraseSeries(el, list, (clean) => {
+    const xp = 6 + clean * 2;
+    addXp(xp);
+    markRoad(step.id, starsFor(clean / list.length));
+    sfx.win();
+    confetti();
+    el.innerHTML = `
+      <div class="result screen">
+        <div class="big-glyph kr">${C.id === 'ja' ? '完了！' : '완료!'}</div>
+        <h2>${esc(tr(step.title))}</h2>
+        <p class="muted">${t('daily.summary', { n: clean, total: list.length })}</p>
+        <div class="xp-won">+<span class="n">0</span> XP</div>
+        <div class="stack">
+          <button class="btn primary again">${t('playAgain')}</button>
+          <a class="btn ghost" href="#/road">${t('road.back')}</a>
+        </div>
+      </div>`;
+    countUp($('.xp-won .n', el), xp);
+    $('.again', el).addEventListener('click', () => roadPhrases(el, step));
+  });
+}
+
+export function dailyScreen(el, q = {}) {
+  const st = get();
+  const key = dayKey();
+  const list = dailyPhrases();
+  const already = (st.daily[key] || 0) >= list.length;
+  phraseSeries(el, list, finish);
+
+  function finish(clean) {
     const xp = already ? 0 : 10 + clean * 2;
     if (!already) {
       st.daily[key] = list.length;
       save();
-      markStep('phrase');
       addXp(xp);
     }
     sfx.win();
@@ -432,12 +461,10 @@ export function dailyScreen(el) {
         <p class="muted">${t('daily.summary', { n: clean, total: list.length })}</p>
         ${xp ? '<div class="xp-won">+<span class="n">0</span> XP</div>' : `<p class="muted">${t('daily.already')}</p>`}
         <div class="stack">
-          <a class="btn primary" href="#/phrases">${t('daily.more')}</a>
+          ${q.step ? `<a class="btn primary" href="#/road">${t('road.back')}</a>` : `<a class="btn primary" href="#/phrases">${t('daily.more')}</a>`}
           <a class="btn ghost" href="#/home">${t('tab.home')}</a>
         </div>
       </div>`;
     if (xp) countUp($('.xp-won .n', el), xp);
   }
-
-  show();
 }

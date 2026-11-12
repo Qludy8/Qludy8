@@ -1,11 +1,11 @@
 // Cartes mémoire (avec glissement) et jeu des paires.
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
-import { addXp, review, pickForReview, get, save } from './store.js';
+import { addXp, review, pickForReview, get, save, markRoad, starsFor } from './store.js';
 import { course, t, gloss } from './course.js';
 import { wordsOf } from './quiz.js';
 
 // ---------- Cartes mémoire ----------
-export function flashcards(el, theme) {
+export function flashcards(el, theme, step) {
   const C = course();
   const deck = pickForReview(wordsOf(theme), get().settings.quizLen || 10);
   const roman = get().settings.roman;
@@ -82,6 +82,7 @@ export function flashcards(el, theme) {
   function finish() {
     const xp = known + 5;
     addXp(xp);
+    if (step) markRoad(step, starsFor(known / deck.length));
     if (known / deck.length >= 0.7) confetti();
     sfx.win();
     el.innerHTML = `
@@ -92,11 +93,11 @@ export function flashcards(el, theme) {
         <div class="xp-won">+<span class="n">0</span> XP</div>
         <div class="stack">
           <button class="btn primary again">${t('cards.newSet')}</button>
-          <a class="btn ghost" href="#/words">${t('finish')}</a>
+          <a class="btn ghost" href="${step ? '#/road' : '#/words'}">${step ? t('road.back') : t('finish')}</a>
         </div>
       </div>`;
     countUp($('.xp-won .n', el), xp);
-    $('.again', el).addEventListener('click', () => flashcards(el, theme));
+    $('.again', el).addEventListener('click', () => flashcards(el, theme, step));
   }
 
   show();
@@ -140,7 +141,7 @@ function drag(card, onTap, onSwipe) {
 }
 
 // ---------- Jeu des paires ----------
-export function pairs(el) {
+export function pairs(el, step) {
   const words = shuffle(course().words.filter((w) => w.tl.length <= 5 && gloss(w).length <= 22)).slice(0, 6);
   const tiles = shuffle(words.flatMap((w) => [
     { id: w.id, label: w.tl, kr: true },
@@ -226,11 +227,11 @@ export function pairs(el) {
           <div class="xp-won">+<span class="n">0</span> XP</div>
           <div class="stack">
             <button class="btn primary again">${t('playAgain')}</button>
-            <a class="btn ghost" href="#/words">${t('finish')}</a>
+            <a class="btn ghost" href="${step ? '#/road' : '#/words'}">${step ? t('road.back') : t('finish')}</a>
           </div>
         </div>`;
       countUp($('.xp-won .n', el), xp);
-      $('.again', el).addEventListener('click', () => pairs(el));
+      $('.again', el).addEventListener('click', () => pairs(el, step));
     }, 450);
   }
 }

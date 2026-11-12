@@ -16,7 +16,7 @@ const COURSE = () => ({
   daily: {}, // 'AAAA-MM-JJ' → nombre de phrases du défi réussies
   best: {}, // records (ex. temps du jeu des paires)
   read: {}, // leçons du guide déjà lues
-  steps: {}, // parcours « Premiers pas » : étapes terminées
+  road: {}, // parcours : id d'étape → étoiles (1 à 3), 'open:<module>' et 'bonus:<module>' → true
 });
 const ROOT = () => ({ v: 2, goal: 30, settings: SETTINGS(), courses: { ko: COURSE(), ja: COURSE() } });
 
@@ -85,13 +85,14 @@ export function reset() {
 }
 
 // ---------- Dates ----------
-// Marque une étape du parcours « Premiers pas » comme terminée.
-export function markStep(k) {
-  state.steps ||= {};
-  if (state.steps[k]) return;
-  state.steps[k] = true;
+/** Parcours : enregistre une étape réussie (on garde le meilleur nombre d'étoiles). */
+export function markRoad(id, stars = 1) {
+  if (!id) return;
+  state.road ||= {};
+  state.road[id] = Math.max(state.road[id] || 0, stars);
   save();
 }
+export const starsFor = (ratio) => (ratio >= 0.9 ? 3 : ratio >= 0.6 ? 2 : 1);
 
 export function dayKey(d = new Date()) {
   const z = (n) => String(n).padStart(2, '0');

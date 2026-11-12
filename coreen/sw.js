@@ -1,6 +1,6 @@
 // Service worker : met l'application en cache pour qu'elle fonctionne hors connexion.
 // Changer VERSION à chaque mise à jour pour que les téléphones récupèrent les nouveaux fichiers.
-const VERSION = 'haru-v13';
+const VERSION = 'haru-v14';
 const FILES = [
   './',
   './index.html',
@@ -15,6 +15,8 @@ const FILES = [
   './js/quiz.js',
   './js/games.js',
   './js/phrases.js',
+  './js/road.js',
+  './js/content/roadmap.js',
   './js/lang/ko.js',
   './js/lang/ja.js',
   './js/lang/kana.js',

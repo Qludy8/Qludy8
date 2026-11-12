@@ -930,18 +930,70 @@ ruby rt { font-size: .45em; color: var(--muted); font-weight: 600; letter-spacin
 .welcome .seg.ui-lang .seg-btn { padding: 5px 12px; font-size: .78rem; min-height: 0; box-shadow: none; }
 .welcome .seg.ui-lang { gap: 4px; }
 
-/* Premiers pas */
-.steps { padding: 14px; margin: 14px 0; display: grid; gap: 4px; }
-.steps-head { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 6px; }
-.step { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 14px; }
-.step > div { flex: 1; min-width: 0; display: grid; }
-.step b { line-height: 1.25; }
-.step-ico { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border-radius: 13px; font-weight: 800; font-size: 1.15rem; color: var(--tc); background: color-mix(in srgb, var(--tc) 14%, var(--surface)); }
-.step.next { background: color-mix(in srgb, var(--tc) 8%, var(--surface)); outline: 1.5px solid color-mix(in srgb, var(--tc) 35%, var(--line)); }
-.step.next .btn { background: var(--tc); box-shadow: 0 3px 0 color-mix(in srgb, var(--tc) 60%, #000); color: #fff; flex: 0 0 auto; }
-.step.done { opacity: .6; }
-.step.done .step-ico { background: var(--ok-soft); color: var(--ok); }
-.step .chev { color: var(--muted); }
+/* Parcours : carte de l'accueil */
+.road-cta { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px 12px; margin: 14px 0; border-color: color-mix(in srgb, var(--tc) 35%, var(--line)); background: color-mix(in srgb, var(--tc) 7%, var(--surface)); box-shadow: 0 4px 0 color-mix(in srgb, var(--tc) 35%, var(--line)); }
+.road-cta-text { grid-column: 2 / 4; min-width: 0; display: grid; gap: 1px; }
+.road-cta .eyebrow { color: var(--tc); margin: 0; }
+.road-cta b { line-height: 1.25; }
+.road-cta .mini-bar { grid-column: 1 / 3; height: 8px; }
+.road-cta .mini-bar i { background: var(--tc); }
+.road-cta .btn { flex: 0 0 auto; background: var(--tc); color: #fff; box-shadow: 0 3px 0 color-mix(in srgb, var(--tc) 60%, #000); }
+
+/* Parcours : la carte */
+.road-top { display: grid; gap: 8px; margin-bottom: 18px; }
+.road-top > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ru { margin-bottom: 26px; }
+.ru-head {
+  position: sticky; top: calc(env(safe-area-inset-top) + 62px); z-index: 3;
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 20px; color: #fff;
+  background: var(--tc); box-shadow: 0 5px 0 color-mix(in srgb, var(--tc) 62%, #000);
+}
+.ru-glyph { flex: 0 0 auto; display: grid; place-items: center; min-width: 50px; height: 50px; padding: 0 8px; border-radius: 14px; font-weight: 900; font-size: 1.1rem; white-space: nowrap; background: rgb(255 255 255 / .22); }
+.ru-text { flex: 1; min-width: 0; display: grid; }
+.ru-text b { font-size: 1.08rem; font-weight: 900; line-height: 1.2; }
+.ru-n { font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.ru-sub { font-size: .8rem; opacity: .9; line-height: 1.3; }
+.ru-count { flex: 0 0 auto; display: grid; place-items: center; min-width: 46px; height: 30px; padding: 0 9px; border-radius: 99px; font-size: .78rem; font-weight: 900; background: rgb(0 0 0 / .18); }
+.ru-count svg { width: 16px; height: 16px; stroke-width: 2.6; }
+.ru.locked .ru-head { background: var(--surface-2); color: var(--muted); box-shadow: 0 5px 0 var(--line); }
+.ru.locked .ru-glyph { background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.ru.locked .ru-count { background: none; }
+.ru-lock { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; padding: 0 4px; }
+
+.ru-path { position: relative; display: grid; justify-items: center; gap: 12px; padding: 44px 0 4px; }
+.ru-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; stroke: none; }
+.ru-line path { fill: none; stroke: var(--line); stroke-width: 9; stroke-linecap: round; }
+.ru-line path.on { stroke: color-mix(in srgb, var(--tc) 55%, var(--surface)); }
+.rn { position: relative; z-index: 1; display: grid; justify-items: center; gap: 5px; width: 150px; left: calc(var(--x) * min(15vw, 62px)); animation: popIn .45s var(--spring) both; }
+.rn-btn {
+  display: grid; place-items: center; width: 72px; height: 66px; border-radius: 50%;
+  font-size: 1.45rem; font-weight: 900; line-height: 1; white-space: nowrap; color: var(--tc);
+  background: var(--surface); border: 3px solid color-mix(in srgb, var(--tc) 45%, var(--line));
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--tc) 40%, var(--line));
+  transition: transform .12s, box-shadow .12s;
+}
+.rn-btn.long { font-size: .92rem; }
+.rn-btn svg { width: 28px; height: 28px; stroke-width: 3; }
+a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(in srgb, var(--tc) 40%, var(--line)); }
+.rn.done .rn-btn { background: var(--tc); border-color: var(--tc); color: #fff; box-shadow: 0 6px 0 color-mix(in srgb, var(--tc) 60%, #000); }
+.rn.cur .rn-btn { border-color: var(--tc); animation: roadPulse 1.8s ease-in-out infinite; }
+@keyframes roadPulse { 0%, 100% { box-shadow: 0 6px 0 color-mix(in srgb, var(--tc) 40%, var(--line)), 0 0 0 0 color-mix(in srgb, var(--tc) 35%, transparent); } 50% { box-shadow: 0 6px 0 color-mix(in srgb, var(--tc) 40%, var(--line)), 0 0 0 11px transparent; } }
+.rn-go { position: absolute; top: -24px; padding: 3px 11px; border-radius: 99px; font-size: .72rem; font-weight: 900; color: #fff; background: var(--tc); white-space: nowrap; animation: bob 1.6s ease-in-out infinite; }
+.rn-go::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 9px; height: 9px; background: inherit; transform: translateX(-50%) rotate(45deg); border-radius: 2px; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.rn-label { display: grid; justify-items: center; text-align: center; padding: 2px 8px 3px; border-radius: 10px; background: var(--bg); }
+.rn-label b { font-size: .86rem; line-height: 1.2; }
+.rn-label > span { font-size: .72rem; font-weight: 700; color: var(--muted); }
+.rn-stars { display: flex; gap: 1px; margin-top: 2px; }
+.rn-stars i { display: grid; }
+.rn-stars svg { width: 13px; height: 13px; stroke: var(--line); fill: var(--line); }
+.rn-stars i.on svg { stroke: var(--gold); fill: var(--gold); }
+.ru.locked .rn-btn { color: var(--muted); background: var(--surface-2); border-color: var(--line); box-shadow: 0 6px 0 var(--line); }
+.ru.locked .rn-btn svg { width: 22px; height: 22px; stroke-width: 2; }
+.ru.locked .rn-label { opacity: .6; }
+.road-end { margin: 8px 0 20px; font-weight: 800; }
+.road-next { display: flex; margin-top: 22px; }
+@media (prefers-reduced-motion: reduce) { .rn-go, .rn.cur .rn-btn { animation: none; } }
 
 /* Ordinateur et tablette : navigation latérale, contenu centré */
 @media (min-width: 900px) {
@@ -961,7 +1013,7 @@ ruby rt { font-size: .45em; color: var(--muted); font-weight: 600; letter-spacin
   .topbar { max-width: 760px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
   #view { max-width: 760px; padding: 8px 24px 48px; }
   .home { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
-  .home > .hero-card, .home > .steps, .home > h2, .home > .grid2, .home > .install { grid-column: 1 / -1; }
+  .home > .hero-card, .home > .road-cta, .home > h2, .home > .grid2, .home > .install { grid-column: 1 / -1; }
   .home > .stats-row { grid-column: 1 / -1; }
   .home > .daily-cta, .home > .pod { margin: 14px 0 0; height: 100%; }
 }
