@@ -423,7 +423,7 @@ body.focus #tabs { transform: translateY(110%); }
 .score-ring b { font-size: 2.4rem; }
 .score-ring span { color: var(--muted); }
 .xp-won { font-size: 1.6rem; font-weight: 800; color: var(--gold); animation: popIn .5s var(--spring) .2s both; }
-.big-emoji { font-size: 4rem; animation: popIn .6s var(--spring) both; }
+.big-glyph { font-size: 2.6rem; font-weight: 900; color: var(--accent); animation: popIn .6s var(--spring) both; }
 
 /* ---------- Cartes mémoire ---------- */
 .cards { display: flex; flex-direction: column; min-height: calc(100dvh - 120px); }
@@ -785,7 +785,6 @@ body.focus .top-actions { display: none; }
 .daily-cta .eyebrow { color: color-mix(in srgb, var(--c-phrases) 75%, var(--ink)); }
 .daily-cta:not(.done) .chev { animation: nudge 1.4s ease-in-out infinite; }
 @keyframes nudge { 50% { transform: translateX(5px); } }
-.daily-cta .d-emoji { font-size: 2rem; animation: wiggle 2.5s ease-in-out infinite; }
 @keyframes wiggle { 0%, 70%, 100% { transform: rotate(0); } 80% { transform: rotate(-12deg); } 90% { transform: rotate(10deg); } }
 .pod .eyebrow { color: var(--c-home); }
 .pod-kr { font-weight: 700; }
@@ -794,8 +793,6 @@ body.focus .top-actions { display: none; }
 .tile-link { --tc: var(--accent); border: 1.5px solid color-mix(in srgb, var(--tc) 35%, var(--line)); background: color-mix(in srgb, var(--tc) 10%, var(--surface)); box-shadow: 0 4px 0 color-mix(in srgb, var(--tc) 40%, var(--line)); }
 .tile-link b { font-size: 1.05rem; }
 .tl-kr { color: var(--tc); font-weight: 800; font-size: calc(1.4rem * var(--krs)); }
-.tile-link .t-emoji { position: absolute; right: 12px; top: 10px; font-size: 1.5rem; transition: transform .3s var(--spring); }
-.tile-link:hover .t-emoji, .tile-link.pressed .t-emoji { transform: scale(1.25) rotate(-10deg); }
 .badge { background: var(--ko); box-shadow: 0 2px 0 color-mix(in srgb, var(--ko) 60%, #000); }
 
 .theme-row { border-width: 1.5px; box-shadow: var(--press); border-left: 6px solid var(--tc, var(--accent)); }
@@ -810,7 +807,6 @@ body.focus .top-actions { display: none; }
 .qcard.pop { animation: cardPop .5s var(--spring); }
 @keyframes cardPop { from { opacity: 0; transform: scale(.85) rotate(-2deg); } }
 .combo { font-weight: 900; font-size: .95rem; }
-.combo:not(:empty)::before { content: '🔥 '; }
 .sheet { border-top: 0; }
 .sheet-msg strong { font-weight: 900; font-size: 1.3rem; }
 .sheet.ok .sheet-msg strong::before { content: '✓ '; }
@@ -846,7 +842,7 @@ body.focus .top-actions { display: none; }
   background: var(--surface); border: 2px solid var(--line); box-shadow: 0 6px 0 var(--line);
   animation: celIn .6s var(--spring);
 }
-.cel-emoji { font-size: 4.2rem; line-height: 1; animation: celEmoji 1.2s var(--spring) both; }
+.cel-glyph { display: inline-grid; place-items: center; min-width: 96px; height: 96px; padding: 0 18px; border-radius: 28px; font-size: 2.4rem; font-weight: 900; line-height: 1; color: var(--accent); background: var(--accent-soft); animation: celEmoji 1.2s var(--spring) both; }
 .cel-card h2 { margin: 10px 0 4px; font-size: 1.6rem; }
 .cel-card .btn { width: 100%; margin-top: 18px; }
 @keyframes fadeIn { from { opacity: 0; } }
@@ -854,7 +850,9 @@ body.focus .top-actions { display: none; }
 @keyframes celEmoji { 0% { transform: scale(0) rotate(-30deg); } 60% { transform: scale(1.3) rotate(10deg); } }
 .celebrate.out { animation: fadeIn .2s ease reverse forwards; }
 .crit-group.dim { opacity: .4; }
-.th-emoji { font-size: 1.6rem; flex: 0 0 auto; }
+/* Pastille avec un mot de la langue apprise (remplace les emojis) */
+.gl { flex: 0 0 auto; display: grid; place-items: center; min-width: 46px; height: 46px; padding: 0 7px; border-radius: 13px; font-size: 1rem; font-weight: 900; white-space: nowrap; color: var(--tc, var(--accent)); background: color-mix(in srgb, var(--tc, var(--accent)) 15%, var(--surface)); }
+.gl.ok { color: var(--ok); background: var(--ok-soft); }
 .theme-row { padding-left: 12px; }
 
 /* Lexique : filtres qui ne chevauchent plus la liste, toucher sans zoom */
@@ -881,8 +879,7 @@ body.bare .topbar { visibility: hidden; }
   transition: transform .15s var(--ease);
 }
 .w-choice.pressed { transform: translateY(4px); box-shadow: 0 1px 0 color-mix(in srgb, var(--tc) 45%, var(--line)); }
-.w-flag { font-size: 2.4rem; }
-.w-native { font-size: 1.5rem; font-weight: 800; color: var(--tc); }
+.w-native { font-size: 2.1rem; font-weight: 800; color: var(--tc); line-height: 1.3; margin: 6px 0 2px; }
 .w-choice b { font-size: 1.15rem; }
 
 /* ---------- Japonais : furigana, grilles de kana ---------- */

@@ -384,7 +384,6 @@ export const JA = {
   id: 'ja',
   name: L('Japonais', 'Japanese'),
   native: '日本語',
-  flag: '🇯🇵',
   tts: 'ja-JP',
   appName: 'Haru',
   styles: ['polite', 'casual'],

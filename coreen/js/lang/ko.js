@@ -309,7 +309,6 @@ export const KO = {
   id: 'ko',
   name: L('Coréen', 'Korean'),
   native: '한국어',
-  flag: '🇰🇷',
   tts: 'ko-KR',
   appName: 'Haru',
   appKo: '하루',

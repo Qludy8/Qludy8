@@ -100,7 +100,6 @@ function welcome(el) {
       <div class="w-choices">
         ${Object.values(COURSES).map((c, i) => `
           <button class="w-choice ${c.id === store.get().settings.course ? 'last' : ''}" data-c="${c.id}" style="--i:${i}; --tc: ${c.id === 'ko' ? 'var(--c-hangul)' : 'var(--c-guide)'}">
-            <span class="w-flag">${c.flag}</span>
             <span class="w-native kr lang-${c.id}">${c.native}</span>
             <b>${tr(c.name)}</b>
             <span class="muted small">${t('welcome.' + c.id)}</span>
@@ -200,7 +199,7 @@ function home(el) {
       ${installEvent ? `<button class="card install"><b>${t('home.install')}</b><span class="muted">${t('home.installSub')}</span></button>` : ''}
 
       <a class="card daily-cta ${dailyDone ? 'done' : ''}" href="#/daily">
-        <span class="d-emoji">${dailyDone ? '🌸' : '🎯'}</span>
+        <span class="gl kr ${dailyDone ? 'ok' : ''}" style="--tc: var(--gold)">${dailyDone ? ICONS.check : C.id === 'ja' ? '今日' : '오늘'}</span>
         <div style="flex:1">
           <span class="eyebrow">${t('title.daily')}</span>
           <b>${dailyDone ? t('home.dailyDone') : t('home.dailyTodo')}</b>
@@ -222,13 +221,11 @@ function home(el) {
       <h2>${t('home.train')}</h2>
       <div class="grid2">
         <a class="tile-link" href="#/quiz?mode=review" style="--i:0; --tc: var(--c-words)">
-          <span class="t-emoji">🧠</span>
           <span class="tl-kr kr">${C.id === 'ja' ? '復習' : '복습'}</span><b>${t('review')}</b>
           <span class="muted small">${due ? t(due > 1 ? 'words.dueN' : 'words.due1', { n: due }) : t('home.wordsOfDay')}</span>
           ${due ? `<span class="badge">${due}</span>` : ''}
         </a>
         <a class="tile-link" href="#/phrases" style="--i:1; --tc: var(--c-phrases)">
-          <span class="t-emoji">🎲</span>
           <span class="tl-kr kr">${C.id === 'ja' ? '文' : '문장'}</span><b>${t('home.generate')}</b><span class="muted small">${t('home.generateSub')}</span>
         </a>
       </div>
@@ -250,13 +247,14 @@ function home(el) {
 }
 
 // ---------- Mots (vocabulaire) ----------
+// Chaque thème : [mot en coréen, mot en japonais, couleur]
 const THEME_STYLE = {
-  food: ['🍜', 'var(--c-phrases)'],
-  daily: ['🏠', 'var(--c-home)'],
-  leisure: ['🎬', 'var(--c-guide)'],
-  city: ['🚇', 'var(--c-stats)'],
-  study: ['📚', 'var(--c-words)'],
-  basics: ['👋', 'var(--c-hangul)'],
+  food: ['밥', '食', 'var(--c-phrases)'],
+  daily: ['집', '家', 'var(--c-home)'],
+  leisure: ['놀이', '遊', 'var(--c-guide)'],
+  city: ['도시', '町', 'var(--c-stats)'],
+  study: ['공부', '学', 'var(--c-words)'],
+  basics: ['안녕', '初', 'var(--c-hangul)'],
 };
 
 function words(el) {
@@ -266,10 +264,10 @@ function words(el) {
   el.innerHTML = `
     <div class="screen words">
       <div class="grid2">
-        <a class="tile-link" href="#/quiz?t=all" style="--i:0; --tc: var(--c-words)"><span class="t-emoji">❓</span><span class="tl-kr kr">${ja ? 'クイズ' : '퀴즈'}</span><b>${t('words.quiz')}</b><span class="muted small">${t('allThemes')}</span></a>
-        <a class="tile-link" href="#/pairs" style="--i:1; --tc: var(--c-guide)"><span class="t-emoji">⚡</span><span class="tl-kr kr">${ja ? 'ペア' : '짝'}</span><b>${t('title.pairs')}</b><span class="muted small">${t('words.pairsSub')}</span></a>
-        <a class="tile-link" href="#/quiz?mode=review" style="--i:2; --tc: var(--c-home)"><span class="t-emoji">🧠</span><span class="tl-kr kr">${ja ? '復習' : '복습'}</span><b>${t('review')}</b><span class="muted small">${due ? t(due > 1 ? 'words.dueN' : 'words.due1', { n: due }) : t('words.consolidate')}</span>${due ? `<span class="badge">${due}</span>` : ''}</a>
-        <a class="tile-link" href="#/lexicon" style="--i:3; --tc: var(--c-stats)"><span class="t-emoji">🔎</span><span class="tl-kr kr">${ja ? '単語' : '단어'}</span><b>${t('title.lexicon')}</b><span class="muted small">${t('words.count', { n: C.words.length })}</span></a>
+        <a class="tile-link" href="#/quiz?t=all" style="--i:0; --tc: var(--c-words)"><span class="tl-kr kr">${ja ? 'クイズ' : '퀴즈'}</span><b>${t('words.quiz')}</b><span class="muted small">${t('allThemes')}</span></a>
+        <a class="tile-link" href="#/pairs" style="--i:1; --tc: var(--c-guide)"><span class="tl-kr kr">${ja ? 'ペア' : '짝'}</span><b>${t('title.pairs')}</b><span class="muted small">${t('words.pairsSub')}</span></a>
+        <a class="tile-link" href="#/quiz?mode=review" style="--i:2; --tc: var(--c-home)"><span class="tl-kr kr">${ja ? '復習' : '복습'}</span><b>${t('review')}</b><span class="muted small">${due ? t(due > 1 ? 'words.dueN' : 'words.due1', { n: due }) : t('words.consolidate')}</span>${due ? `<span class="badge">${due}</span>` : ''}</a>
+        <a class="tile-link" href="#/lexicon" style="--i:3; --tc: var(--c-stats)"><span class="tl-kr kr">${ja ? '単語' : '단어'}</span><b>${t('title.lexicon')}</b><span class="muted small">${t('words.count', { n: C.words.length })}</span></a>
       </div>
       <h2>${t('words.byTheme')}</h2>
       <ul class="list themes">
@@ -277,10 +275,10 @@ function words(el) {
           const ws = wordsOf(k);
           if (!ws.length) return '';
           const m = ws.filter((w) => store.box(w.id) >= 3).length;
-          const [emoji, color] = THEME_STYLE[k] || ['📘', 'var(--accent)'];
+          const [gko, gja, color] = THEME_STYLE[k] || ['말', '語', 'var(--accent)'];
           return `
           <li class="theme-row" style="--i:${i}; --tc: ${color}">
-            <span class="th-emoji">${emoji}</span>
+            <span class="gl kr">${ja ? gja : gko}</span>
             <div class="theme-info">
               <b>${esc(tr(label))}</b>
               <span class="muted small">${t('words.mastered', { m, n: ws.length })}</span>
@@ -589,7 +587,7 @@ function progress(el) {
 
   el.innerHTML = `
     <div class="screen progress-screen">
-      <p class="course-chip"><span>${course().flag}</span> ${esc(tr(course().name))}</p>
+      <p class="course-chip"><span class="kr">${course().native}</span> ${esc(tr(course().name))}</p>
       <section class="card level-card">
         <div class="lv-badge">${lv.lv}</div>
         <div class="lv-info">
@@ -640,7 +638,7 @@ function settings(el) {
     <div class="screen settings-screen">
       <h2 class="first">${t('set.languages')}</h2>
       <div class="card settings">
-        <div class="set-row col"><span>${t('set.course')}</span>${seg('course', Object.values(COURSES).map((c) => [c.id, `${c.flag} ${tr(c.name)}`]), s.course)}
+        <div class="set-row col"><span>${t('set.course')}</span>${seg('course', Object.values(COURSES).map((c) => [c.id, tr(c.name)]), s.course)}
           <span class="muted small">${t('set.courseHelp')}</span></div>
         <div class="set-row col"><span>${t('set.uiLang')}</span>${seg('lang', [['fr', 'Français'], ['en', 'English']], lang())}</div>
       </div>
@@ -795,17 +793,16 @@ function applySettings() {
 }
 
 // ---------- Démarrage ----------
-const LEVEL_EMOJI = ['🌱', '🌿', '🌸', '🌳', '⭐', '🌟', '🏅', '🏆', '👑', '🐉'];
 // Affichées tout de suite, au moment où les XP sont gagnés (fin de série, phrase réussie…).
 addEventListener('haru:levelup', (e) => celebrate({
-  emoji: LEVEL_EMOJI[Math.min(e.detail - 2, LEVEL_EMOJI.length - 1)] || '🎉',
+  glyph: String(e.detail),
   title: t('cel.level', { n: e.detail }),
   text: t('cel.levelText.' + course().id),
   button: course().id === 'ja' ? '頑張って！' : '화이팅 !',
 }));
 addEventListener('haru:goal', (e) => {
   if (document.querySelector('.celebrate')) return; // un niveau vient déjà d'être fêté
-  celebrate({ emoji: '🔥', title: t('cel.goal'), text: e.detail > 1 ? t('cel.goalStreak', { n: e.detail }) : t('cel.goalFirst'), button: t('continue') });
+  celebrate({ glyph: course().id === 'ja' ? '目標' : '목표', title: t('cel.goal'), text: e.detail > 1 ? t('cel.goalStreak', { n: e.detail }) : t('cel.goalFirst'), button: t('continue') });
 });
 
 window.addEventListener('beforeinstallprompt', (e) => {

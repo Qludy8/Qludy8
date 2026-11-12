@@ -86,7 +86,7 @@ export function flashcards(el, theme) {
     sfx.win();
     el.innerHTML = `
       <div class="result screen">
-        <div class="big-emoji">🃏</div>
+        <div class="big-glyph kr">${course().id === 'ja' ? 'できた！' : '끝!'}</div>
         <h2>${t('cards.result', { n: known, total: deck.length })}</h2>
         <p class="muted">${t('cards.resultHint')}</p>
         <div class="xp-won">+<span class="n">0</span> XP</div>
@@ -220,7 +220,7 @@ export function pairs(el) {
       confetti();
       el.innerHTML = `
         <div class="result screen">
-          <div class="big-emoji">${record ? '🏆' : '✨'}</div>
+          <div class="big-glyph kr">${course().id === 'ja' ? (record ? '最高！' : 'いいね！') : record ? '최고!' : '좋아요!'}</div>
           <h2>${fmt(ms)}${record ? ' · ' + t('pairs.record') : ''}</h2>
           <p class="muted">${errors ? t(errors > 1 ? 'pairs.errors' : 'pairs.error', { n: errors }) : t('pairs.noError')}${best && !record ? ` · ${t('pairs.best', { time: fmt(best) })}` : ''}</p>
           <div class="xp-won">+<span class="n">0</span> XP</div>

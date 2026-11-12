@@ -115,11 +115,11 @@ export function burst(el, n = 12) {
 }
 
 /** Fenêtre de célébration (niveau, objectif…). */
-export function celebrate({ emoji, title, text, button = 'Continuer' }) {
+export function celebrate({ glyph, title, text, button = 'Continuer' }) {
   const box = document.createElement('div');
   box.className = 'celebrate';
   box.innerHTML = `<div class="cel-card" role="dialog" aria-modal="true">
-    <div class="cel-emoji">${emoji}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>
+    <div class="cel-glyph kr">${esc(glyph)}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>
     <button class="btn primary">${esc(button)}</button></div>`;
   document.body.append(box);
   sfx.win();

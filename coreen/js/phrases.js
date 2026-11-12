@@ -427,7 +427,7 @@ export function dailyScreen(el) {
     confetti();
     el.innerHTML = `
       <div class="result screen">
-        <div class="big-emoji">🌸</div>
+        <div class="big-glyph kr">${course().id === 'ja' ? '完了！' : '완료!'}</div>
         <h2>${t('daily.done')}</h2>
         <p class="muted">${t('daily.summary', { n: clean, total: list.length })}</p>
         ${xp ? '<div class="xp-won">+<span class="n">0</span> XP</div>' : `<p class="muted">${t('daily.already')}</p>`}
