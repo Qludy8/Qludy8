@@ -9,7 +9,7 @@ export const STRINGS = {
     'title.lexicon': 'Lexique', 'title.scriptQuiz': 'Quiz {name}', 'title.quiz': 'Quiz', 'title.cards': 'Cartes mémoire', 'title.pairs': 'Paires', 'title.daily': 'Défi du jour',
 
     'welcome.tagline': 'Une langue, un peu chaque jour.', 'welcome.question': 'Quelle langue veux-tu apprendre ?',
-    'welcome.ko': 'Hangeul, K-dramas, kimchi', 'welcome.ja': 'Kana, mangas, ramen', 'welcome.switch': 'Tu pourras changer à tout moment dans les Réglages. Ta progression est gardée séparément pour chaque langue.',
+    'welcome.resume': 'Reprendre', 'welcome.ko': 'Hangeul, K-dramas, kimchi', 'welcome.ja': 'Kana, mangas, ramen', 'welcome.switch': 'Tu pourras changer à tout moment dans les Réglages. Ta progression est gardée séparément pour chaque langue.',
 
     'greet.night': 'Bonsoir, oiseau de nuit 🦉', 'greet.morning': 'Bonjour ! ☀️', 'greet.afternoon': 'Bon après-midi ! 🌤️', 'greet.evening': 'Bonsoir ! 🌙',
     'home.goal': 'Objectif du jour', 'home.day': 'jour de suite', 'home.days': 'jours de suite', 'home.toNext': '{xp} XP avant le {n}',
@@ -99,7 +99,7 @@ export const STRINGS = {
     'title.lexicon': 'Word list', 'title.scriptQuiz': '{name} quiz', 'title.quiz': 'Quiz', 'title.cards': 'Flashcards', 'title.pairs': 'Pairs', 'title.daily': 'Daily challenge',
 
     'welcome.tagline': 'A language, a little every day.', 'welcome.question': 'Which language do you want to learn?',
-    'welcome.ko': 'Hangul, K-dramas, kimchi', 'welcome.ja': 'Kana, manga, ramen', 'welcome.switch': 'You can switch anytime in Settings. Progress is kept separately for each language.',
+    'welcome.resume': 'Continue', 'welcome.ko': 'Hangul, K-dramas, kimchi', 'welcome.ja': 'Kana, manga, ramen', 'welcome.switch': 'You can switch anytime in Settings. Progress is kept separately for each language.',
 
     'greet.night': 'Good evening, night owl 🦉', 'greet.morning': 'Good morning! ☀️', 'greet.afternoon': 'Good afternoon! 🌤️', 'greet.evening': 'Good evening! 🌙',
     'home.goal': 'Daily goal', 'home.day': 'day streak', 'home.days': 'day streak', 'home.toNext': '{xp} XP to level {n}',

@@ -35,13 +35,20 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words' }; // anciennes adresses
 
-const APP_VERSION = '12'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '13'; // à changer avec VERSION dans sw.js
+
+// À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
+const SKIP_MENU = 'haru.skipMenu';
+let choosing = true;
+try {
+  if (sessionStorage.getItem(SKIP_MENU)) { choosing = false; sessionStorage.removeItem(SKIP_MENU); }
+} catch { /* stockage indisponible */ }
 
 function route() {
   let [path, query = ''] = location.hash.replace(/^#\/?/, '').split('?');
   path = ALIASES[path] || path;
   let name = SCREENS[path] ? path : 'home';
-  if (!hasCourse()) name = 'welcome';
+  if (!hasCourse() || choosing) name = 'welcome';
   const params = Object.fromEntries(new URLSearchParams(query));
   const s = SCREENS[name];
   if ('speechSynthesis' in window) speechSynthesis.cancel();
@@ -92,11 +99,12 @@ function welcome(el) {
       <h2>${t('welcome.question')}</h2>
       <div class="w-choices">
         ${Object.values(COURSES).map((c, i) => `
-          <button class="w-choice" data-c="${c.id}" style="--i:${i}; --tc: ${c.id === 'ko' ? 'var(--c-hangul)' : 'var(--c-guide)'}">
+          <button class="w-choice ${c.id === store.get().settings.course ? 'last' : ''}" data-c="${c.id}" style="--i:${i}; --tc: ${c.id === 'ko' ? 'var(--c-hangul)' : 'var(--c-guide)'}">
             <span class="w-flag">${c.flag}</span>
             <span class="w-native kr lang-${c.id}">${c.native}</span>
             <b>${tr(c.name)}</b>
             <span class="muted small">${t('welcome.' + c.id)}</span>
+            ${c.id === store.get().settings.course ? `<span class="w-last">${t('welcome.resume')}</span>` : ''}
           </button>`).join('')}
       </div>
       <p class="muted small center">${t('welcome.switch')}</p>
@@ -111,6 +119,7 @@ function welcome(el) {
   });
   $$('.w-choice', el).forEach((b) => b.addEventListener('click', () => {
     setCourse(b.dataset.c);
+    choosing = false;
     applySettings();
     sfx.win();
     haptic(10);
@@ -128,8 +137,7 @@ function greetingSub() {
   return t('greet.evening');
 }
 
-// Parcours « Premiers pas » : trois étapes pour bien démarrer, masqué une fois terminé
-// (ou si le joueur a déjà de l'expérience).
+// Parcours « Premiers pas » : trois étapes pour bien démarrer, masqué une fois terminé.
 const STEP_WORDS = 10;
 function firstSteps(st, C) {
   const seen = Math.min(STEP_WORDS, Object.keys(st.srs || {}).length);
@@ -143,7 +151,7 @@ function firstSteps(st, C) {
       b: t('steps.phrase'), s: t('steps.phraseSub') },
   ];
   const n = steps.filter((x) => x.done).length;
-  if (n === steps.length || store.level().lv >= 3) return '';
+  if (n === steps.length) return '';
   const next = steps.findIndex((x) => !x.done);
   return `
       <section class="card steps">
@@ -865,6 +873,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadWorker || reloaded || document.body.classList.contains('focus')) return;
     reloaded = true;
+    try { if (!choosing) sessionStorage.setItem(SKIP_MENU, '1'); } catch { /* stockage indisponible */ }
     location.reload();
   });
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
