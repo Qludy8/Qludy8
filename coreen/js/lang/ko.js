@@ -332,7 +332,7 @@ export const KO = {
   get words() { return (this._words ||= buildWords()); },
   romanize: (text) => romanize(text),
   wordRom: (w) => romanize(w.tl),
-  wordRead: (w) => w.tl,
+  wordRead: () => '',
   render,
   awkward,
   guide: { fr: GUIDE, en: GUIDE_EN },

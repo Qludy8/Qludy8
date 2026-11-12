@@ -920,3 +920,51 @@ ruby rt { font-size: .45em; color: var(--muted); font-weight: 600; letter-spacin
 .jamo-grid.kanji small { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kanji-read { margin: 4px 0 6px; }
 .ex-say { text-align: left; color: var(--accent); font-weight: 700; }
+
+
+/* ---------- Compteur de quiz, premiers pas, grand écran ---------- */
+/* Compteur de quiz */
+.qcount { min-width: 44px; text-align: right; font-weight: 800; }
+.combo:empty { display: none; }
+
+/* Écran de bienvenue centré */
+.welcome { min-height: calc(100dvh - 140px); justify-content: center; position: relative; padding-top: 44px; }
+.welcome .ui-lang { position: absolute; top: 0; right: 0; }
+.welcome .seg.ui-lang .seg-btn { padding: 5px 12px; font-size: .78rem; min-height: 0; box-shadow: none; }
+.welcome .seg.ui-lang { gap: 4px; }
+
+/* Premiers pas */
+.steps { padding: 14px; margin: 14px 0; display: grid; gap: 4px; }
+.steps-head { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 6px; }
+.step { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 14px; }
+.step > div { flex: 1; min-width: 0; display: grid; }
+.step b { line-height: 1.25; }
+.step-ico { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border-radius: 13px; font-weight: 800; font-size: 1.15rem; color: var(--tc); background: color-mix(in srgb, var(--tc) 14%, var(--surface)); }
+.step.next { background: color-mix(in srgb, var(--tc) 8%, var(--surface)); outline: 1.5px solid color-mix(in srgb, var(--tc) 35%, var(--line)); }
+.step.next .btn { background: var(--tc); box-shadow: 0 3px 0 color-mix(in srgb, var(--tc) 60%, #000); color: #fff; flex: 0 0 auto; }
+.step.done { opacity: .6; }
+.step.done .step-ico { background: var(--ok-soft); color: var(--ok); }
+.step .chev { color: var(--muted); }
+
+/* Ordinateur et tablette : navigation latérale, contenu centré */
+@media (min-width: 900px) {
+  body:not(.bare) { padding-left: 232px; }
+  #tabs {
+    top: 0; right: auto; bottom: 0; width: 232px;
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 76px 14px 20px; border-top: 0; border-right: 1px solid var(--line);
+  }
+  #tabs::before { content: 'Haru'; position: absolute; top: 22px; left: 28px; font-weight: 900; font-size: 1.5rem; letter-spacing: -.02em; }
+  #tabs a { flex-direction: row; justify-content: flex-start; gap: 14px; padding: 12px 14px; border-radius: 14px; font-size: .98rem; }
+  #tabs a.on { background: color-mix(in srgb, var(--t, var(--accent)) 14%, transparent); color: var(--t, var(--accent)); }
+  #tabs a.on svg { transform: none; }
+  #tabs a .ti { background: none !important; padding: 0 !important; width: auto !important; height: auto !important; }
+  body.focus #tabs { transform: none; }
+  body.bare #tabs { display: none; }
+  .topbar { max-width: 760px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+  #view { max-width: 760px; padding: 8px 24px 48px; }
+  .home { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
+  .home > .hero-card, .home > .steps, .home > h2, .home > .grid2, .home > .install { grid-column: 1 / -1; }
+  .home > .stats-row { grid-column: 1 / -1; }
+  .home > .daily-cta, .home > .pod { margin: 14px 0 0; height: 100%; }
+}

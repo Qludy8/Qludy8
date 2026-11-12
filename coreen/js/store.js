@@ -16,6 +16,7 @@ const COURSE = () => ({
   daily: {}, // 'AAAA-MM-JJ' → nombre de phrases du défi réussies
   best: {}, // records (ex. temps du jeu des paires)
   read: {}, // leçons du guide déjà lues
+  steps: {}, // parcours « Premiers pas » : étapes terminées
 });
 const ROOT = () => ({ v: 2, goal: 30, settings: SETTINGS(), courses: { ko: COURSE(), ja: COURSE() } });
 
@@ -84,6 +85,14 @@ export function reset() {
 }
 
 // ---------- Dates ----------
+// Marque une étape du parcours « Premiers pas » comme terminée.
+export function markStep(k) {
+  state.steps ||= {};
+  if (state.steps[k]) return;
+  state.steps[k] = true;
+  save();
+}
+
 export function dayKey(d = new Date()) {
   const z = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;

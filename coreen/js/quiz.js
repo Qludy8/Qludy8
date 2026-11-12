@@ -1,6 +1,6 @@
 // Moteur de quiz à choix multiples + quiz d'écriture (hangeul / kana) et de vocabulaire.
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
-import { addXp, review, pickForReview, get } from './store.js';
+import { addXp, review, pickForReview, get, markStep } from './store.js';
 import { course, t, tr, gloss } from './course.js';
 import { THEMES } from './content/concepts.js';
 
@@ -13,7 +13,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
  * question = { prompt (html), sub?, say? (texte à prononcer), auto? (prononcer à l'affichage),
  *              options: [{ label, kr? }], correct, explain? (html), onAnswer?(ok) }
  */
-export function runQuiz(el, { questions, title, again, back }) {
+export function runQuiz(el, { questions, title, again, back, onDone }) {
   const queue = questions.map((q) => ({ ...q, retry: false }));
   const total = questions.length;
   let done = 0;
@@ -26,6 +26,7 @@ export function runQuiz(el, { questions, title, again, back }) {
       <div class="qbar">
         <div class="progress"><i></i></div>
         <span class="combo" aria-live="polite"></span>
+        <span class="count qcount"></span>
       </div>
       <div class="qstage"></div>
       <div class="sheet" hidden>
@@ -41,6 +42,7 @@ export function runQuiz(el, { questions, title, again, back }) {
   function show() {
     const q = queue[0];
     bar.style.width = `${(done / total) * 100}%`;
+    $('.qcount', el).textContent = `${Math.min(done + 1, total)} / ${total}`;
     stage.innerHTML = `
       <div class="qcard pop">
         ${q.retry ? `<span class="tag">${t('quiz.retry')}</span>` : ''}
@@ -105,6 +107,7 @@ export function runQuiz(el, { questions, title, again, back }) {
     bar.style.width = '100%';
     xp += 5;
     addXp(xp);
+    onDone?.();
     const ratio = firstTry / total;
     if (ratio >= 0.7) {
       sfx.win();
@@ -209,7 +212,7 @@ export function scriptQuiz(el, set) {
       ),
     );
   }
-  runQuiz(el, { questions, title, again: () => scriptQuiz(el, set), back: '#/hangul' });
+  runQuiz(el, { questions, title, again: () => scriptQuiz(el, set), back: '#/hangul', onDone: () => markStep('script') });
 }
 
 // ---------- Vocabulaire ----------

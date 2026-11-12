@@ -46,6 +46,7 @@ function route() {
   $$('.celebrate').forEach((c) => c.remove()); // ferme une célébration restée ouverte
   renderChrome();
   titleEl.textContent = s.title();
+  document.title = name === 'home' || name === 'welcome' ? 'Haru' : `${s.title()} · Haru`;
   backEl.hidden = !s.back;
   backEl.dataset.href = params.mode === 'review' ? '#/home' : s.back || '';
   document.body.classList.toggle('focus', !!s.focus || !!s.bare);
@@ -125,6 +126,35 @@ function greetingSub() {
   return t('greet.evening');
 }
 
+// Parcours « Premiers pas » : trois étapes pour bien démarrer, masqué une fois terminé
+// (ou si le joueur a déjà de l'expérience).
+const STEP_WORDS = 10;
+function firstSteps(st, C) {
+  const seen = Math.min(STEP_WORDS, Object.keys(st.srs || {}).length);
+  const did = st.steps || {};
+  const steps = [
+    { done: !!did.script, href: '#/hangul', kr: C.id === 'ja' ? 'あ' : '한', c: 'var(--c-hangul)',
+      b: t('steps.script', { name: tr(C.script.title) }), s: t('steps.scriptSub') },
+    { done: seen >= STEP_WORDS, href: '#/cards?t=basics', kr: C.id === 'ja' ? '語' : '말', c: 'var(--c-words)',
+      b: t('steps.words', { n: STEP_WORDS }), s: seen ? t('steps.wordsProgress', { n: seen, total: STEP_WORDS }) : t('steps.wordsSub') },
+    { done: !!did.phrase || Object.keys(st.daily || {}).length > 0, href: '#/phrases', kr: C.id === 'ja' ? '文' : '문', c: 'var(--c-phrases)',
+      b: t('steps.phrase'), s: t('steps.phraseSub') },
+  ];
+  const n = steps.filter((x) => x.done).length;
+  if (n === steps.length || store.level().lv >= 3) return '';
+  const next = steps.findIndex((x) => !x.done);
+  return `
+      <section class="card steps">
+        <div class="steps-head"><span class="eyebrow">${t('steps.title')}</span><span class="count">${n} / ${steps.length}</span></div>
+        ${steps.map((x, i) => `
+        <a class="step ${x.done ? 'done' : ''} ${i === next ? 'next' : ''}" href="${x.href}" style="--tc:${x.c}">
+          <span class="step-ico kr">${x.done ? '✓' : x.kr}</span>
+          <div><b>${x.b}</b><span class="muted small">${x.s}</span></div>
+          ${i === next ? `<span class="btn small primary">${t('steps.start')}</span>` : '<span class="chev">›</span>'}
+        </a>`).join('')}
+      </section>`;
+}
+
 function home(el) {
   const st = store.get();
   const C = course();
@@ -154,6 +184,8 @@ function home(el) {
         <div class="stat-pill ${streak ? 'hot' : ''}"><span class="ico flame">${ICONS.flame}</span><div><b>${streak}</b><span>${t(streak > 1 ? 'home.days' : 'home.day')}</span></div></div>
         <a class="stat-pill" href="#/progress"><span class="ico level">${lv.lv}</span><div><b>${t('level', { n: lv.lv })}</b><span>${t('home.toNext', { xp: lv.toNext, n: lv.lv + 1 })}</span></div></a>
       </div>
+
+      ${firstSteps(st, C)}
 
       ${installEvent ? `<button class="card install"><b>${t('home.install')}</b><span class="muted">${t('home.installSub')}</span></button>` : ''}
 
@@ -724,7 +756,7 @@ function settings(el) {
 function resetCourse() {
   const st = store.get();
   for (const k of ['xp']) st[k] = 0;
-  for (const k of ['days', 'srs', 'daily', 'best', 'read']) st[k] = {};
+  for (const k of ['days', 'srs', 'daily', 'best', 'read', 'steps']) st[k] = {};
   st.journal = [];
   delete st.crit;
   store.save();

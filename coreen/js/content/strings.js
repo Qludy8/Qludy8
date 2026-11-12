@@ -15,6 +15,9 @@ export const STRINGS = {
     'home.goal': 'Objectif du jour', 'home.day': 'jour de suite', 'home.days': 'jours de suite', 'home.toNext': '{xp} XP avant le {n}',
     'home.install': 'Installer Haru', 'home.installSub': 'Ajoute l’application à ton écran d’accueil',
     'home.dailyDone': 'Terminé, bravo !', 'home.dailyTodo': '3 phrases à reconstituer', 'home.dailyAgain': 'Tu peux le refaire pour t’entraîner', 'home.dailySub': 'Débutant → avancé · +10 XP minimum',
+    'steps.title': 'Premiers pas', 'steps.start': 'Commencer', 'steps.script': '{name} : les bases', 'steps.scriptSub': 'Les lettres, puis un premier quiz',
+    'steps.words': 'Apprendre {n} mots essentiels', 'steps.wordsSub': 'Cartes mémoire : bonjour, merci, oui…', 'steps.wordsProgress': '{n} / {total} mots vus',
+    'steps.phrase': 'Construire une première phrase', 'steps.phraseSub': 'Niveau débutant, sujet + verbe',
     'home.pod': 'Phrase du jour', 'home.tapTranslate': 'Toucher pour voir la traduction', 'home.train': 'On s’entraîne ?',
     'home.wordsOfDay': 'Mots du jour', 'home.generate': 'Générer', 'home.generateSub': 'Une phrase sur mesure',
 
@@ -102,6 +105,9 @@ export const STRINGS = {
     'home.goal': 'Daily goal', 'home.day': 'day streak', 'home.days': 'day streak', 'home.toNext': '{xp} XP to level {n}',
     'home.install': 'Install Haru', 'home.installSub': 'Add the app to your home screen',
     'home.dailyDone': 'Done, well done!', 'home.dailyTodo': '3 sentences to rebuild', 'home.dailyAgain': 'You can do it again for practice', 'home.dailySub': 'Beginner → advanced · +10 XP minimum',
+    'steps.title': 'First steps', 'steps.start': 'Start', 'steps.script': '{name}: the basics', 'steps.scriptSub': 'The letters, then a first quiz',
+    'steps.words': 'Learn {n} essential words', 'steps.wordsSub': 'Flashcards: hello, thanks, yes…', 'steps.wordsProgress': '{n} / {total} words seen',
+    'steps.phrase': 'Build your first sentence', 'steps.phraseSub': 'Beginner level, subject + verb',
     'home.pod': 'Sentence of the day', 'home.tapTranslate': 'Tap to see the translation', 'home.train': 'Ready to practise?',
     'home.wordsOfDay': 'Today’s words', 'home.generate': 'Generate', 'home.generateSub': 'A custom sentence',
 

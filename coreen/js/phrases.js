@@ -1,6 +1,6 @@
 // Générateur de phrases, exercice « reconstituer » et défi du jour.
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, burst, ICONS } from './ui.js';
-import { addXp, get, save, dayKey, dayNumber } from './store.js';
+import { addXp, get, save, dayKey, dayNumber, markStep } from './store.js';
 import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
 import { THEMES } from './content/concepts.js';
 import { course, t, tr, lang } from './course.js';
@@ -275,6 +275,7 @@ export function phrasesScreen(el) {
         const ok = b.classList.contains('ok-btn');
         if (ok) {
           addXp(3);
+          markStep('phrase');
           floatXp(3, b);
           sfx.ok();
         } else sfx.tap();
@@ -284,6 +285,7 @@ export function phrasesScreen(el) {
       reconstruct(body, p, (clean, line) => {
         const xp = clean ? 5 : 2;
         addXp(xp);
+        markStep('phrase');
         floatXp(xp, line);
         body.insertAdjacentHTML('beforeend', `${p.ruby ? `<div class="phrase-kr kr has-ruby small-ruby">${phraseText(p)}</div>` : ''}${roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : ''}${details(p)}`);
       });
@@ -418,6 +420,7 @@ export function dailyScreen(el) {
     if (!already) {
       st.daily[key] = list.length;
       save();
+      markStep('phrase');
       addXp(xp);
     }
     sfx.win();
