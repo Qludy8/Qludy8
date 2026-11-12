@@ -51,4 +51,4 @@ Pour la voix : si aucune voix coréenne n’est installée, en ajouter une dans 
 
 ## Mise à jour
 
-Après une modification, changer `VERSION` dans `sw.js` pour que les téléphones récupèrent les nouveaux fichiers.
+Après une modification, changer `VERSION` dans `sw.js` et `APP_VERSION` dans `js/app.js` (affiché en bas des Réglages) pour que les téléphones récupèrent les nouveaux fichiers.

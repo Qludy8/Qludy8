@@ -35,6 +35,8 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words' }; // anciennes adresses
 
+const APP_VERSION = '12'; // à changer avec VERSION dans sw.js
+
 function route() {
   let [path, query = ''] = location.hash.replace(/^#\/?/, '').split('?');
   path = ALIASES[path] || path;
@@ -681,7 +683,7 @@ function settings(el) {
         <p><b>Android (Chrome)</b> : ${t('set.installAndroid')}</p>
         <p class="muted small">${t('set.updates')}</p>
       </div>
-      <p class="muted small center version">Haru · 하루 · ${t('set.haru')}</p>
+      <p class="muted small center version">Haru · 하루 · ${t('set.haru')} · v${APP_VERSION}</p>
     </div>`;
 
   $$('.set-seg', el).forEach((g) => g.addEventListener('click', (e) => {
@@ -857,7 +859,19 @@ addEventListener('haru:settings', () => {
 });
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  // Quand une nouvelle version prend la main, on recharge une fois pour l'afficher tout de suite.
+  const hadWorker = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadWorker || reloaded || document.body.classList.contains('focus')) return;
+    reloaded = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+    .then((reg) => {
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+    })
+    .catch(() => {});
 }
 
 applySettings();

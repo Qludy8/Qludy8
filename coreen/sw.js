@@ -1,6 +1,6 @@
 // Service worker : met l'application en cache pour qu'elle fonctionne hors connexion.
 // Changer VERSION à chaque mise à jour pour que les téléphones récupèrent les nouveaux fichiers.
-const VERSION = 'haru-v11';
+const VERSION = 'haru-v12';
 const FILES = [
   './',
   './index.html',
@@ -36,7 +36,7 @@ const FILES = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -48,10 +48,12 @@ self.addEventListener('activate', (e) => {
 });
 
 // Réseau d'abord (pour recevoir les mises à jour), cache en secours hors connexion.
+// « no-cache » : le navigateur revalide chaque fichier auprès du serveur au lieu de resservir
+// sa copie pendant 10 minutes, ce qui mélangeait anciens et nouveaux fichiers après une mise à jour.
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request.url, { cache: 'no-cache' })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();
