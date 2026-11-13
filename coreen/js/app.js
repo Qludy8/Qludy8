@@ -41,7 +41,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '22'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '23'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -627,7 +627,6 @@ function settings(el) {
           <span class="muted small">${t('set.autoHelp')}</span></div>
         <div class="set-row col"><span>${t('set.textSize', { lang: tr(C.name).toLowerCase() })}</span>${seg('krLarge', [['false', t('set.normal')], ['true', t('set.large')]], s.krLarge)}</div>
         ${toggle('motion', t('set.motion'), s.motion)}
-        ${document.documentElement.requestFullscreen ? toggle('fullscreenTap', t('set.fullscreen'), s.fullscreenTap) : ''}
       </div>
 
       <h2>${t('set.learning')}</h2>
@@ -792,46 +791,6 @@ document.addEventListener('pointerdown', (e) => {
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => document.addEventListener(type, () => $$('.pressed').forEach((b) => b.classList.remove('pressed'))));
 
-// Plein écran réel (Android) : masque la barre système en bas, que le manifeste ne cache pas toujours.
-// Le navigateur exige un geste de l'utilisateur : on le demande au premier toucher.
-const installed = matchMedia('(display-mode: standalone), (display-mode: minimal-ui)').matches; // déjà en plein écran via le manifeste : rien à faire
-const wantsFullscreen = () => installed && store.get().settings.fullscreenTap && !document.fullscreenElement && !!document.documentElement.requestFullscreen;
-function enterFullscreen() {
-  if (!wantsFullscreen()) return;
-  document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
-}
-// Tous les gestes qui autorisent le plein écran (le simple défilement ne compte pas pour le navigateur).
-for (const type of ['pointerup', 'touchend', 'click', 'keydown']) document.addEventListener(type, enterFullscreen, { passive: true });
-
-/**
- * Écran d'ouverture : le navigateur interdit le plein écran sans geste de l'utilisateur.
- * À l'ouverture de l'application installée, un premier toucher sur cet écran active le plein écran
- * et masque la barre du téléphone dès le départ.
- */
-function launchScreen() {
-  if (!wantsFullscreen() || matchMedia('(display-mode: fullscreen)').matches) return;
-  const box = document.createElement('div');
-  box.className = 'launch';
-  box.innerHTML = `
-    <div class="launch-inner">
-      <img src="icons/icon.svg" alt="">
-      <h1>Haru</h1>
-      <p class="kr">${course().id === 'ja' ? '今日も頑張ろう！' : '오늘도 화이팅!'}</p>
-      <span class="launch-tap">${t('launch.tap')}</span>
-    </div>`;
-  document.body.append(box);
-  const go = () => {
-    enterFullscreen();
-    box.classList.add('out');
-    setTimeout(() => box.remove(), 350);
-  };
-  box.addEventListener('pointerup', go, { once: true });
-  box.addEventListener('keydown', go, { once: true });
-}
-addEventListener('haru:settings', () => {
-  if (!store.get().settings.fullscreenTap && document.fullscreenElement) document.exitFullscreen().catch(() => {});
-});
-
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   // Quand une nouvelle version prend la main, on recharge une fois pour l'afficher tout de suite.
   const hadWorker = !!navigator.serviceWorker.controller;
@@ -852,4 +811,3 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 applySettings();
 if (hasCourse()) dailyPhrases(); // précalcul pour un premier clic sans délai
 route();
-if (hasCourse()) launchScreen();

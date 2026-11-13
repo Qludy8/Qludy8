@@ -75,7 +75,7 @@ export const STRINGS = {
     'set.switched': 'C’est parti pour le {lang} !',
     'set.appearance': 'Apparence', 'set.theme': 'Thème', 'set.auto': 'Automatique', 'set.light': 'Clair', 'set.dark': 'Sombre',
     'set.autoHelp': 'Automatique suit le réglage du téléphone.', 'set.textSize': 'Taille du texte en {lang}', 'set.normal': 'Normale', 'set.large': 'Grande',
-    'set.motion': 'Animations', 'set.fullscreen': 'Forcer le plein écran au toucher (affiche un message de Chrome)',
+    'set.motion': 'Animations',
     'set.learning': 'Apprentissage', 'set.goal': 'Objectif quotidien (XP)', 'set.quizLen': 'Questions par série', 'set.quizLenHelp': 'Quiz, cartes mémoire et quiz d’écriture.',
     'set.roman': 'Afficher la romanisation',
     'set.sound': 'Son', 'set.autoplay': 'Lecture automatique', 'set.sfx': 'Effets sonores',
@@ -87,7 +87,6 @@ export const STRINGS = {
     'set.resetConfirm': 'Effacer ta progression dans cette langue ? Cette action est définitive.', 'set.resetDone': 'Progression réinitialisée', 'set.badFile': 'Fichier de sauvegarde invalide',
     'set.haru': '« une journée »',
 
-    'launch.tap': 'Touche l’écran pour commencer',
     'cel.level': 'Niveau {n} !', 'cel.levelText.ko': '대박 ! Tu progresses vite, continue comme ça.', 'cel.levelText.ja': 'すごい！ Tu progresses vite, continue comme ça.',
     'cel.goal': 'Objectif du jour atteint !', 'cel.goalStreak': '{n} jours de suite, bravo !', 'cel.goalFirst': 'Reviens demain pour lancer ta série.',
   },
@@ -166,7 +165,7 @@ export const STRINGS = {
     'set.switched': 'Let’s go with {lang}!',
     'set.appearance': 'Appearance', 'set.theme': 'Theme', 'set.auto': 'Automatic', 'set.light': 'Light', 'set.dark': 'Dark',
     'set.autoHelp': 'Automatic follows your phone’s setting.', 'set.textSize': '{lang} text size', 'set.normal': 'Normal', 'set.large': 'Large',
-    'set.motion': 'Animations', 'set.fullscreen': 'Force full screen on tap (shows a Chrome message)',
+    'set.motion': 'Animations',
     'set.learning': 'Learning', 'set.goal': 'Daily goal (XP)', 'set.quizLen': 'Questions per round', 'set.quizLenHelp': 'Quizzes, flashcards and script quizzes.',
     'set.roman': 'Show romanization',
     'set.sound': 'Sound', 'set.autoplay': 'Auto-play pronunciation', 'set.sfx': 'Sound effects',
@@ -178,7 +177,6 @@ export const STRINGS = {
     'set.resetConfirm': 'Erase your progress in this language? This can’t be undone.', 'set.resetDone': 'Progress reset', 'set.badFile': 'Invalid backup file',
     'set.haru': '“one day”',
 
-    'launch.tap': 'Tap the screen to start',
     'cel.level': 'Level {n}!', 'cel.levelText.ko': '대박! You’re making fast progress, keep it up.', 'cel.levelText.ja': 'すごい！ You’re making fast progress, keep it up.',
     'cel.goal': 'Daily goal reached!', 'cel.goalStreak': '{n} days in a row, well done!', 'cel.goalFirst': 'Come back tomorrow to start your streak.',
   },
