@@ -1182,10 +1182,10 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .ru.plat .ru-count { background: rgb(36 50 68 / .14); }
 .ru.plat .ru-count svg { width: 18px; height: 18px; stroke-width: 2.2; }
 .ru.plat .ru-head::after, .ru.plat .rn.done .rn-btn::after { content: ''; position: absolute; top: -10%; bottom: -10%; left: 0; width: 45%; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .8) 50%, transparent); animation: glint 3.4s ease-in-out infinite; pointer-events: none; }
-.ru.plat .rn.done .rn-btn { position: relative; overflow: hidden; }
+.ru.plat .rn.done .rn-btn { position: relative; overflow: hidden; color: var(--plat-ink); background: var(--plat); background-size: 200% 100%; border-color: var(--plat-deep); box-shadow: 0 6px 0 var(--plat-deep); }
+.ru.plat .ru-line path.on { stroke: var(--plat-deep); }
 .ru.plat .rn.done .rn-btn::after { width: 55%; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .6) 50%, transparent); animation-delay: calc(.5s + var(--k, 0) * .22s); }
 .ru.plat .rn.done .rn-btn svg, .ru.plat .rn.done .rn-btn { isolation: isolate; }
-.ru.plat .rn.done:not(.exam) .rn-btn { box-shadow: 0 6px 0 color-mix(in srgb, var(--tc) 60%, #000), 0 0 0 3px rgb(200 214 232 / .7); }
 .cel-card.plat .cel-glyph { color: var(--plat-ink); background: var(--plat); background-size: 200% 100%; animation: celEmoji .8s var(--spring) both, shimmer 3s linear .8s infinite; }
 :root.no-motion .ru.plat .ru-head, :root.no-motion .rn.exam.done .rn-btn { animation: none; }
 :root.no-motion .ru.plat .ru-head::after, :root.no-motion .ru.plat .rn-btn::after { display: none; }
