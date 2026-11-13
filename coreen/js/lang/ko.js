@@ -9,6 +9,7 @@ import { GUIDE_KO_PLUS } from '../content/guide.plus.js';
 import { GUIDE_KO_ADV } from '../content/guide.adv.js';
 import { localize } from '../content/guide.util.js';
 import { pick } from '../generator.js';
+import { LEXICON } from '../content/lexicon.js';
 
 const L = (fr, en) => ({ fr, en });
 
@@ -276,6 +277,7 @@ function buildWords() {
     ...VERBS.map((x) => ({ tl: x.ko.kr, fr: verbLabel(x, 'fr'), en: verbLabel(x, 'en'), t: x.t[0] })),
     ...VERBS.filter((x) => x.ko.neg).map((x) => ({ tl: x.ko.neg.kr, fr: 'ne pas être bon (goût)', en: 'to taste bad', t: x.t[0] })),
     ...BASICS,
+    ...LEXICON.filter((x) => x.ko).map((x) => ({ tl: x.ko, fr: x.fr, en: x.en, t: x.t })),
   ];
   const seen = new Set();
   return all.filter((x) => !seen.has(x.tl) && seen.add(x.tl)).map((x) => ({ id: x.tl, ...x }));

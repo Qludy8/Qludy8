@@ -2,7 +2,7 @@
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get, markRoad, starsFor } from './store.js';
 import { course, t, tr, gloss } from './course.js';
-import { THEMES } from './content/concepts.js';
+import { ALL_THEMES } from './content/lexicon.js';
 
 const wordsOf = (theme) => (!theme || theme === 'all' ? course().words : course().words.filter((w) => w.t === theme));
 const len = () => get().settings.quizLen || 10;
@@ -216,6 +216,9 @@ export function scriptQuiz(el, set, step) {
 }
 
 // ---------- Vocabulaire ----------
+/** Classe de taille pour un texte dans la langue apprise : les phrases s'affichent plus petit que les mots. */
+export const sizeCls = (s) => (s.length > 14 ? 'xlong' : s.length > 6 ? 'long' : '');
+
 export function vocabQuiz(el, theme, mode, step) {
   const C = course();
   const pool = wordsOf(theme);
@@ -228,7 +231,7 @@ export function vocabQuiz(el, theme, mode, step) {
     const kind = k % 3 === 2 && listen ? 'listen' : k % 2 ? 'fr2kr' : 'kr2fr';
     const base = { say: w.tl, onAnswer: (ok) => review(w.id, ok), explain: `<span class="kr">${esc(w.tl)}</span>${sub(w) ? ` · ${esc(sub(w))}` : ''} = ${esc(gloss(w))}` };
     if (kind === 'kr2fr') {
-      return mcq({ ...base, prompt: `<span class="qkr">${esc(w.tl)}</span>`, sub: sub(w) || t('quiz.whatMeans') }, { label: gloss(w) }, decoys.map((o) => ({ label: gloss(o) })));
+      return mcq({ ...base, prompt: `<span class="qkr ${sizeCls(w.tl)}">${esc(w.tl)}</span>`, sub: sub(w) || t('quiz.whatMeans') }, { label: gloss(w) }, decoys.map((o) => ({ label: gloss(o) })));
     }
     if (kind === 'fr2kr') {
       return mcq({ ...base, say: null, prompt: `<span class="qlatin">${esc(gloss(w))}</span>`, sub: t('quiz.howSay', { lang: tr(C.name).toLowerCase() }) }, { label: w.tl, kr: true }, decoys.map((o) => ({ label: o.tl, kr: true })));
@@ -237,7 +240,7 @@ export function vocabQuiz(el, theme, mode, step) {
   });
   runQuiz(el, {
     questions,
-    title: mode === 'review' ? t('review') : theme && theme !== 'all' ? tr(THEMES[theme]) : t('allThemes'),
+    title: mode === 'review' ? t('review') : theme && theme !== 'all' ? tr(ALL_THEMES[theme]) : t('allThemes'),
     again: () => vocabQuiz(el, theme, mode, step),
     step,
     back: '#/words',

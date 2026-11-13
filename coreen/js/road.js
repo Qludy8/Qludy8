@@ -2,22 +2,30 @@
 import { $, $$, esc, sfx, haptic, celebrate, ICONS } from './ui.js';
 import * as store from './store.js';
 import { course, t, tr, lang } from './course.js';
-import { THEMES } from './content/concepts.js';
+import { ALL_THEMES, themeGlyph, themeShort } from './content/lexicon.js';
 import { ROADMAP } from './content/roadmap.js';
 
 export const roadUnits = () => ROADMAP[course().id] || [];
 export const findStep = (id) => roadUnits().flatMap((u) => u.steps).find((s) => s.id === id);
 
 const UNIT_BONUS = 15; // XP offerts à la fin d'un module
-const THEME_GLYPH = { food: ['밥', '食'], daily: ['집', '家'], leisure: ['놀이', '遊'], city: ['도시', '町'], study: ['공부', '学'], basics: ['안녕', '初'] };
 const LOCK = '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 
 const lessons = () => course().guide[lang()] || course().guide.fr;
+
+// Étape « objectif » : retenir 60 % des mots d'un thème (boîte 2 ou plus dans la répétition espacée).
+const GOAL_RATIO = 0.6;
+const GOAL_BOX = 2;
+function goal(theme, st = store.get()) {
+  const ws = course().words.filter((w) => w.t === theme);
+  return { n: Math.min(Math.ceil(ws.length * GOAL_RATIO), ws.filter((w) => (st.srs?.[w.id]?.b ?? -1) >= GOAL_BOX).length), total: Math.ceil(ws.length * GOAL_RATIO) };
+}
 
 /** Une étape est-elle terminée ? Les leçons, les paires et le défi se lisent dans la progression existante. */
 export function stepDone(s, st = store.get()) {
   if (s.kind === 'lesson') return !!st.read?.[s.lesson];
   if (s.kind === 'pairs') return !!st.best?.pairs;
+  if (s.kind === 'mastery') { const g = goal(s.theme, st); return g.total > 0 && g.n >= g.total; }
   if (s.kind === 'daily') return Object.keys(st.daily || {}).length > 0;
   return !!st.road?.[s.id];
 }
@@ -38,11 +46,13 @@ export function stepInfo(s) {
     const glyph = set ? set.items[0].j : s.set === 'syllables' ? C.script.syllableSample.slice(0, 2) : ja ? 'さかな' : '사과';
     return { title, type: t('road.quiz'), glyph, href: `#/hquiz?set=${s.set}&${q}` };
   }
-  if (s.kind === 'cards' || s.kind === 'words') {
-    const glyph = (THEME_GLYPH[s.theme] || ['말', '語'])[ja ? 1 : 0];
+  if (s.kind === 'cards' || s.kind === 'words' || s.kind === 'mastery') {
+    const glyph = themeGlyph(s.theme, ja);
+    const title = themeShort(tr(ALL_THEMES[s.theme]));
+    if (s.kind === 'mastery') return { title, type: t('road.goal', goal(s.theme)), glyph, href: `#/quiz?t=${s.theme}&${q}` };
     return s.kind === 'cards'
-      ? { title: tr(THEMES[s.theme]), type: t('road.cards'), glyph, href: `#/cards?t=${s.theme}&${q}` }
-      : { title: tr(THEMES[s.theme]), type: t('road.quiz'), glyph, href: `#/quiz?t=${s.theme}&${q}` };
+      ? { title, type: t('road.cards'), glyph, href: `#/cards?t=${s.theme}&${q}` }
+      : { title, type: t('road.quiz'), glyph, href: `#/quiz?t=${s.theme}&${q}` };
   }
   if (s.kind === 'phrase') return { title: tr(s.title), type: t('road.phrases'), glyph: ja ? '文' : '문장', href: `#/rphrase?${q}` };
   if (s.kind === 'pairs') return { title: t('title.pairs'), type: t('road.game'), glyph: ja ? 'ペア' : '짝', href: `#/pairs?${q}` };

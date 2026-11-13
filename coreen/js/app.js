@@ -3,7 +3,7 @@ import { $, $$, esc, speak, canSpeak, hasVoice, sfx, haptic, toast, countUp, pul
 import * as store from './store.js';
 import { compose, CHO, JUNG, JONG } from './hangul.js';
 import { CONSONANTS, VOWELS } from './content/jamo.js';
-import { THEMES } from './content/concepts.js';
+import { ALL_THEMES, isPhraseTheme, themeGlyph, themeColor, themeShort } from './content/lexicon.js';
 import { course, hasCourse, setCourse, COURSES, t, tr, lang, gloss } from './course.js';
 import { scriptQuiz, vocabQuiz, wordsOf } from './quiz.js';
 import { flashcards, pairs } from './games.js';
@@ -41,7 +41,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '19'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '20'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -197,20 +197,27 @@ function phrasesTab(el) {
 }
 
 // ---------- Mots (vocabulaire) ----------
-// Chaque thème : [mot en coréen, mot en japonais, couleur]
-const THEME_STYLE = {
-  food: ['밥', '食', 'var(--c-phrases)'],
-  daily: ['집', '家', 'var(--c-home)'],
-  leisure: ['놀이', '遊', 'var(--c-guide)'],
-  city: ['도시', '町', 'var(--c-stats)'],
-  study: ['공부', '学', 'var(--c-words)'],
-  basics: ['안녕', '初', 'var(--c-hangul)'],
-};
-
 function words(el) {
   const C = course();
   const ja = C.id === 'ja';
   const due = store.dueCount(C.words);
+  // Une ligne par thème ; les phrases toutes faites sont listées à part.
+  const themeRows = (phrases) => Object.entries(ALL_THEMES).filter(([k]) => isPhraseTheme(k) === phrases).map(([k, label], i) => {
+    const ws = wordsOf(k);
+    if (!ws.length) return '';
+    const m = ws.filter((w) => store.box(w.id) >= 3).length;
+    return `
+          <li class="theme-row" style="--i:${Math.min(i, 12)}; --tc: ${themeColor(k)}">
+            <span class="gl kr">${esc(themeGlyph(k, ja))}</span>
+            <div class="theme-info">
+              <b>${esc(themeShort(tr(label)))}</b>
+              <span class="muted small">${t('words.mastered', { m, n: ws.length })}</span>
+              <div class="mini-bar"><i style="--w:${m / ws.length}"></i></div>
+            </div>
+            <a class="btn small ghost" href="#/cards?t=${k}">${t('words.cards')}</a>
+            <a class="btn small primary" href="#/quiz?t=${k}">${t('title.quiz')}</a>
+          </li>`;
+  }).join('');
   el.innerHTML = `
     <div class="screen words">
       <div class="grid2">
@@ -220,25 +227,9 @@ function words(el) {
         <a class="tile-link" href="#/lexicon" style="--i:3; --tc: var(--c-stats)"><span class="tl-kr kr">${ja ? '単語' : '단어'}</span><b>${t('title.lexicon')}</b><span class="muted small">${t('words.count', { n: C.words.length })}</span></a>
       </div>
       <h2>${t('words.byTheme')}</h2>
-      <ul class="list themes">
-        ${Object.entries(THEMES).map(([k, label], i) => {
-          const ws = wordsOf(k);
-          if (!ws.length) return '';
-          const m = ws.filter((w) => store.box(w.id) >= 3).length;
-          const [gko, gja, color] = THEME_STYLE[k] || ['말', '語', 'var(--accent)'];
-          return `
-          <li class="theme-row" style="--i:${i}; --tc: ${color}">
-            <span class="gl kr">${ja ? gja : gko}</span>
-            <div class="theme-info">
-              <b>${esc(tr(label))}</b>
-              <span class="muted small">${t('words.mastered', { m, n: ws.length })}</span>
-              <div class="mini-bar"><i style="--w:${m / ws.length}"></i></div>
-            </div>
-            <a class="btn small ghost" href="#/cards?t=${k}">${t('words.cards')}</a>
-            <a class="btn small primary" href="#/quiz?t=${k}">${t('title.quiz')}</a>
-          </li>`;
-        }).join('')}
-      </ul>
+      <ul class="list themes">${themeRows(false)}</ul>
+      <h2>${t('words.phrases')}</h2>
+      <ul class="list themes">${themeRows(true)}</ul>
     </div>`;
   requestAnimationFrame(() => requestAnimationFrame(() => $$('.mini-bar', el).forEach((b) => b.classList.add('go'))));
 }
@@ -248,12 +239,12 @@ const scriptSet = {};
 function script(el) {
   const C = course();
   const S = C.script;
-  if (!S.sets[scriptSet[C.id]]) scriptSet[C.id] = Object.keys(S.sets)[0];
+  if (!S.sets[scriptSet[C.id]] || S.sets[scriptSet[C.id]].hidden) scriptSet[C.id] = Object.keys(S.sets)[0];
   const ja = C.id === 'ja';
   el.innerHTML = `
     <div class="screen hangul">
       <div class="seg sets ${ja ? 'scroll' : ''}">
-        ${Object.entries(S.sets).map(([k, s]) => `<button class="seg-btn ${k === scriptSet[C.id] ? 'on' : ''}" data-set="${k}">${esc(tr(s.label))}</button>`).join('')}
+        ${Object.entries(S.sets).filter(([, s]) => !s.hidden).map(([k, s]) => `<button class="seg-btn ${k === scriptSet[C.id] ? 'on' : ''}" data-set="${k}">${esc(tr(s.label))}</button>`).join('')}
       </div>
       <div class="jamo-grid"></div>
       <div class="jamo-detail card" hidden></div>
@@ -291,14 +282,23 @@ function script(el) {
     grid.classList.toggle('wide', !kanji && items[0]?.j.length > 1);
     grid.classList.toggle('pairs', !!items[0]?.j2);
     grid.classList.toggle('kanji', kanji);
-    grid.innerHTML = items.map((x, i) => `
+    const cell = (x, i) => `
       <button class="jamo" style="--i:${Math.min(i, 30)}" data-i="${i}">
         ${x.j2 ? `<span class="kr pair"><span>${x.j}</span><span class="k2">${x.j2}</span></span>` : `<span class="kr">${x.j}</span>`}
         <small>${kanji ? esc(tr(x.mean).split(/[,;]/)[0]) : x.r || '∅ / ng'}</small>
-      </button>`).join('');
+      </button>`;
+    if (set.groups) {
+      // Une section par catégorie : titre, nombre de kanji et quiz de la catégorie
+      let n = 0;
+      grid.innerHTML = set.groups.map((g) => `
+        <div class="jamo-group">
+          <b>${esc(tr(g.label))}</b><span class="muted small">${g.items.length}</span>
+          <a class="btn small ghost" href="#/hquiz?set=kanji-${g.id}">${t('title.quiz')}</a>
+        </div>${g.items.map((x) => cell(x, n++)).join('')}`).join('');
+    } else grid.innerHTML = items.map(cell).join('');
     detail.hidden = true;
     $('.quiz-set', el).href = `#/hquiz?set=${scriptSet[C.id]}`;
-    $('.quiz-set', el).textContent = kanji ? t('kanji.quiz') : t('script.quizSet');
+    $('.quiz-set', el).textContent = set.groups ? t('kanji.quizAll', { n: items.length }) : kanji ? t('kanji.quiz') : t('script.quizSet');
   }
   grid.addEventListener('click', (e) => {
     const b = e.target.closest('.jamo');
@@ -368,7 +368,7 @@ function lexicon(el) {
       <input class="search" type="search" placeholder="${t('lex.search', { lang: tr(C.name).toLowerCase() })}" autocomplete="off">
       <div class="seg scroll themes-seg">
         <button class="seg-btn" data-t="all">${t('all')}</button>
-        ${Object.entries(THEMES).map(([k, l]) => `<button class="seg-btn" data-t="${k}">${esc(tr(l))}</button>`).join('')}
+        ${Object.entries(ALL_THEMES).map(([k, l]) => `<button class="seg-btn" data-t="${k}">${esc(tr(l))}</button>`).join('')}
       </div>
       <ul class="list words"></ul>
     </div>`;

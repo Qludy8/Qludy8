@@ -1033,3 +1033,18 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .ti-glyph { display: grid; place-items: center; width: 22px; height: 22px; font-size: 1.25rem; font-weight: 800; line-height: 1; transition: transform .3s var(--spring); }
 /* même rebond que les autres icônes quand l'onglet devient actif */
 #tabs a.on .ti-glyph { animation: tabBounce .5s var(--spring); }
+
+/* Kanji : une section par catégorie dans la même grille */
+.jamo-group { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin: 14px 0 2px; padding: 8px 6px 8px 12px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.jamo-group:first-child { margin-top: 0; }
+.jamo-group b { flex: 1; font-size: .98rem; line-height: 1.2; }
+.jamo-group .btn { flex: 0 0 auto; }
+
+/* Phrases du lexique : texte plus petit que pour un mot seul */
+.kr-xl.long { font-size: calc(2.1rem * var(--krs)); }
+.kr-xl.xlong { font-size: calc(1.45rem * var(--krs)); line-height: 1.35; }
+.qkr.long { font-size: calc(2.3rem * var(--krs)); }
+.qkr.xlong { font-size: calc(1.5rem * var(--krs)); line-height: 1.35; }
+.opt.kr { overflow-wrap: anywhere; }
+.jamo-grid.kanji { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.jamo-grid.kanji .jamo, .jamo-group { min-width: 0; }

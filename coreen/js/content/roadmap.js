@@ -5,6 +5,7 @@
 //   cards   { theme }          cartes mémoire d'un thème
 //   words   { theme }          quiz de vocabulaire d'un thème
 //   phrase  { title, crit }    trois phrases à reconstituer selon des critères
+//   mastery { theme }          objectif : retenir 60 % des mots du thème (suivi par la répétition espacée)
 //   pairs                      jeu des paires
 //   daily                      défi du jour
 // L'identifiant d'une étape (id) sert de clé de sauvegarde : ne pas le changer.
@@ -15,6 +16,9 @@ const lesson = (id) => ({ id: `l-${id}`, kind: 'lesson', lesson: id });
 const cards = (theme) => ({ id: `c-${theme}`, kind: 'cards', theme });
 const words = (theme) => ({ id: `w-${theme}`, kind: 'words', theme });
 const phrase = (id, title, crit) => ({ id, kind: 'phrase', title, crit });
+const mastery = (theme) => ({ id: `m-${theme}`, kind: 'mastery', theme });
+// Un thème de vocabulaire complet : découvrir (cartes), s'entraîner (quiz), retenir (objectif)
+const theme = (t) => [cards(t), words(t), mastery(t)];
 
 const KO = [
   {
@@ -157,4 +161,91 @@ const JA = [
   },
 ];
 
-export const ROADMAP = { ko: KO, ja: JA };
+// ---------- Modules de vocabulaire et de phrases, intercalés dans le parcours ----------
+// [identifiant du module après lequel insérer, module]
+const KO_VOCAB = [
+  ['ko3', {
+    id: 'kov1', glyph: '인사', color: 'var(--c-guide)',
+    title: L('Se présenter', 'Introducing yourself'), sub: L('Saluer, parler de soi et de sa famille', 'Greeting, talking about yourself and your family'),
+    steps: [...theme('phrPolite'), ...theme('family'), ...theme('phrTalk')],
+  }],
+  ['ko4', {
+    id: 'kov2', glyph: '몸', color: 'var(--c-hangul)',
+    title: L('Le corps et la maison', 'Body and home'), sub: L('Se décrire, dire où l’on a mal, nommer les objets', 'Describing yourself, saying what hurts, naming objects'),
+    steps: [...theme('body'), ...theme('home')],
+  }],
+  ['ko5', {
+    id: 'kov3', glyph: '쇼핑', color: 'var(--c-phrases)',
+    title: L('Faire des achats', 'Going shopping'), sub: L('Vêtements, couleurs, prix, et les phrases du voyageur', 'Clothes, colours, prices and the traveller’s phrases'),
+    steps: [...theme('clothes'), ...theme('phrTravel')],
+  }],
+  ['ko6', {
+    id: 'kov4', glyph: '자연', color: 'var(--c-words)',
+    title: L('Dehors', 'Out and about'), sub: L('Nature, météo, animaux, jours et moments', 'Nature, weather, animals, days and times'),
+    steps: [...theme('nature'), ...theme('animals'), ...theme('time')],
+  }],
+  ['ko8', {
+    id: 'kov5', glyph: '느낌', color: 'var(--c-guide)',
+    title: L('Décrire et ressentir', 'Describing and feeling'), sub: L('Adjectifs, émotions et caractère', 'Adjectives, emotions and character'),
+    steps: [...theme('describe'), ...theme('feelings')],
+  }],
+  ['ko8b', {
+    id: 'kov6', glyph: '동사', color: 'var(--c-hangul)',
+    title: L('Agir et se débrouiller', 'Acting and getting by'), sub: L('Les verbes du quotidien et les phrases en cas de pépin', 'Everyday verbs and phrases for when things go wrong'),
+    steps: [...theme('actions'), ...theme('phrHelp')],
+  }],
+  ['ko10', {
+    id: 'kov7', glyph: '사회', color: 'var(--c-stats)',
+    title: L('Travail et société', 'Work and society'), sub: L('Métiers, actualité, idées', 'Jobs, news, ideas'),
+    steps: [...theme('work'), phrase('p-work', L('Phrases du travail', 'Work sentences'), { level: '3', theme: 'study' })],
+  }],
+];
+
+const JA_VOCAB = [
+  ['ja3', {
+    id: 'jav1', glyph: '挨拶', color: 'var(--c-guide)',
+    title: L('Se présenter', 'Introducing yourself'), sub: L('Saluer, parler de soi et de sa famille', 'Greeting, talking about yourself and your family'),
+    steps: [...theme('phrPolite'), ...theme('family'), script('s-kanji-people', 'kanji-people'), ...theme('phrTalk')],
+  }],
+  ['ja4', {
+    id: 'jav2', glyph: '体', color: 'var(--c-hangul)',
+    title: L('Le corps et la maison', 'Body and home'), sub: L('Se décrire, dire où l’on a mal, nommer les objets', 'Describing yourself, saying what hurts, naming objects'),
+    steps: [...theme('body'), script('s-kanji-body', 'kanji-body'), ...theme('home')],
+  }],
+  ['ja5', {
+    id: 'jav3', glyph: '買い物', color: 'var(--c-phrases)',
+    title: L('Faire des achats', 'Going shopping'), sub: L('Vêtements, couleurs, prix, et les phrases du voyageur', 'Clothes, colours, prices and the traveller’s phrases'),
+    steps: [...theme('clothes'), script('s-kanji-quality', 'kanji-quality'), ...theme('phrTravel')],
+  }],
+  ['ja6', {
+    id: 'jav4', glyph: '自然', color: 'var(--c-words)',
+    title: L('Dehors', 'Out and about'), sub: L('Nature, météo, animaux, jours et moments', 'Nature, weather, animals, days and times'),
+    steps: [...theme('nature'), script('s-kanji-nature', 'kanji-nature'), ...theme('animals'), ...theme('time'), script('s-kanji-time', 'kanji-time'), script('s-kanji-places', 'kanji-places')],
+  }],
+  ['ja8', {
+    id: 'jav5', glyph: '気持ち', color: 'var(--c-guide)',
+    title: L('Décrire et ressentir', 'Describing and feeling'), sub: L('Adjectifs, émotions et caractère', 'Adjectives, emotions and character'),
+    steps: [...theme('describe'), ...theme('feelings')],
+  }],
+  ['ja8b', {
+    id: 'jav6', glyph: '動詞', color: 'var(--c-hangul)',
+    title: L('Agir et se débrouiller', 'Acting and getting by'), sub: L('Les verbes du quotidien et les phrases en cas de pépin', 'Everyday verbs and phrases for when things go wrong'),
+    steps: [...theme('actions'), ...theme('phrHelp')],
+  }],
+  ['ja9', {
+    id: 'jav7', glyph: '社会', color: 'var(--c-stats)',
+    title: L('Travail et société', 'Work and society'), sub: L('Métiers, actualité, idées, et les kanji de l’école et du travail', 'Jobs, news, ideas, and the kanji of school and work'),
+    steps: [...theme('work'), script('s-kanji-study', 'kanji-study'), phrase('p-work', L('Phrases du travail', 'Work sentences'), { level: '3', theme: 'study' })],
+  }],
+];
+
+function withVocab(units, extra) {
+  const out = [];
+  for (const u of units) {
+    out.push(u);
+    for (const [after, mod] of extra) if (after === u.id) out.push(mod);
+  }
+  return out;
+}
+
+export const ROADMAP = { ko: withVocab(KO, KO_VOCAB), ja: withVocab(JA, JA_VOCAB) };

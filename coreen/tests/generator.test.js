@@ -174,11 +174,16 @@ test('service worker : tous les fichiers de l’application sont mis en cache', 
 });
 
 test('japonais : kana regroupés et kanji', async () => {
-  const { KANJI_NUM, KANJI_LIFE, KANJI_ACTION } = await import('../js/content/kanji.js');
+  const { KANJI_GROUPS } = await import('../js/content/kanji.js');
   const sets = JA.script.sets;
   for (const k of ['base', 'voiced', 'combo']) for (const x of sets[k].items) assert.ok(x.j && x.j2 && x.r && x.j !== x.j2, x.j);
-  const all = [...KANJI_NUM, ...KANJI_LIFE, ...KANJI_ACTION];
-  assert.ok(all.length >= 70);
+  const all = KANJI_GROUPS.flatMap((g) => g.items);
+  assert.ok(all.length >= 300);
+  for (const g of KANJI_GROUPS) assert.ok(g.id && g.label.fr && g.label.en && g.items.length >= 10 && sets[`kanji-${g.id}`], g.id);
+  // un seul onglet de kanji ; les anciens identifiants restent utilisables par le parcours
+  assert.deepEqual(Object.keys(sets).filter((k) => !sets[k].hidden), ['base', 'voiced', 'combo', 'kanji']);
+  assert.equal(sets.kanji.items.length, all.length);
+  for (const k of ['kanjiNum', 'kanjiLife', 'kanjiAction']) assert.ok(sets[k].items.length >= 20, k);
   assert.equal(new Set(all.map((x) => x.j)).size, all.length);
   for (const x of all) {
     assert.match(x.j, /^[一-龯]$/, x.j);

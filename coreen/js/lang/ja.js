@@ -1,7 +1,7 @@
 // Cours de japonais : conjugaison, rendu des phrases, phrases « gênantes », kana, vocabulaire de base.
 import { NOUNS, PLACES, VERBS, verbLabel } from '../content/concepts.js';
 import { KANA_SETS, kanaToRomaji, particleRomaji, toHira } from './kana.js';
-import { KANJI_NUM, KANJI_LIFE, KANJI_ACTION } from '../content/kanji.js';
+import { KANJI_GROUPS } from '../content/kanji.js';
 import { GUIDE_JA } from '../content/guide.ja.js';
 import { GUIDE_JA_EN } from '../content/guide.ja.en.js';
 import { GUIDE_JA_PLUS } from '../content/guide.ja.plus.js';
@@ -10,6 +10,7 @@ import { localize } from '../content/guide.util.js';
 import { AWKWARD } from '../content/awkward.js';
 import { AWKWARD_EN } from './ko.js';
 import { pick } from '../generator.js';
+import { LEXICON } from '../content/lexicon.js';
 
 const L = (fr, en) => ({ fr, en });
 
@@ -357,6 +358,7 @@ function buildWords() {
     ...PLACES.filter((x) => x.ja).map((x) => ({ tl: x.ja[0], r: x.ja[1], fr: x.word, en: x.enWord, t: x.t })),
     ...VERBS.map((x) => ({ tl: x.ja.w, r: x.ja.r, fr: x.ja.label?.fr || verbLabel(x, 'fr'), en: x.ja.label?.en || verbLabel(x, 'en'), t: x.t[0] })),
     ...BASICS,
+    ...LEXICON.filter((x) => x.ja).map((x) => ({ tl: x.ja[0], r: x.ja[1], fr: x.fr, en: x.en, t: x.t })),
   ];
   const seen = new Set();
   return all.filter((x) => !seen.has(x.tl) && seen.add(x.tl)).map((x) => ({ id: x.tl, ...x }));
@@ -375,12 +377,18 @@ function randomSyllable() {
   return { text, rom: kanaToRomaji(text) };
 }
 
-// Kanji : trois groupes affichés après les kana.
+// Kanji : un seul onglet, découpé en catégories. Chaque catégorie a aussi son propre quiz
+// (jeux « kanji-<id> », masqués des onglets).
+const kanjiSet = (g) => ({ label: g.label, kind: 'kanji', items: g.items, hidden: true });
+const group = (id) => KANJI_GROUPS.find((g) => g.id === id);
 const SCRIPT_SETS = {
   ...KANA_SETS,
-  kanjiNum: { label: L('Kanji · nombres et temps', 'Kanji · numbers & time'), kind: 'kanji', items: KANJI_NUM },
-  kanjiLife: { label: L('Kanji · gens et lieux', 'Kanji · people & places'), kind: 'kanji', items: KANJI_LIFE },
-  kanjiAction: { label: L('Kanji · actions et qualités', 'Kanji · actions & qualities'), kind: 'kanji', items: KANJI_ACTION },
+  kanji: { label: L('Kanji', 'Kanji'), kind: 'kanji', items: KANJI_GROUPS.flatMap((g) => g.items), groups: KANJI_GROUPS },
+  ...Object.fromEntries(KANJI_GROUPS.map((g) => [`kanji-${g.id}`, kanjiSet(g)])),
+  // anciens identifiants, encore utilisés par des étapes du parcours déjà enregistrées
+  kanjiNum: kanjiSet(group('num')),
+  kanjiLife: kanjiSet(group('people')),
+  kanjiAction: kanjiSet(group('action')),
 };
 
 export const JA = {

@@ -2,7 +2,7 @@
 import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get, save, markRoad, starsFor } from './store.js';
 import { course, t, gloss } from './course.js';
-import { wordsOf } from './quiz.js';
+import { wordsOf, sizeCls } from './quiz.js';
 
 // ---------- Cartes mémoire ----------
 export function flashcards(el, theme, step) {
@@ -33,7 +33,7 @@ export function flashcards(el, theme, step) {
     deckEl.innerHTML = `
       <div class="flip" tabindex="0" role="button" aria-label="${t('cards.flip')}">
         <div class="face front">
-          <div class="kr-xl">${esc(w.tl)}</div>
+          <div class="kr-xl ${sizeCls(w.tl)}">${esc(w.tl)}</div>
           ${read ? `<div class="kr">${esc(read)}</div>` : ''}
           ${roman ? `<div class="muted">${esc(C.wordRom(w))}</div>` : ''}
           <button class="icon-btn speak" aria-label="${t('listen')}">${ICONS.sound}</button>
