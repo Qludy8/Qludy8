@@ -1043,6 +1043,3 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .quit-btn.armed .quit-label { display: inline; }
 .top-actions.quitting .lv-chip { display: none; }
 @keyframes quitPop { from { transform: scale(.85); } }
-.bye { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: var(--bg); animation: fadeIn .25s ease; }
-.bye-card { width: 100%; max-width: 360px; text-align: center; }
-.bye-kr { font-size: 3.2rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }

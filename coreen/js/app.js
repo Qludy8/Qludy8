@@ -41,7 +41,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '24'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '25'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -118,15 +118,13 @@ document.addEventListener('pointerdown', (e) => { if (quitEl.classList.contains(
 function quitApp() {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   window.close();
-  // Un navigateur refuse de fermer un onglet ouvert par l'utilisateur : on affiche alors un écran d'au revoir.
+  // Un navigateur peut refuser de fermer une page qu'il n'a pas ouverte lui-même. Aucun écran d'au revoir :
+  // dans un onglet, on quitte Haru pour une page vide ; installée, l'application revient simplement à l'accueil.
   setTimeout(() => {
-    if (window.closed || $('.bye')) return;
-    const bye = document.createElement('div');
-    bye.className = 'bye';
-    bye.innerHTML = `<div class="bye-card" role="dialog" aria-modal="true"><p class="bye-kr kr">${course().id === 'ja' ? 'またね' : '안녕'}</p><h2>${t('quit.bye')}</h2><p class="muted">${t('quit.hint')}</p><button class="btn primary big">${t('quit.reopen')}</button></div>`;
-    $('button', bye).addEventListener('click', () => bye.remove());
-    document.body.append(bye);
-    $('button', bye).focus({ preventScroll: true });
+    if (window.closed) return;
+    const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if (installed) location.hash = '#/road';
+    else location.href = 'about:blank';
   }, 350);
 }
 
