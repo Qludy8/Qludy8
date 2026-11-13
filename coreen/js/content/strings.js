@@ -2,7 +2,6 @@
 
 export const STRINGS = {
   fr: {
-    quit: 'Fermer l’application', 'quit.ask': 'Fermer ?', 'quit.confirm': 'Confirmer la fermeture de l’application',
     all: 'Tous', allThemes: 'Tous les thèmes', back: 'Retour', continue: 'Continuer', finish: 'Terminer', playAgain: 'Rejouer',
     listen: 'Écouter', delete: 'Supprimer', review: 'Révision', level: 'Niveau {n}', decimal: ',',
     'tab.home': 'Accueil', 'tab.words': 'Mots', 'tab.phrases': 'Phrases', 'tab.guide': 'Guide',
@@ -93,7 +92,6 @@ export const STRINGS = {
   },
 
   en: {
-    quit: 'Close the app', 'quit.ask': 'Close?', 'quit.confirm': 'Confirm closing the app',
     all: 'All', allThemes: 'All themes', back: 'Back', continue: 'Continue', finish: 'Done', playAgain: 'Play again',
     listen: 'Listen', delete: 'Delete', review: 'Review', level: 'Level {n}', decimal: '.',
     'tab.home': 'Home', 'tab.words': 'Words', 'tab.phrases': 'Sentences', 'tab.guide': 'Guide',

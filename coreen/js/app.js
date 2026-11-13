@@ -41,7 +41,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '25'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '26'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -87,45 +87,6 @@ function renderChrome() {
   levelChip();
   $('[data-top="settings"]').setAttribute('aria-label', t('title.settings'));
   backEl.setAttribute('aria-label', t('back'));
-  disarmQuit();
-}
-
-// ---------- Fermer l'application ----------
-// Deux touches : la croix rouge s'arme (« Fermer ? »), une seconde touche ferme. Sans confirmation, elle se désarme seule.
-const quitEl = $('#quit');
-let quitTimer = 0;
-function disarmQuit() {
-  clearTimeout(quitTimer);
-  quitEl.classList.remove('armed');
-  quitEl.parentElement.classList.remove('quitting');
-  $('.quit-label', quitEl).textContent = t('quit.ask');
-  quitEl.setAttribute('aria-label', t('quit'));
-}
-quitEl.addEventListener('click', () => {
-  if (!quitEl.classList.contains('armed')) {
-    quitEl.classList.add('armed');
-    quitEl.parentElement.classList.add('quitting');
-    quitEl.setAttribute('aria-label', t('quit.confirm'));
-    quitTimer = setTimeout(disarmQuit, 4000);
-    return;
-  }
-  disarmQuit();
-  quitApp();
-});
-// Toucher ailleurs annule la demande de fermeture.
-document.addEventListener('pointerdown', (e) => { if (quitEl.classList.contains('armed') && !e.target.closest('#quit')) disarmQuit(); });
-
-function quitApp() {
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
-  window.close();
-  // Un navigateur peut refuser de fermer une page qu'il n'a pas ouverte lui-même. Aucun écran d'au revoir :
-  // dans un onglet, on quitte Haru pour une page vide ; installée, l'application revient simplement à l'accueil.
-  setTimeout(() => {
-    if (window.closed) return;
-    const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-    if (installed) location.hash = '#/road';
-    else location.href = 'about:blank';
-  }, 350);
 }
 
 /** Pastille de niveau dans l'en-tête : numéro du niveau et avancement dans ce niveau. */
