@@ -1,5 +1,5 @@
 // Cartes mémoire (avec glissement) et jeu des paires.
-import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, speak, autoSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get, save, markRoad, starsFor } from './store.js';
 import { course, t, gloss } from './course.js';
 import { wordsOf, sizeCls } from './quiz.js';
@@ -68,7 +68,6 @@ export function flashcards(el, theme, step) {
       known++;
       sfx.ok();
     } else sfx.ko();
-    haptic(8);
     card.classList.add(ok ? 'out-right' : 'out-left');
     setTimeout(() => {
       i++;
@@ -190,7 +189,6 @@ export function pairs(el, step) {
       [sel, b].forEach((y) => y.classList.add('done'));
       burst(b, 8);
       sfx.ok();
-      haptic(8);
       found++;
       sel = null;
       if (found === words.length) finish();
@@ -199,7 +197,6 @@ export function pairs(el, step) {
       [sel, b].forEach((y) => pulse(y, 'shake'));
       sel.classList.remove('sel');
       sfx.ko();
-      haptic([20, 30, 20]);
       sel = null;
     }
   }));

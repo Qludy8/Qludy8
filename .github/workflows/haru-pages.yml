@@ -4,7 +4,7 @@ name: Haru – GitHub Pages
 
 on:
   push:
-    branches: [claude/kyara-weapons-card-game-g53sy3, ccr-b11f4f0e-w54v1k]
+    branches: [claude/kyara-weapons-card-game-g53sy3, ccr-b11f4f0e-w54v1k, ccr-152f23ed-x3j3ih]
     paths: ['coreen/**', '.github/workflows/haru-pages.yml']
   workflow_dispatch:
 

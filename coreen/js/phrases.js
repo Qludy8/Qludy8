@@ -1,5 +1,5 @@
 // Générateur de phrases, exercice « reconstituer » et défi du jour.
-import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, burst, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, burst, ICONS } from './ui.js';
 import { addXp, get, save, dayKey, dayNumber, markRoad, starsFor } from './store.js';
 import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
 import { THEMES } from './content/concepts.js';
@@ -79,7 +79,6 @@ export function reconstruct(box, phrase, onSolved) {
     if (placed.includes(x)) return;
     placed.push(x);
     sfx.tap();
-    haptic(5);
     render();
     check();
   });
@@ -126,13 +125,11 @@ export function reconstruct(box, phrase, onSolved) {
       bank.remove();
       line.insertAdjacentHTML('beforeend', `<span class="end-punct kr">${esc(phrase.end)}</span>`);
       sfx.ok();
-      haptic(12);
       burst(line, 16);
       autoSpeak(phrase.tl);
       onSolved?.(!helped, line);
     } else {
       sfx.ko();
-      haptic([25, 30, 25]);
       pulse(line, 'shake');
       $$('.placed', line).forEach((b, k) => b.classList.toggle('bad', placed[k].t !== phrase.tiles[k]));
     }
@@ -302,7 +299,6 @@ export function phrasesScreen(el) {
       save();
       b.classList.toggle('on', k < 0);
       pulse(b, 'bump');
-      haptic(8);
       toast(k < 0 ? t('journal.added') : t('journal.removed'));
       renderJournal();
     });
@@ -317,7 +313,6 @@ export function phrasesScreen(el) {
     const b = e.currentTarget;
     pulse(b, 'spin');
     sfx.tap();
-    haptic(6);
     current = generate(crit, Math.random, course());
     $('.crit', el).open = false;
     showPhrase(true);

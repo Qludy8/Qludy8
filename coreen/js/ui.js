@@ -1,4 +1,4 @@
-// Petits outils d'interface : voix, sons, vibrations, confettis, animations.
+// Petits outils d'interface : voix, sons, confettis, animations.
 import { get } from './store.js';
 import { course } from './course.js';
 
@@ -67,9 +67,6 @@ export const sfx = {
   win: () => tone([523, 659, 784, 1047], 0.12),
 };
 
-export function haptic(pattern = 10) {
-  if (get().settings.haptics && navigator.vibrate) navigator.vibrate(pattern);
-}
 
 // ---------- Retour visuel ----------
 export function toast(msg) {

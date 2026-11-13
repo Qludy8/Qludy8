@@ -587,7 +587,6 @@ body.focus #tabs { transform: translateY(110%); }
 .switch input:checked + i { background: var(--ok); }
 .switch input:checked + i::after { transform: translateX(20px); }
 .switch input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 2px; }
-.install-help { display: grid; gap: 8px; font-size: .92rem; }
 .data-actions { display: grid; gap: 10px; margin-bottom: 18px; }
 .data-actions label { cursor: pointer; }
 
@@ -1049,7 +1048,3 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .jamo-grid.kanji { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .jamo-grid.kanji .jamo, .jamo-group { min-width: 0; }
 
-/* Rappels */
-.remind-at { font: inherit; font-weight: 800; padding: 8px 10px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); }
-.remind-card .remind-test { align-self: flex-start; margin-top: 8px; }
-.remind-card .remind-test[hidden] { display: none; }

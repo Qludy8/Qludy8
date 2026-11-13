@@ -1,5 +1,5 @@
 // Parcours : carte des modules et de leurs étapes, de difficulté croissante.
-import { $, $$, esc, sfx, haptic, celebrate, ICONS } from './ui.js';
+import { $, $$, esc, sfx, celebrate, ICONS } from './ui.js';
 import * as store from './store.js';
 import { course, t, tr, lang } from './course.js';
 import { ALL_THEMES, themeGlyph, themeShort } from './content/lexicon.js';
@@ -138,7 +138,6 @@ export function roadScreen(el) {
     st.road[`open:${b.closest('.ru').dataset.u}`] = true;
     store.save();
     sfx.ok();
-    haptic(10);
     roadScreen(el);
   }));
 

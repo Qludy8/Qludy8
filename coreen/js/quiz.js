@@ -1,5 +1,5 @@
 // Moteur de quiz à choix multiples + quiz d'écriture (hangeul / kana) et de vocabulaire.
-import { $, $$, esc, shuffle, sfx, haptic, speak, autoSpeak, canSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
+import { $, $$, esc, shuffle, sfx, speak, autoSpeak, canSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get, markRoad, starsFor } from './store.js';
 import { course, t, tr, gloss } from './course.js';
 import { ALL_THEMES } from './content/lexicon.js';
@@ -67,7 +67,6 @@ export function runQuiz(el, { questions, title, again, back, step }) {
     if (q.say) autoSpeak(q.say);
     if (ok) {
       sfx.ok();
-      haptic(8);
       burst(right);
       combo++;
       if (!q.retry) {
@@ -77,7 +76,6 @@ export function runQuiz(el, { questions, title, again, back, step }) {
     } else {
       btn.classList.add('wrong');
       sfx.ko();
-      haptic([30, 40, 30]);
       combo = 0;
     }
     if (!q.retry) q.onAnswer?.(ok);
