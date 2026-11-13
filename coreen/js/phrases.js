@@ -1,8 +1,8 @@
 // Générateur de phrases, exercice « reconstituer » et défi du jour.
 import { $, $$, esc, shuffle, sfx, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, burst, ICONS } from './ui.js';
-import { addXp, get, save, dayKey, dayNumber, markRoad, starsFor, bump } from './store.js';
+import { addXp, get, save, dayKey, markRoad, starsFor, bump } from './store.js';
 import { mountTyping, normAnswer } from './keyboard.js';
-import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
+import { generate, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
 import { THEMES } from './content/concepts.js';
 import { course, t, tr, lang } from './course.js';
 
@@ -23,9 +23,15 @@ function criteria() {
     { key: 'style', label: t('crit.style'), options: C.styles.map((k) => [k, tr(STYLE_LABEL[k])]),
       help: Object.fromEntries(Object.entries(STYLE_HELP[C.id]).map(([k, v]) => [k, tr(v)])) },
     { key: 'form', label: t('crit.form'), options: [['random', t('crit.random')], ...Object.entries(FORM_LABEL).map(([k, v]) => [k, tr(v)])] },
+    { key: 'kind', label: t('crit.kind'), options: [['random', t('crit.random')], ['obj', t('crit.kObj')], ['go', t('crit.kGo')], ['act', t('crit.kAct')], ['adj', t('crit.kAdj')]],
+      help: { obj: t('crit.kObjHelp'), go: t('crit.kGoHelp'), act: t('crit.kActHelp'), adj: t('crit.kAdjHelp') } },
+    { key: 'subj', label: t('crit.subj'), options: [['random', t('crit.random')], ['me', t('crit.sMe')], ['friend', t('crit.sFriend')], ['we', t('crit.sWe')]],
+      help: { me: t('crit.subjHelp'), friend: t('crit.subjHelp'), we: t('crit.subjHelp') } },
+    { key: 'time', label: t('crit.time'), options: [['auto', t('crit.tAuto')], ['yes', t('crit.tYes')], ['no', t('crit.tNo')]],
+      help: { auto: t('crit.tAutoHelp') } },
   ];
 }
-const DEFAULT_CRIT = { mood: 'normal', level: '1', theme: 'all', tense: 'random', style: 'polite', form: 'random' };
+const DEFAULT_CRIT = { mood: 'normal', level: '1', theme: 'all', tense: 'random', style: 'polite', form: 'random', kind: 'random', subj: 'random', time: 'auto' };
 
 let current = null; // dernière phrase générée
 let currentCourse = null;
@@ -76,9 +82,79 @@ export function reconstruct(box, phrase, onSolved, { strict = false, onFail } = 
     bank.innerHTML = order.map((x, k) => `<button class="chip kr ${placed.includes(x) ? 'used' : ''}" data-k="${k}" style="--i:${k}">${esc(x.t)}</button>`).join('');
   }
 
+  // Glisser-déposer : on attrape une étiquette (dans la réserve ou dans la réponse) et on la pose où l'on veut.
+  // Un simple toucher fonctionne toujours : il ajoute l'étiquette à la fin, ou la retire.
+  let dragged = false; // un glisser vient de se terminer : le « clic » qui suit est ignoré
+  box.querySelector('.recon').addEventListener('pointerdown', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip || solved || chip.classList.contains('used')) return;
+    const fromLine = chip.classList.contains('placed');
+    const item = fromLine ? placed[chip.dataset.k] : order[chip.dataset.k];
+    const x0 = e.clientX;
+    const y0 = e.clientY;
+    let ghost = null;
+    let mark = null;
+    let index = -1;
+    const others = () => $$('.placed', line).filter((c) => c !== chip);
+    const move = (ev) => {
+      if (!ghost) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return;
+        const r = chip.getBoundingClientRect();
+        ghost = chip.cloneNode(true);
+        ghost.classList.add('drag-ghost');
+        ghost.style.width = `${r.width}px`;
+        ghost.dataset.dx = x0 - r.left;
+        ghost.dataset.dy = y0 - r.top;
+        document.body.append(ghost);
+        chip.classList.add('dragging');
+        mark = document.createElement('i');
+        mark.className = 'drop-mark';
+      }
+      ev.preventDefault();
+      ghost.style.left = `${ev.clientX - ghost.dataset.dx}px`;
+      ghost.style.top = `${ev.clientY - ghost.dataset.dy}px`;
+      const lr = line.getBoundingClientRect();
+      const over = ev.clientX > lr.left - 24 && ev.clientX < lr.right + 24 && ev.clientY > lr.top - 34 && ev.clientY < lr.bottom + 34;
+      line.classList.toggle('drop-on', over);
+      if (!over) {
+        index = -1;
+        mark.remove();
+        return;
+      }
+      // Place d'insertion : après toutes les étiquettes situées avant le doigt (ordre de lecture)
+      const list = others();
+      index = list.filter((c) => {
+        const r = c.getBoundingClientRect();
+        return ev.clientY > r.bottom || (ev.clientY >= r.top && ev.clientX > r.left + r.width / 2);
+      }).length;
+      if (list[index]) list[index].before(mark);
+      else line.append(mark);
+    };
+    const up = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', up);
+      if (!ghost) return;
+      ghost.remove();
+      mark.remove();
+      line.classList.remove('drop-on');
+      dragged = true;
+      setTimeout(() => { dragged = false; }, 60);
+      const at = placed.indexOf(item);
+      if (at >= 0) placed.splice(at, 1);
+      if (index >= 0) placed.splice(index, 0, item);
+      sfx.tap();
+      render();
+      if (index >= 0) check();
+    };
+    document.addEventListener('pointermove', move, { passive: false });
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
+  });
+
   bank.addEventListener('click', (e) => {
     const b = e.target.closest('.chip');
-    if (!b || solved) return;
+    if (!b || solved || dragged) return;
     const x = order[b.dataset.k];
     if (placed.includes(x)) return;
     placed.push(x);
@@ -88,7 +164,7 @@ export function reconstruct(box, phrase, onSolved, { strict = false, onFail } = 
   });
   line.addEventListener('click', (e) => {
     const b = e.target.closest('.chip');
-    if (!b || solved) return;
+    if (!b || solved || dragged) return;
     placed.splice(Number(b.dataset.k), 1);
     sfx.tap();
     render();
@@ -293,7 +369,7 @@ export function phrasesScreen(el) {
     const label = (k) => CRITERIA.find((c) => c.key === k).options.find(([v]) => v === crit[k])?.[1] ?? '';
     $('.crit-sum', el).textContent = crit.mood === 'awkward' ? [t('crit.awkward'), label('style')].join(' · ') : [label('level'), label('theme'), label('style')].join(' · ');
     el.querySelector('.phrases').classList.toggle('awkward-on', crit.mood === 'awkward');
-    for (const k of ['level', 'theme']) $(`.seg[data-key="${k}"]`, el).closest('.crit-group').classList.toggle('dim', crit.mood === 'awkward');
+    for (const k of ['level', 'theme', 'kind', 'subj', 'time']) $(`.seg[data-key="${k}"]`, el).closest('.crit-group').classList.toggle('dim', crit.mood === 'awkward');
   }
   $$('.seg', el).forEach((seg) => seg.addEventListener('click', (e) => {
     const b = e.target.closest('.seg-btn');
@@ -454,16 +530,7 @@ export function phrasesScreen(el) {
   renderJournal();
 }
 
-// ---------- Défi du jour ----------
-export function dailyPhrases(date = new Date()) {
-  const r = rng(dayNumber(date) * 7919);
-  return [1, 2, 3].map((level) => generate({ level, style: 'polite', tense: 'random', form: 'random', theme: 'all' }, r, course()));
-}
-
-export function phraseOfDay() {
-  return generate({ level: 2, style: 'polite' }, rng(dayNumber() * 104729 + 1), course());
-}
-
+// ---------- Séries de phrases (étapes du parcours) ----------
 /** Série de phrases à reconstituer (ou à écrire au clavier), l'une après l'autre. onEnd(nombre de phrases réussies sans aide). */
 function phraseSeries(el, list, onEnd, typed = false) {
   let i = 0;
@@ -525,35 +592,4 @@ export function roadPhrases(el, step) {
     countUp($('.xp-won .n', el), xp);
     $('.again', el).addEventListener('click', () => roadPhrases(el, step));
   }, typed);
-}
-
-export function dailyScreen(el, q = {}) {
-  const st = get();
-  const key = dayKey();
-  const list = dailyPhrases();
-  const already = (st.daily[key] || 0) >= list.length;
-  phraseSeries(el, list, finish);
-
-  function finish(clean) {
-    const xp = already ? 0 : 10 + clean * 2;
-    if (!already) {
-      st.daily[key] = list.length;
-      save();
-      addXp(xp);
-    }
-    sfx.win();
-    confetti();
-    el.innerHTML = `
-      <div class="result screen">
-        <div class="big-glyph kr">${course().id === 'ja' ? '完了！' : '완료!'}</div>
-        <h2>${t('daily.done')}</h2>
-        <p class="muted">${t('daily.summary', { n: clean, total: list.length })}</p>
-        ${xp ? '<div class="xp-won">+<span class="n">0</span> XP</div>' : `<p class="muted">${t('daily.already')}</p>`}
-        <div class="stack">
-          ${q.step ? `<a class="btn primary" href="#/road">${t('road.back')}</a>` : `<a class="btn primary" href="#/phrases">${t('daily.more')}</a>`}
-          <a class="btn ghost" href="#/road">${t('road.title')}</a>
-        </div>
-      </div>`;
-    if (xp) countUp($('.xp-won .n', el), xp);
-  }
 }

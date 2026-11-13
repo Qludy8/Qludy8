@@ -3,7 +3,9 @@
 import { $, esc, shuffle, sfx } from './ui.js';
 import * as store from './store.js';
 import { course, t, tr, lang } from './course.js';
-import { runQuiz, mcq, wordQuestion, letterQuestion, kanjiQuestion, kanaForms, syllableQuestion, shortWords } from './quiz.js';
+import { runQuiz, wordQuestion, letterQuestion, kanjiQuestion, matchKanji, kanaForms, syllableQuestion, shortWords, readWordQuestion, typable } from './quiz.js';
+import { normAnswer } from './keyboard.js';
+import { canListen } from './speech.js';
 import { phraseFor } from './phrases.js';
 import { roadState } from './road.js';
 
@@ -23,7 +25,6 @@ function sourcesOf(steps, extraLessons = []) {
     if (s.set) src.sets.add(s.set);
     if (s.kind === 'lesson') src.lessons.add(s.lesson);
     if (s.kind === 'phrase' || s.kind === 'ptype') src.crits.push(s.crit);
-    if (s.kind === 'daily') src.crits.push({ level: '2' });
     if (s.kind === 'pairs') src.sets.add('words');
   }
   return src;
@@ -41,25 +42,37 @@ function examplesOf(ids) {
   return out;
 }
 
-function lessonQuestion(x, kind, pool) {
+/**
+ * Question sur un exemple de leçon.
+ * kind : pron (coréen : écrire la prononciation réelle) · order (phrase : remettre les mots dans l'ordre)
+ *        speak (lire à voix haute) · type (traduction → écrire)
+ * Renvoie null si l'exemple ne s'y prête pas.
+ */
+function lessonQuestion(x, kind) {
   const C = course();
-  const others = pool.filter((o) => o.tl !== x.tl);
-  const read = x.pr && C.id === 'ja' ? ` · ${x.pr}` : '';
-  const base = { say: x.tl, explain: `<span class="kr">${esc(x.tl)}</span>${esc(read)}${x.pr && C.id === 'ko' ? ` [<span class="kr">${esc(x.pr)}</span>]` : ''} = ${esc(x.tr)}` };
+  const ko = C.id === 'ko';
+  const read = x.pr && !ko ? ` · ${x.pr}` : '';
+  const base = { say: x.tl, explain: `<span class="kr">${esc(x.tl)}</span>${esc(read)}${x.pr && ko ? ` [<span class="kr">${esc(x.pr)}</span>]` : ''} = ${esc(x.tr)}` };
   const size = x.tl.length > 14 ? 'xlong' : x.tl.length > 6 ? 'long' : '';
-  if (kind === 'pron' && C.id === 'ko' && x.pr && x.pr !== x.tl) {
-    // Comment se prononce vraiment ce mot ? (la forme écrite sert de piège)
-    const options = shuffle([
-      { label: x.pr, kr: true }, { label: x.tl, kr: true },
-      ...shuffle(others.filter((o) => o.pr && o.pr !== x.pr && o.pr !== x.tl)).slice(0, 2).map((o) => ({ label: o.pr, kr: true })),
-    ]);
-    return { ...base, prompt: `<span class="qkr ${size}">${esc(x.tl)}</span>`, sub: t('exam.howPron'), options, correct: options.findIndex((o) => o.label === x.pr) };
+  const kana = ko ? x.tl : x.pr && !/[一-龯々]/.test(x.pr) ? x.pr : !/[一-龯々]/.test(x.tl) ? x.tl : null;
+  if (kind === 'pron') {
+    if (!ko || !x.pr || x.pr === x.tl || x.pr.length > 8) return null;
+    return { ...base, type: 'input', answer: x.pr, accept: [x.pr], prompt: `<span class="qkr ${size}">${esc(x.tl)}</span>`, sub: t('exam.howPron'), placeholder: '한글' };
   }
-  if (kind === 'pick') {
-    return mcq({ ...base, say: null, prompt: `<span class="qlatin">${esc(x.tr)}</span>`, sub: t('quiz.howSay', { lang: tr(C.name).toLowerCase() }) }, { label: x.tl, kr: true }, others.map((o) => ({ label: o.tl, kr: true })), 4);
+  if (kind === 'order') {
+    const tiles = x.tl.replace(/[.?!]+$/, '').split(/\s+/).filter(Boolean);
+    if (!ko || tiles.length < 2) return null;
+    return { ...base, type: 'order', sub: t('order.words'), phrase: { tiles, tl: x.tl, end: (x.tl.match(/[.?!]+$/) || [''])[0], fr: x.tr, en: x.tr } };
   }
-  return mcq({ ...base, prompt: `<span class="qkr ${size}">${esc(x.tl)}</span>`, sub: t('quiz.whatMeansEx') }, { label: x.tr }, others.map((o) => ({ label: o.tr })), 4);
+  if (kind === 'speak') {
+    if (!canListen() || x.tl.length > 14) return null;
+    return { ...base, type: 'speak', answer: x.tl, accept: [x.tl, x.pr].filter(Boolean), prompt: `<span class="qkr ${size}">${esc(x.tl)}</span>`, sub: x.tr, fallback: () => lessonQuestion(x, 'type') || matchExamples([x]) };
+  }
+  if (!kana || normAnswer(kana).length > 9) return null;
+  return { ...base, say: null, type: 'input', answer: x.tl, accept: [kana, x.tl], prompt: `<span class="qlatin">${esc(x.tr)}</span>`, sub: t(ko ? 'type.write' : 'type.writeKana', { lang: tr(C.name).toLowerCase() }) };
 }
+/** Paires à relier : exemples ↔ traductions. */
+const matchExamples = (list) => ({ type: 'match', sub: t('match.examples'), pairs: list.slice(0, 4).map((x) => ({ a: x.tl, b: x.tr, say: x.tl })) });
 
 // ---------- Composition d'un examen ----------
 /** Tire n questions en puisant tour à tour dans chaque type de contenu. */
@@ -68,11 +81,12 @@ function compose(src, n) {
   const S = C.script;
   const pools = [];
 
-  // Vocabulaire : écrire, comprendre à l'oreille, reconnaître sans romanisation
+  // Vocabulaire : écrire, comprendre à l'oreille, prononcer
   const words = shuffle(C.words.filter((w) => src.themes.has(w.t)));
   if (words.length) {
-    const kinds = ['type', 'listen2fr', 'fr2kr', 'dict', 'kr2fr'];
-    pools.push(words.map((w, k) => () => wordQuestion(w, kinds[k % kinds.length], { pool: words, n: N_OPT, plain: true })));
+    const kinds = ['type', 'dict', 'speak', 'type', 'dict'];
+    const hard = ['order', 'speak', 'spell'];
+    pools.push(words.map((w, k) => () => wordQuestion(w, typable(w) ? kinds[k % kinds.length] : hard[k % hard.length], { pool: words, n: N_OPT, plain: true })));
   }
 
   // Écriture : lettres, kanji, syllabes, mots à lire
@@ -80,31 +94,36 @@ function compose(src, n) {
   for (const id of src.sets) {
     const set = S.sets[id];
     if (set?.kind === 'kanji') {
-      const kinds = ['mean', 'type', 'reading', 'pick'];
-      shuffle(set.items).slice(0, n).forEach((x, k) => letters.push(() => kanjiQuestion(x, kinds[k % kinds.length], set.items, N_OPT)));
+      const items = shuffle(set.items).slice(0, n);
+      for (let k = 0; k + 3 < items.length; k += 6) letters.push(() => matchKanji(items.slice(k, k + 4)));
+      items.forEach((x, k) => letters.push(() => kanjiQuestion(x, k % 3 === 2 ? 'speak' : 'type')));
     } else if (set) {
-      const items = kanaForms(set.items);
-      const others = [...items, ...kanaForms(set.decoys || [])];
-      const kinds = ['type', 'read', 'type', 'pick'];
-      shuffle(items).slice(0, n).forEach((x, k) => letters.push(() => letterQuestion(x, kinds[k % kinds.length], others, N_OPT)));
+      const kinds = ['type', 'rom', 'type', 'speak'];
+      shuffle(kanaForms(set.items)).slice(0, n).forEach((x, k) => letters.push(() => letterQuestion(x, kinds[k % kinds.length])));
     } else if (id === 'syllables') {
-      for (let k = 0; k < 4; k++) letters.push(() => syllableQuestion(k % 2 ? 'read' : 'type'));
+      for (let k = 0; k < 4; k++) letters.push(() => syllableQuestion(k % 2 ? 'rom' : 'type'));
     } else if (id === 'words') {
       const pool = shortWords();
-      shuffle(pool).slice(0, 4).forEach((w, k) => letters.push(() => wordQuestion(w, k % 2 ? 'listen2fr' : 'dict', { pool, n: N_OPT, plain: true, track: false })));
+      shuffle(pool).slice(0, 4).forEach((w, k) => letters.push(() => (k % 2 ? readWordQuestion(w) : wordQuestion(w, 'dict', { pool, plain: true, track: false }))));
     }
   }
   if (letters.length) pools.push(shuffle(letters));
 
-  // Leçons : sens des exemples, et prononciation réelle
-  const ex = examplesOf(src.lessons);
+  // Leçons : relier les exemples à leur sens, écrire la prononciation réelle, remettre les phrases dans l'ordre
+  const ex = shuffle(examplesOf(src.lessons));
   if (ex.length >= 4) {
-    const kinds = ['mean', 'pron', 'pick'];
-    pools.push(shuffle(ex).map((x, k) => () => lessonQuestion(x, kinds[k % kinds.length], ex)));
+    const kinds = ['pron', 'order', 'speak', 'type'];
+    const qs = [];
+    for (let k = 0; k + 3 < ex.length && qs.length < 3; k += 4) qs.push(() => matchExamples(ex.slice(k, k + 4)));
+    ex.forEach((x, k) => {
+      const q = lessonQuestion(x, kinds[k % 4]) || lessonQuestion(x, 'type') || lessonQuestion(x, 'order');
+      if (q) qs.push(() => q);
+    });
+    pools.push(shuffle(qs));
   }
 
   // Phrases : à remettre dans l'ordre, sans aide
-  if (src.crits.length) pools.push(shuffle(src.crits).slice(0, Math.max(2, Math.round(n / 5))).map((crit) => () => ({ type: 'order', phrase: phraseFor(crit) })));
+  if (src.crits.length) pools.push(shuffle(src.crits).slice(0, Math.max(2, Math.round(n / 4))).map((crit) => () => ({ type: 'order', sub: t('order.sentence'), phrase: phraseFor(crit) })));
 
   const out = [];
   let k = 0;

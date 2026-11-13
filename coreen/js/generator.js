@@ -34,15 +34,24 @@ export function makePlan(opts, r, lang) {
   };
 
   const wantable = (v) => ['obj', 'go', 'act'].includes(v.type) && !v.noWant;
+  // kind : genre de phrase voulu (obj : action sur quelque chose, go : déplacement, act : activité, adj : description)
+  const kind = opts.kind && opts.kind !== 'random' ? opts.kind : null;
+  const ofKind = (v) => !kind || (kind === 'adj' ? v.type === 'adj' || v.type === 'weather' : v.type === kind);
   const fits = (v) => has(v) && (!want || wantable(v)) && !(tense === 'future' && v.noFuture);
-  let pool = VERBS.filter((v) => fits(v) && (!theme || v.t.includes(theme)));
+  let pool = VERBS.filter((v) => fits(v) && ofKind(v) && (!theme || v.t.includes(theme)));
+  if (!pool.length) pool = VERBS.filter((v) => fits(v) && ofKind(v));
+  if (!pool.length) {
+    pool = VERBS.filter((v) => fits(v) && (!theme || v.t.includes(theme)));
+    adjusted.push({ fr: 'Ce genre de phrase ne va pas avec la forme choisie : un autre a été pris.', en: 'That kind of sentence does not fit the chosen form: another one was used.' });
+  }
   if (!pool.length) pool = VERBS.filter(fits);
   const verb = pick(r, pool);
   if (want && tense === 'future') {
     tense = 'present';
     adjusted.push({ fr: 'L’envie se pratique ici au présent ou au passé.', en: 'Wishes are practised here in the present or the past.' });
   }
-  const time = level >= 2 ? pick(r, TIMES[tense]) : null;
+  // time : « yes » ajoute toujours un moment, « no » jamais ; sinon c'est le niveau qui décide
+  const time = opts.time === 'yes' || (opts.time !== 'no' && level >= 2) ? pick(r, TIMES[tense]) : null;
 
   let subj;
   let thing = null;
@@ -50,7 +59,9 @@ export function makePlan(opts, r, lang) {
   else if (verb.type === 'adj' && verb.subj !== 'person') {
     subj = 'thing';
     thing = pick(r, preferTheme(NOUNS.filter((x) => has(x) && verb.subj.includes(x.cat) && (!verb.only || verb.only.includes(x.id)) && (!x.frDef.startsWith('les ') || verb.fr.mp))));
-  } else subj = form === 'question' ? pick(r, ['you', 'you', 'friend']) : pick(r, ['me', 'me', 'friend', 'we']);
+  } else if (['me', 'friend', 'we'].includes(opts.subj) && form !== 'question') subj = opts.subj;
+  else if (opts.subj === 'friend') subj = 'friend';
+  else subj = form === 'question' ? pick(r, ['you', 'you', 'friend']) : pick(r, ['me', 'me', 'friend', 'we']);
 
   let place = null;
   if (verb.type === 'go') place = pick(r, preferTheme(PLACES.filter(has)));

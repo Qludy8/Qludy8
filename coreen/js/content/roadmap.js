@@ -7,11 +7,11 @@
 //   phrase  { title, crit }    trois phrases à reconstituer selon des critères
 //   mastery { theme }          objectif : retenir 60 % des mots du thème (suivi par la répétition espacée)
 //   pairs                      jeu des paires
-//   daily                      défi du jour
 //   write   { set, form }      tracer les lettres dans le bon ordre des traits (form : hira | kata pour les kana)
 //   type    { set | theme }    écrire au clavier : lettres d'un jeu, ou mots d'un thème à partir de leur traduction
 //   dictation { theme }        dictée : écrire au clavier les mots entendus
 //   ptype   { title, crit }    trois phrases à écrire entièrement au clavier
+//   speak   { set | theme }    prononcer à voix haute les lettres d'un jeu ou les mots d'un thème (le téléphone écoute)
 // Chaque module se termine par un examen (ajouté automatiquement dans road.js) : réussi, il passe au platine.
 // Les modules sont rangés en chapitres (CHAPTERS, en bas du fichier).
 // L'identifiant d'une étape (id) sert de clé de sauvegarde : ne pas le changer.
@@ -30,10 +30,12 @@ const typeS = (set) => ({ id: `ty-${set}`, kind: 'type', set });
 const typeW = (t) => ({ id: `t-${t}`, kind: 'type', theme: t });
 const dict = (t) => ({ id: `d-${t}`, kind: 'dictation', theme: t });
 const ptype = (id, title, crit) => ({ id, kind: 'ptype', title, crit });
+const speakW = (t) => ({ id: `v-${t}`, kind: 'speak', theme: t });
+const speakS = (set) => ({ id: `vs-${set}`, kind: 'speak', set });
 // Thème approfondi : découvrir, reconnaître, écrire, comprendre à l'oreille, retenir
-const themePlus = (t) => [cards(t), words(t), typeW(t), dict(t), mastery(t)];
+const themePlus = (t) => [cards(t), words(t), typeW(t), dict(t), speakW(t), mastery(t)];
 // Phrases toutes faites : découvrir, reconnaître, comprendre à l'oreille, retenir
-const phrasePlus = (t) => [cards(t), words(t), dict(t), mastery(t)];
+const phrasePlus = (t) => [cards(t), words(t), dict(t), speakW(t), mastery(t)];
 
 const KO = [
   {
@@ -89,7 +91,7 @@ const KO = [
   {
     id: 'ko10', glyph: '고급', color: 'var(--c-home)',
     title: L('Aller plus loin', 'Going further'), sub: L('Irréguliers, intonation et phrases avancées', 'Irregulars, intonation and advanced sentences'),
-    steps: [lesson('voyelles'), lesson('si'), lesson('rythme'), lesson('irreguliers'), phrase('p-advanced', L('Phrases avancées', 'Advanced sentences'), { level: '3' }), { id: 'g-daily', kind: 'daily' }],
+    steps: [lesson('voyelles'), lesson('si'), lesson('rythme'), lesson('irreguliers'), phrase('p-advanced', L('Phrases avancées', 'Advanced sentences'), { level: '3' }), ptype('pt-mix', L('Écrire des phrases variées', 'Writing mixed sentences'), { level: '2' })],
   },
   {
     id: 'ko11', glyph: '문장', color: 'var(--c-stats)',
@@ -157,7 +159,7 @@ const JA = [
   {
     id: 'ja9', glyph: '上級', color: 'var(--c-home)',
     title: L('Aller plus loin', 'Going further'), sub: L('Style familier, prononciation fine, phrases avancées', 'Casual style, fine pronunciation, advanced sentences'),
-    steps: [lesson('familier'), lesson('nai'), lesson('permission'), lesson('potentiel'), lesson('muettes'), lesson('accent'), { id: 'g-pairs', kind: 'pairs' }, phrase('p-advanced', L('Phrases avancées', 'Advanced sentences'), { level: '3' }), { id: 'g-daily', kind: 'daily' }],
+    steps: [lesson('familier'), lesson('nai'), lesson('permission'), lesson('potentiel'), lesson('muettes'), lesson('accent'), { id: 'g-pairs', kind: 'pairs' }, phrase('p-advanced', L('Phrases avancées', 'Advanced sentences'), { level: '3' }), ptype('pt-mix', L('Écrire des phrases variées', 'Writing mixed sentences'), { level: '2' })],
   },
   {
     id: 'ja10', glyph: '文', color: 'var(--c-stats)',
@@ -353,12 +355,12 @@ const KO_NEW = [
   {
     id: 'ko1w', glyph: '쓰기', color: 'var(--c-guide)',
     title: L('Tracer les lettres', 'Tracing the letters'), sub: L('L’ordre des traits, puis le clavier coréen', 'Stroke order, then the Korean keyboard'),
-    steps: [write('vowels'), write('consonants'), typeS('vowels'), typeS('consonants'), typeS('syllables')],
+    steps: [write('vowels'), write('consonants'), typeS('vowels'), typeS('consonants'), speakS('vowels'), typeS('syllables')],
   },
   {
     id: 'ko2w', glyph: '받아쓰기', color: 'var(--c-home)',
     title: L('Écrire pour de bon', 'Writing for real'), sub: L('Lettres composées et doubles, puis des mots sous la dictée', 'Compound and double letters, then words from dictation'),
-    steps: [write('compound'), write('double'), typeS('compound'), typeS('double'), typeS('words')],
+    steps: [write('compound'), write('double'), typeS('compound'), typeS('double'), typeS('words'), speakS('words')],
   },
   {
     id: 'ko2b', glyph: '받침', color: 'var(--c-phrases)',
@@ -371,7 +373,7 @@ const JA_NEW = [
   {
     id: 'ja1w', glyph: 'かく', color: 'var(--c-guide)',
     title: L('Tracer les hiragana', 'Tracing hiragana'), sub: L('L’ordre des traits, puis le clavier des kana', 'Stroke order, then the kana keyboard'),
-    steps: [write('base', 'hira'), typeS('base'), typeS('syllables')],
+    steps: [write('base', 'hira'), typeS('base'), speakS('base'), typeS('syllables')],
   },
   {
     id: 'ja1k', glyph: 'カナ', color: 'var(--c-home)',
@@ -381,7 +383,7 @@ const JA_NEW = [
   {
     id: 'ja2w', glyph: '書く', color: 'var(--c-phrases)',
     title: L('Écrire pour de bon', 'Writing for real'), sub: L('Sons combinés, mots sous la dictée, pièges de longueur', 'Combined sounds, words from dictation, length traps'),
-    steps: [typeS('combo'), typeS('words'), lesson('paires'), lesson('yotsugana')],
+    steps: [typeS('combo'), typeS('words'), speakS('words'), lesson('paires'), lesson('yotsugana')],
   },
   {
     id: 'jakw', glyph: '漢字', color: 'var(--c-hangul)',

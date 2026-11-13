@@ -79,8 +79,8 @@ test('tracé : toutes les lettres ont leurs traits', () => {
 });
 
 test('textes : les clés choisies à l’exécution existent aussi', () => {
-  const src = ['quiz', 'draw', 'exam', 'road', 'phrases', 'app'].map((f) => readFileSync(new URL(`../js/${f}.js`, import.meta.url), 'utf8')).join('\n');
-  const keys = new Set([...src.matchAll(/'((?:type|write|exam|final|road|script|ach|words|daily)\.[a-zA-Z0-9]+)'/g)].map((m) => m[1]));
+  const src = ['quiz', 'draw', 'exam', 'road', 'phrases', 'app', 'speech'].map((f) => readFileSync(new URL(`../js/${f}.js`, import.meta.url), 'utf8')).join('\n');
+  const keys = new Set([...src.matchAll(/'((?:type|write|exam|final|road|script|ach|words|daily|speak|match|order|crit|set|quiz)\.[a-zA-Z0-9]+)'/g)].map((m) => m[1]));
   assert.ok(keys.size > 60);
   for (const k of keys) {
     assert.ok(STRINGS.fr[k], 'fr manquant : ' + k);

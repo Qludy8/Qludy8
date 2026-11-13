@@ -6,7 +6,7 @@ const DAY = 86400000;
 
 const SETTINGS = () => ({
   roman: true, sound: true, rate: 0.85, theme: 'auto', krLarge: false, motion: true,
-  autoplay: true, quizLen: 10, lang: 'fr', course: null, typing: true,
+  autoplay: true, quizLen: 10, lang: 'fr', course: null, speech: true,
 });
 const COURSE = () => ({
   xp: 0,

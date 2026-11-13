@@ -9,7 +9,7 @@ Tout ce qui suit existe pour les deux langues (hangeul pour le coréen, hiragana
 
 - **Alphabet** : voyelles, consonnes, lettres composées et doubles, avec la prononciation (voix coréenne du téléphone), des conseils en français, l’ordre des traits animé et des quiz de lecture.
 - **Vocabulaire** : plus de 150 mots classés en 6 thèmes. Trois façons de s’entraîner : quiz (coréen → français, français → coréen, écoute), cartes mémoire à glisser, et jeu des paires contre la montre. Une répétition espacée (boîtes de Leitner) fait revenir plus souvent les mots oubliés.
-- **Générateur de phrases**, selon cinq critères :
+- **Générateur de phrases**, selon neuf critères (ton, niveau, thème, temps, politesse, forme, genre de phrase, sujet, moment), dont :
   - le niveau ;
   - le thème ;
   - le temps (présent, passé, futur) ;
@@ -21,7 +21,8 @@ Tout ce qui suit existe pour les deux langues (hangeul pour le coréen, hiragana
 - **Écrire pour de bon** : clavier à l’écran (hangeul à deux jeux, tableau des kana) pour écrire les lettres, les mots et des phrases entières, dictées, et tracé des lettres au doigt dans le bon ordre et le bon sens des traits (hangeul, hiragana, katakana, 379 kanji).
 - **Chapitres, examens et platine** : 41 modules par langue rangés en 7 chapitres. Chaque module se termine par un examen sans indice (80 % pour le faire passer au platine). Un examen final, lançable à tout moment, porte sur tout ce qui est terminé.
 - **Succès** : 18 badges à cinq paliers (bronze, argent, or, platine, diamant) dans le Profil.
-- **Défi du jour** : 3 nouvelles phrases à remettre dans l’ordre chaque jour.
+- **À voix haute** : le téléphone écoute (reconnaissance vocale du navigateur) et vérifie qu’il comprend le bon mot ou la bonne lettre. Sans micro, ces exercices sont remplacés par des exercices écrits.
+- **Sans QCM** : les exercices demandent d’écrire (clavier latin AZERTY ou QWERTY pour la lecture, clavier coréen ou japonais pour l’écriture), de relier des paires, ou de remettre syllabes et mots dans l’ordre par glisser-déposer. Plus on avance dans le parcours, plus il faut écrire.
 - **Progression** : XP, niveaux, série de jours, objectif quotidien et calendrier d’activité. La progression peut être exportée ou restaurée.
 
 ## Organisation du code

@@ -118,12 +118,18 @@ const JA_ROWS = [
   ['お', 'こ', 'そ', 'と', 'の', 'ほ', 'も', 'よ', 'ろ', '小'],
 ];
 
+// Clavier latin, pour écrire la romanisation : AZERTY en français, QWERTY en anglais.
+const LATIN = {
+  azerty: [[...'azertyuiop'], [...'qsdfghjklm'], [...'wxcvbn', '’', '⌫']],
+  qwerty: [[...'qwertyuiop'], [...'asdfghjkl'], [...'zxcvbnm', '’', '⌫']],
+};
+
 /**
  * Installe un clavier dans `host`.
- * kind : 'ko' ou 'ja' ; kata : commencer en katakana ; onChange(texte) ; onEnter()
+ * kind : 'ko', 'ja' ou 'latin' (layout : 'azerty' | 'qwerty') ; kata : commencer en katakana ; onChange(texte) ; onEnter()
  * Renvoie { value, set(texte), clear(), lock(bool) }.
  */
-export function mountKeyboard(host, { kind, kata = false, space = false, onChange, onEnter }) {
+export function mountKeyboard(host, { kind, layout = 'azerty', kata = false, space = false, onChange, onEnter }) {
   let keys = []; // coréen : lettres tapées ; japonais : signes
   let shift = false;
   let locked = false;
@@ -131,7 +137,11 @@ export function mountKeyboard(host, { kind, kata = false, space = false, onChang
   const emit = () => onChange?.(value());
 
   function draw() {
-    if (kind === 'ko') {
+    if (kind === 'latin') {
+      host.innerHTML = `<div class="kb kb-latin">${LATIN[layout].map((row, n) => `<div class="kb-row ${n === 1 && row.length < 10 ? 'inset' : ''}">${row.map((k) => (k === '⌫'
+        ? '<button class="kb-key fn" data-fn="back" aria-label="⌫">⌫</button>'
+        : `<button class="kb-key" data-k="${k === '’' ? "'" : k}">${k}</button>`)).join('')}</div>`).join('')}</div>`;
+    } else if (kind === 'ko') {
       host.innerHTML = `<div class="kb kb-ko ${shift ? 'shift' : ''}">${KO_ROWS.map((row) => `<div class="kb-row">${row.map((k) => {
         if (k === '⇧') return `<button class="kb-key fn ${shift ? 'on' : ''}" data-fn="shift" aria-label="Shift">⇧</button>`;
         if (k === '⌫') return '<button class="kb-key fn" data-fn="back" aria-label="⌫">⌫</button>';
@@ -192,7 +202,9 @@ export function mountKeyboard(host, { kind, kata = false, space = false, onChang
     if (locked || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'Backspace') { e.preventDefault(); return back(); }
     if (e.key === 'Enter') { e.preventDefault(); return onEnter?.(); }
-    if (kind === 'ko') {
+    if (kind === 'latin') {
+      if (/^[a-zA-Z']$/.test(e.key)) press(e.key.toLowerCase());
+    } else if (kind === 'ko') {
       if (e.key === ' ' && space) { e.preventDefault(); return press(' '); }
       if (/^[ㄱ-ㅣ]$/.test(e.key)) return press(e.key);
       const j = KO_CODES[e.code];
@@ -220,16 +232,16 @@ export function mountKeyboard(host, { kind, kata = false, space = false, onChang
 }
 
 /** Zone de saisie complète : la ligne de réponse au-dessus du clavier. */
-export function mountTyping(host, { kind, kata, space, placeholder = '', onEnter, onChange }) {
+export function mountTyping(host, { kind, layout, kata, space, placeholder = '', onEnter, onChange }) {
   host.innerHTML = `
     <div class="type-zone">
-      <div class="type-box kr" aria-live="polite"><span class="type-text"></span><i class="caret"></i><span class="type-ph">${placeholder}</span></div>
+      <div class="type-box ${kind === 'latin' ? 'latin' : 'kr'}" aria-live="polite"><span class="type-text"></span><i class="caret"></i><span class="type-ph">${placeholder}</span></div>
       <div class="kb-host"></div>
     </div>`;
   const box = host.querySelector('.type-box');
   const text = host.querySelector('.type-text');
   const kb = mountKeyboard(host.querySelector('.kb-host'), {
-    kind, kata, space, onEnter,
+    kind, layout, kata, space, onEnter,
     onChange(v) {
       text.textContent = v;
       box.classList.toggle('filled', !!v);
@@ -242,3 +254,6 @@ export function mountTyping(host, { kind, kata, space, placeholder = '', onEnter
 
 /** Compare deux réponses sans tenir compte des espaces, de la ponctuation ni de hiragana / katakana. */
 export const normAnswer = (s) => toHira(String(s)).replace(/[\s.,!?。、？！~〜・…'"’“”「」()（）]/g, '');
+
+/** Compare deux romanisations : sans majuscules, espaces, apostrophes ni tirets. */
+export const normRoman = (s) => String(s).toLowerCase().replace(/[^a-z]/g, '');

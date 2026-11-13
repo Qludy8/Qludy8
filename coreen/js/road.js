@@ -8,6 +8,12 @@ import { ROADMAP, CHAPTERS } from './content/roadmap.js';
 export const roadUnits = () => ROADMAP[course().id] || [];
 export const roadChapters = () => CHAPTERS[course().id] || [];
 export const findStep = (id) => roadUnits().flatMap((u) => u.steps).find((s) => s.id === id);
+/** Avancement d'une étape dans le parcours, de 0 (premier module) à 1 (dernier) : sert à durcir les exercices. */
+export function stepDepth(id) {
+  const units = roadUnits();
+  const k = units.findIndex((u) => u.steps.some((s) => s.id === id));
+  return k < 0 || units.length < 2 ? 0 : k / (units.length - 1);
+}
 
 const UNIT_BONUS = 15; // XP offerts à la fin d'un module
 const LOCK = '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -28,10 +34,9 @@ export function stepDone(s, st = store.get()) {
   if (s.kind === 'lesson') return !!st.read?.[s.lesson];
   if (s.kind === 'pairs') return !!st.best?.pairs;
   if (s.kind === 'mastery') { const g = goal(s.theme, st); return g.total > 0 && g.n >= g.total; }
-  if (s.kind === 'daily') return Object.keys(st.daily || {}).length > 0;
   return !!st.road?.[s.id];
 }
-const STARRED = ['script', 'words', 'cards', 'phrase', 'write', 'type', 'dictation', 'ptype'];
+const STARRED = ['script', 'words', 'cards', 'phrase', 'write', 'type', 'dictation', 'ptype', 'speak'];
 const stars = (s, st) => (STARRED.includes(s.kind) ? st.road?.[s.id] || 0 : 0);
 
 /** Titre, type, pastille et adresse d'une étape. */
@@ -43,7 +48,7 @@ export function stepInfo(s) {
     const g = lessons().find((x) => x.id === s.lesson);
     return { title: g?.title || s.lesson, type: t('road.lesson'), glyph: g?.glyph || '?', href: `#/guide?id=${s.lesson}&${q}` };
   }
-  if (s.kind === 'script' || s.kind === 'write' || (s.kind === 'type' && s.set)) {
+  if (s.kind === 'script' || s.kind === 'write' || ((s.kind === 'type' || s.kind === 'speak') && s.set)) {
     const set = C.script.sets[s.set];
     let title = set ? tr(set.label) : s.set === 'syllables' ? tr(C.script.syllableLabel) : t('script.words');
     let glyph = set ? set.items[0].j : s.set === 'syllables' ? C.script.syllableSample.slice(0, 2) : ja ? 'さかな' : '사과';
@@ -53,6 +58,7 @@ export function stepInfo(s) {
       return { title, type: t('road.write'), glyph, href: `#/write?set=${s.set}${s.form ? `&form=${s.form}` : ''}&${q}` };
     }
     if (s.kind === 'type') return { title, type: s.set === 'words' ? t('road.dictation') : t('road.type'), glyph, href: `#/hquiz?set=${s.set}&mode=type&${q}` };
+    if (s.kind === 'speak') return { title, type: t('road.speak'), glyph, href: `#/hquiz?set=${s.set}&mode=speak&${q}` };
     return { title, type: t('road.quiz'), glyph, href: `#/hquiz?set=${s.set}&${q}` };
   }
   if (s.theme) {
@@ -62,12 +68,12 @@ export function stepInfo(s) {
     if (s.kind === 'cards') return { title, type: t('road.cards'), glyph, href: `#/cards?t=${s.theme}&${q}` };
     if (s.kind === 'type') return { title, type: t('road.type'), glyph, href: `#/quiz?t=${s.theme}&mode=type&${q}` };
     if (s.kind === 'dictation') return { title, type: t('road.dictation'), glyph, href: `#/quiz?t=${s.theme}&mode=dictation&${q}` };
+    if (s.kind === 'speak') return { title, type: t('road.speak'), glyph, href: `#/quiz?t=${s.theme}&mode=speak&${q}` };
     return { title, type: t('road.quiz'), glyph, href: `#/quiz?t=${s.theme}&${q}` };
   }
   if (s.kind === 'phrase') return { title: tr(s.title), type: t('road.phrases'), glyph: ja ? '文' : '문장', href: `#/rphrase?${q}` };
   if (s.kind === 'ptype') return { title: tr(s.title), type: t('road.ptype'), glyph: ja ? '作文' : '작문', href: `#/rphrase?${q}` };
-  if (s.kind === 'pairs') return { title: t('title.pairs'), type: t('road.game'), glyph: ja ? 'ペア' : '짝', href: `#/pairs?${q}` };
-  return { title: t('title.daily'), type: t('road.challenge'), glyph: ja ? '今日' : '오늘', href: `#/daily?${q}` };
+  return { title: t('title.pairs'), type: t('road.game'), glyph: ja ? 'ペア' : '짝', href: `#/pairs?${q}` };
 }
 
 /** État du parcours : modules (ouverts ou non, étapes faites, examen), chapitres et prochaine étape. */

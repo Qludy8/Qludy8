@@ -24,7 +24,7 @@ const DEFS = [
   { id: 'perfect', g: ['만점', '満点'], title: L('Sans faute', 'Flawless'), desc: L('Finir {n} séries sans aucune erreur', 'Finish {n} sets without a single mistake'), steps: [1, 5, 15, 40, 100], value: () => store.stat('perfect') },
   { id: 'combo', g: ['연속', '連続'], title: L('En série', 'On a roll'), desc: L('Enchaîner {n} bonnes réponses', 'Chain {n} correct answers'), steps: [5, 10, 20, 35, 50], value: () => store.stat('combo') },
   { id: 'final', g: ['종합', '総合'], title: L('Examen final', 'Final exam'), desc: L('Obtenir {n} % à l’examen final', 'Score {n}% on the final exam'), steps: [50, 65, 80, 90, 100], unit: ' %', value: (x) => x.st.final?.best || 0 },
-  { id: 'daily', g: ['오늘', '今日'], title: L('Défi quotidien', 'Daily challenger'), desc: L('Relever {n} défis du jour', 'Complete {n} daily challenges'), steps: [1, 7, 20, 50, 100], value: (x) => Object.keys(x.st.daily || {}).length },
+  { id: 'spoken', g: ['말', '声'], title: L('Belle voix', 'Clear voice'), desc: L('Bien prononcer {n} mots à voix haute', 'Pronounce {n} words correctly out loud'), steps: [10, 50, 150, 400, 1000], value: () => store.stat('spoken') },
   { id: 'journal', g: ['공책', '手帳'], title: L('Carnet bien rempli', 'Full notebook'), desc: L('Enregistrer {n} phrases dans le carnet', 'Save {n} sentences to the notebook'), steps: [1, 5, 15, 30, 60], value: (x) => x.st.journal.length },
   { id: 'pairs', g: ['번개', '稲妻'], title: L('Éclair', 'Lightning'), desc: L('Finir le jeu des paires en moins de {n} s', 'Finish the pairs game in under {n} s'), steps: [45, 30, 22, 16, 12], unit: ' s', lower: true, value: (x) => (x.st.best?.pairs ? Math.round(x.st.best.pairs / 100) / 10 : 0) },
 ];

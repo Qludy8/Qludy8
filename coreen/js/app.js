@@ -5,11 +5,12 @@ import { ALL_THEMES, isPhraseTheme, themeGlyph, themeColor, themeShort } from '.
 import { course, hasCourse, setCourse, COURSES, t, tr, lang, gloss } from './course.js';
 import { scriptQuiz, vocabQuiz, wordsOf } from './quiz.js';
 import { flashcards, pairs } from './games.js';
-import { phrasesScreen, dailyScreen, dailyPhrases, phraseOfDay, phraseText, meaning, roadPhrases } from './phrases.js';
+import { phrasesScreen, roadPhrases } from './phrases.js';
 import { roadScreen, findStep } from './road.js';
 import { writeScreen, strokeDemo, canTrace, writeChars } from './draw.js';
 import { examScreen } from './exam.js';
 import { achievements, newTiers, TIERS } from './achievements.js';
+import { listenSupported } from './speech.js';
 
 const view = $('#view');
 const titleEl = $('#title');
@@ -24,7 +25,7 @@ const SCREENS = {
   road: { title: () => t('road.title'), tab: 'road', render: roadScreen },
   hangul: { title: () => tr(course().script.title), tab: 'hangul', render: script },
   words: { title: () => t('title.words'), tab: 'words', render: words },
-  phrases: { title: () => t('title.phrases'), tab: 'phrases', render: phrasesTab },
+  phrases: { title: () => t('title.phrases'), tab: 'phrases', render: phrasesScreen },
   guide: { title: () => t('title.guide'), tab: 'guide', render: guide },
   profile: { title: () => t('title.profile'), tab: 'profile', render: profile },
   settings: { title: () => t('title.settings'), tab: 'settings', top: 'settings', back: '#/profile', render: settings },
@@ -35,16 +36,15 @@ const SCREENS = {
   quiz: { title: () => t('title.quiz'), tab: 'words', back: '#/words', focus: true, render: (el, q) => vocabQuiz(el, q.t || 'all', q.mode, q.step) },
   cards: { title: () => t('title.cards'), tab: 'words', back: '#/words', focus: true, render: (el, q) => flashcards(el, q.t || 'all', q.step) },
   pairs: { title: () => t('title.pairs'), tab: 'words', back: '#/words', focus: true, render: (el, q) => pairs(el, q.step) },
-  daily: { title: () => t('title.daily'), tab: 'phrases', back: '#/phrases', focus: true, render: dailyScreen },
   rphrase: { title: () => t('title.phrases'), tab: 'phrases', back: '#/road', focus: true, render: (el, q) => {
     const s = findStep(q.step);
     if (s?.kind === 'phrase' || s?.kind === 'ptype') roadPhrases(el, s);
     else location.hash = '#/road';
   } },
 };
-const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
+const ALIASES = { learn: 'words', home: 'road', progress: 'profile', daily: 'phrases' }; // anciennes adresses
 
-const APP_VERSION = '30'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '31'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -164,40 +164,6 @@ function greetingSub() {
   return t('greet.evening');
 }
 
-/** Onglet Phrases : défi et phrase du jour, puis le générateur. */
-function phrasesTab(el) {
-  phrasesScreen(el);
-  const st = store.get();
-  const C = course();
-  const dailyDone = (st.daily[store.dayKey()] || 0) >= 3;
-  const pod = phraseOfDay();
-  $('.phrases', el).insertAdjacentHTML('afterbegin', `
-      <a class="card daily-cta ${dailyDone ? 'done' : ''}" href="#/daily">
-        <span class="gl kr ${dailyDone ? 'ok' : ''}" style="--tc: var(--gold)">${dailyDone ? ICONS.check : C.id === 'ja' ? '今日' : '오늘'}</span>
-        <div style="flex:1">
-          <span class="eyebrow">${t('title.daily')}</span>
-          <b>${dailyDone ? t('home.dailyDone') : t('home.dailyTodo')}</b>
-          <span class="muted small">${dailyDone ? t('home.dailyAgain') : t('home.dailySub')}</span>
-        </div>
-        <span class="chev">›</span>
-      </a>
-      <section class="card pod">
-        <div class="pod-head">
-          <span class="eyebrow">${t('home.pod')}</span>
-          ${canSpeak() ? `<button class="icon-btn pod-say" aria-label="${t('listen')}">${ICONS.sound}</button>` : ''}
-        </div>
-        <p class="kr pod-kr ${pod.ruby ? 'has-ruby' : ''}">${phraseText(pod)}</p>
-        ${st.settings.roman ? `<p class="muted small">${esc(pod.rom)}</p>` : ''}
-        <button class="pod-fr"><span>${esc(meaning(pod))}</span><em>${t('home.tapTranslate')}</em></button>
-      </section>
-      <h2>${t('phrase.generator')}</h2>`);
-  $('.pod-say', el)?.addEventListener('click', () => speak(pod.tl));
-  $('.pod-fr', el).addEventListener('click', (e) => {
-    e.currentTarget.classList.add('shown');
-    sfx.tap();
-  });
-}
-
 // ---------- Mots (vocabulaire) ----------
 function words(el) {
   const C = course();
@@ -221,6 +187,7 @@ function words(el) {
               <a class="btn small primary" href="#/quiz?t=${k}">${t('title.quiz')}</a>
               <a class="btn small ghost" href="#/quiz?t=${k}&mode=type">${t('words.typeShort')}</a>
               <a class="btn small ghost" href="#/quiz?t=${k}&mode=dictation">${t('words.dictShort')}</a>
+              <a class="btn small ghost" href="#/quiz?t=${k}&mode=speak">${t('words.speakShort')}</a>
             </div>
           </li>`;
   }).join('');
@@ -231,6 +198,7 @@ function words(el) {
         <a class="tile-link" href="#/pairs" style="--i:1; --tc: var(--c-guide)"><span class="tl-kr kr">${ja ? 'ペア' : '짝'}</span><b>${t('title.pairs')}</b><span class="muted small">${t('words.pairsSub')}</span></a>
         <a class="tile-link" href="#/quiz?t=all&mode=type" style="--i:2; --tc: var(--c-hangul)"><span class="tl-kr kr">${ja ? '書く' : '쓰기'}</span><b>${t('words.type')}</b><span class="muted small">${t('words.typeSub')}</span></a>
         <a class="tile-link" href="#/quiz?t=all&mode=dictation" style="--i:3; --tc: var(--c-phrases)"><span class="tl-kr kr">${ja ? '聞く' : '듣기'}</span><b>${t('words.dictation')}</b><span class="muted small">${t('words.dictationSub')}</span></a>
+        <a class="tile-link" href="#/quiz?t=all&mode=speak" style="--i:4; --tc: var(--c-guide)"><span class="tl-kr kr">${ja ? '話す' : '말하기'}</span><b>${t('words.speak')}</b><span class="muted small">${t(listenSupported() ? 'words.speakSub' : 'words.speakNo')}</span></a>
         <a class="tile-link" href="#/quiz?mode=review" style="--i:2; --tc: var(--c-home)"><span class="tl-kr kr">${ja ? '復習' : '복습'}</span><b>${t('review')}</b><span class="muted small">${due ? t(due > 1 ? 'words.dueN' : 'words.due1', { n: due }) : t('words.consolidate')}</span>${due ? `<span class="badge">${due}</span>` : ''}</a>
         <a class="tile-link" href="#/lexicon" style="--i:3; --tc: var(--c-stats)"><span class="tl-kr kr">${ja ? '単語' : '단어'}</span><b>${t('title.lexicon')}</b><span class="muted small">${t('words.count', { n: C.words.length })}</span></a>
       </div>
@@ -318,6 +286,7 @@ function script(el) {
       } else tiles.push(`<a class="tile-link" href="#/write?set=${id}" style="--tc: var(--c-hangul)"><span class="tl-kr kr">${sample.j}</span><b>${t('script.trace')}</b><span class="muted small">${t('script.traceSub')}</span></a>`);
     }
     tiles.push(`<a class="tile-link" href="#/hquiz?set=${id}&mode=type" style="--tc: var(--c-words)"><span class="tl-kr kr">${ja ? 'かな' : 'ㅂㅈㄷ'}</span><b>${t('script.keyboard')}</b><span class="muted small">${t(kanji ? 'script.keyboardKanji' : 'script.keyboardSub')}</span></a>`);
+    if (!kanji || !set.groups) tiles.push(`<a class="tile-link" href="#/hquiz?set=${id}&mode=speak" style="--tc: var(--c-phrases)"><span class="tl-kr kr">${ja ? '話す' : '말하기'}</span><b>${t('script.speak')}</b><span class="muted small">${t(listenSupported() ? 'script.speakSub' : 'words.speakNo')}</span></a>`);
     $('.write-tiles', el).innerHTML = tiles.join('');
   }
   grid.addEventListener('click', (e) => {
@@ -676,8 +645,8 @@ function settings(el) {
         <div class="set-row col"><span>${t('set.quizLen')}</span>${seg('quizLen', [[5, '5'], [10, '10'], [15, '15'], [20, '20']], s.quizLen)}
           <span class="muted small">${t('set.quizLenHelp')}</span></div>
         ${toggle('roman', t('set.roman'), s.roman)}
-        ${toggle('typing', t('set.typing'), s.typing !== false)}
-        <div class="set-row col"><span class="muted small">${t('set.typingHelp')}</span></div>
+        ${toggle('speech', t('set.speech'), s.speech !== false)}
+        <div class="set-row col"><span class="muted small">${t(listenSupported() ? 'set.speechHelp' : 'set.speechNo')}</span></div>
       </div>
 
       <h2>${t('set.sound')}</h2>
@@ -900,7 +869,6 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 
 applySettings();
 if (hasCourse()) {
-  dailyPhrases(); // précalcul pour un premier clic sans délai
   newTiers(true); // les succès déjà acquis ne sont pas annoncés au lancement
 }
 route();
