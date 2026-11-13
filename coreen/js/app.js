@@ -9,6 +9,7 @@ import { scriptQuiz, vocabQuiz, wordsOf } from './quiz.js';
 import { flashcards, pairs } from './games.js';
 import { phrasesScreen, dailyScreen, dailyPhrases, phraseOfDay, phraseText, meaning, roadPhrases } from './phrases.js';
 import { roadScreen, findStep } from './road.js';
+import * as reminders from './reminders.js';
 
 const view = $('#view');
 const titleEl = $('#title');
@@ -41,7 +42,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '20'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '21'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -640,6 +641,17 @@ function settings(el) {
         ${toggle('roman', t('set.roman'), s.roman)}
       </div>
 
+      <h2>${t('remind.heading')}</h2>
+      <div class="card settings remind-card">
+        ${reminders.support().notif ? `
+        ${toggle('remind', t('remind.toggle'), s.remind && reminders.permission() === 'granted')}
+        <div class="set-row"><span>${t('remind.time')}</span><input type="time" class="remind-at" value="${esc(s.remindAt || '19:00')}" aria-label="${t('remind.time')}"></div>
+        <div class="set-row col">
+          <span class="muted small remind-status">${t('remind.help')}</span>
+          <button class="btn small ghost remind-test" ${s.remind && reminders.permission() === 'granted' ? '' : 'hidden'}>${t('remind.test')}</button>
+        </div>` : `<p class="muted small">${t('remind.unsupported')}</p>`}
+      </div>
+
       <h2>${t('set.sound')}</h2>
       <div class="card settings">
         ${toggle('autoplay', t('set.autoplay'), s.autoplay)}
@@ -697,7 +709,42 @@ function settings(el) {
     applySettings();
     $$('.seg-btn', g).forEach((x) => x.classList.toggle('on', x === b));
   }));
-  $$('.switch input', el).forEach((inp) => inp.addEventListener('change', () => {
+  // Rappels : état réel sur cet appareil, heure, essai
+  const remindStatus = async () => {
+    const box = $('.remind-status', el);
+    if (!box) return;
+    const perm = reminders.permission();
+    const on = s.remind && perm === 'granted';
+    box.textContent = perm === 'denied' ? t('remind.denied')
+      : !on ? t('remind.help')
+        : (await reminders.backgroundActive()) ? t('remind.background') : t('remind.foreground');
+    $('.remind-test', el).hidden = !on;
+  };
+  remindStatus();
+  $('.remind-at', el)?.addEventListener('change', (e) => {
+    s.remindAt = e.target.value || '19:00';
+    store.save();
+    reminders.schedule();
+  });
+  $('.remind-test', el)?.addEventListener('click', () => reminders.test().catch(() => toast(t('remind.denied'))));
+
+  $$('.switch input', el).forEach((inp) => inp.addEventListener('change', async () => {
+    if (inp.name === 'remind') {
+      // L'autorisation se demande au moment où l'on active le rappel
+      s.remind = inp.checked;
+      store.save();
+      if (inp.checked) {
+        const perm = await reminders.enable();
+        if (perm !== 'granted') {
+          s.remind = false;
+          inp.checked = false;
+          store.save();
+          toast(t(perm === 'unsupported' ? 'remind.unsupported' : 'remind.denied'));
+        }
+      } else await reminders.disable();
+      sfx.tap();
+      return remindStatus();
+    }
     s[inp.name] = inp.checked;
     store.save();
     applySettings();
@@ -861,6 +908,11 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 }
 
 applySettings();
+// Rappel quotidien : reprogrammé au lancement, à chaque gain d'XP, changement de réglage et retour dans l'application
+reminders.schedule();
+addEventListener('haru:xp', () => reminders.schedule());
+addEventListener('haru:settings', () => reminders.schedule());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reminders.schedule(); });
 if (hasCourse()) dailyPhrases(); // précalcul pour un premier clic sans délai
 route();
 if (hasCourse()) launchScreen();

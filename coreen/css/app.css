@@ -1048,3 +1048,8 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .opt.kr { overflow-wrap: anywhere; }
 .jamo-grid.kanji { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .jamo-grid.kanji .jamo, .jamo-group { min-width: 0; }
+
+/* Rappels */
+.remind-at { font: inherit; font-weight: 800; padding: 8px 10px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); }
+.remind-card .remind-test { align-self: flex-start; margin-top: 8px; }
+.remind-card .remind-test[hidden] { display: none; }

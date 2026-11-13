@@ -7,6 +7,7 @@ const DAY = 86400000;
 const SETTINGS = () => ({
   roman: true, sound: true, haptics: true, rate: 0.85, theme: 'auto', krLarge: false, motion: true,
   autoplay: true, quizLen: 10, fullscreenTap: false, lang: 'fr', course: null,
+  remind: false, remindAt: '19:00', // rappel quotidien
 });
 const COURSE = () => ({
   xp: 0,
