@@ -1034,3 +1034,15 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .jamo-grid.kanji { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .jamo-grid.kanji .jamo, .jamo-group { min-width: 0; }
 
+
+/* Fermer l'application : croix rouge dans un cercle, qui s'allonge en « Fermer ? » pour confirmer */
+.top-actions .quit-btn { color: var(--ko); border-color: var(--ko); box-shadow: 0 3px 0 var(--ko); }
+.quit-btn svg { stroke-width: 2.6; }
+.quit-label { display: none; font-weight: 900; font-size: .95rem; white-space: nowrap; }
+.top-actions .quit-btn.armed { display: inline-flex; align-items: center; gap: 6px; width: auto; padding: 0 14px 0 10px; border-radius: 99px; color: #fff; background: var(--ko); box-shadow: 0 3px 0 color-mix(in srgb, var(--ko) 65%, #000); animation: quitPop .25s var(--ease); }
+.quit-btn.armed .quit-label { display: inline; }
+.top-actions.quitting .lv-chip { display: none; }
+@keyframes quitPop { from { transform: scale(.85); } }
+.bye { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: var(--bg); animation: fadeIn .25s ease; }
+.bye-card { width: 100%; max-width: 360px; text-align: center; }
+.bye-kr { font-size: 3.2rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }

@@ -41,7 +41,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '23'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '24'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -87,6 +87,47 @@ function renderChrome() {
   levelChip();
   $('[data-top="settings"]').setAttribute('aria-label', t('title.settings'));
   backEl.setAttribute('aria-label', t('back'));
+  disarmQuit();
+}
+
+// ---------- Fermer l'application ----------
+// Deux touches : la croix rouge s'arme (« Fermer ? »), une seconde touche ferme. Sans confirmation, elle se désarme seule.
+const quitEl = $('#quit');
+let quitTimer = 0;
+function disarmQuit() {
+  clearTimeout(quitTimer);
+  quitEl.classList.remove('armed');
+  quitEl.parentElement.classList.remove('quitting');
+  $('.quit-label', quitEl).textContent = t('quit.ask');
+  quitEl.setAttribute('aria-label', t('quit'));
+}
+quitEl.addEventListener('click', () => {
+  if (!quitEl.classList.contains('armed')) {
+    quitEl.classList.add('armed');
+    quitEl.parentElement.classList.add('quitting');
+    quitEl.setAttribute('aria-label', t('quit.confirm'));
+    quitTimer = setTimeout(disarmQuit, 4000);
+    return;
+  }
+  disarmQuit();
+  quitApp();
+});
+// Toucher ailleurs annule la demande de fermeture.
+document.addEventListener('pointerdown', (e) => { if (quitEl.classList.contains('armed') && !e.target.closest('#quit')) disarmQuit(); });
+
+function quitApp() {
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  window.close();
+  // Un navigateur refuse de fermer un onglet ouvert par l'utilisateur : on affiche alors un écran d'au revoir.
+  setTimeout(() => {
+    if (window.closed || $('.bye')) return;
+    const bye = document.createElement('div');
+    bye.className = 'bye';
+    bye.innerHTML = `<div class="bye-card" role="dialog" aria-modal="true"><p class="bye-kr kr">${course().id === 'ja' ? 'またね' : '안녕'}</p><h2>${t('quit.bye')}</h2><p class="muted">${t('quit.hint')}</p><button class="btn primary big">${t('quit.reopen')}</button></div>`;
+    $('button', bye).addEventListener('click', () => bye.remove());
+    document.body.append(bye);
+    $('button', bye).focus({ preventScroll: true });
+  }, 350);
 }
 
 /** Pastille de niveau dans l'en-tête : numéro du niveau et avancement dans ce niveau. */
