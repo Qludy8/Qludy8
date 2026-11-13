@@ -6,7 +6,8 @@ import { GUIDE_JA } from '../content/guide.ja.js';
 import { GUIDE_JA_EN } from '../content/guide.ja.en.js';
 import { GUIDE_JA_PLUS } from '../content/guide.ja.plus.js';
 import { GUIDE_JA_ADV } from '../content/guide.ja.adv.js';
-import { localize } from '../content/guide.util.js';
+import { GUIDE_JA_PRON, JA_SECTIONS } from '../content/guide.ja.pron.js';
+import { localize, arrange } from '../content/guide.util.js';
 import { AWKWARD } from '../content/awkward.js';
 import { AWKWARD_EN } from './ko.js';
 import { pick } from '../generator.js';
@@ -383,7 +384,7 @@ const kanjiSet = (g) => ({ label: g.label, kind: 'kanji', items: g.items, hidden
 const group = (id) => KANJI_GROUPS.find((g) => g.id === id);
 const SCRIPT_SETS = {
   ...KANA_SETS,
-  kanji: { label: L('Kanji', 'Kanji'), kind: 'kanji', items: KANJI_GROUPS.flatMap((g) => g.items), groups: KANJI_GROUPS },
+  kanji: { sym: '字', label: L('Kanji', 'Kanji'), kind: 'kanji', items: KANJI_GROUPS.flatMap((g) => g.items), groups: KANJI_GROUPS },
   ...Object.fromEntries(KANJI_GROUPS.map((g) => [`kanji-${g.id}`, kanjiSet(g)])),
   // anciens identifiants, encore utilisés par des étapes du parcours déjà enregistrées
   kanjiNum: kanjiSet(group('num')),
@@ -407,7 +408,6 @@ export const JA = {
   script: {
     title: L('Kana', 'Kana'),
     sets: SCRIPT_SETS,
-    builder: false,
     randomSyllable,
     syllableLabel: L('Syllabes', 'Syllables'),
     syllableSample: 'あいう',
@@ -420,7 +420,7 @@ export const JA = {
   render,
   awkward,
   guide: {
-    fr: [...GUIDE_JA, ...localize([...GUIDE_JA_PLUS, ...GUIDE_JA_ADV], 'fr')],
-    en: [...GUIDE_JA_EN, ...localize([...GUIDE_JA_PLUS, ...GUIDE_JA_ADV], 'en')],
+    fr: arrange([...GUIDE_JA, ...localize([...GUIDE_JA_PLUS, ...GUIDE_JA_PRON, ...GUIDE_JA_ADV], 'fr')], JA_SECTIONS, 'fr'),
+    en: arrange([...GUIDE_JA_EN, ...localize([...GUIDE_JA_PLUS, ...GUIDE_JA_PRON, ...GUIDE_JA_ADV], 'en')], JA_SECTIONS, 'en'),
   },
 };

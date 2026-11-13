@@ -6,7 +6,7 @@ const DAY = 86400000;
 
 const SETTINGS = () => ({
   roman: true, sound: true, rate: 0.85, theme: 'auto', krLarge: false, motion: true,
-  autoplay: true, quizLen: 10, lang: 'fr', course: null,
+  autoplay: true, quizLen: 10, lang: 'fr', course: null, typing: true,
 });
 const COURSE = () => ({
   xp: 0,
@@ -17,6 +17,10 @@ const COURSE = () => ({
   best: {}, // records (ex. temps du jeu des paires)
   read: {}, // leçons du guide déjà lues
   road: {}, // parcours : id d'étape → étoiles (1 à 3), 'open:<module>' et 'bonus:<module>' → true
+  exams: {}, // examens de module : id du module → meilleur score (0 à 100)
+  final: { best: 0, n: 0, last: 0, date: '' }, // examen final
+  stats: {}, // compteurs pour les succès : typed, traced, dictation, perfect, phrases, combo, streak
+  ach: {}, // succès : id → palier déjà fêté
 });
 const ROOT = () => ({ v: 2, goal: 30, settings: SETTINGS(), courses: { ko: COURSE(), ja: COURSE() } });
 
@@ -94,6 +98,44 @@ export function markRoad(id, stars = 1) {
 }
 export const starsFor = (ratio) => (ratio >= 0.9 ? 3 : ratio >= 0.6 ? 2 : 1);
 
+// ---------- Compteurs (succès) ----------
+/** Ajoute n à un compteur. */
+export function bump(key, n = 1) {
+  state.stats ||= {};
+  state.stats[key] = (state.stats[key] || 0) + n;
+  save();
+  dispatchEvent(new CustomEvent('haru:stat'));
+}
+/** Garde la meilleure valeur d'un compteur (plus grande série, plus longue suite de jours…). */
+export function record(key, v) {
+  state.stats ||= {};
+  if ((state.stats[key] || 0) >= v) return;
+  state.stats[key] = v;
+  save();
+  dispatchEvent(new CustomEvent('haru:stat'));
+}
+export const stat = (key) => state.stats?.[key] || 0;
+
+// ---------- Examens ----------
+export const EXAM_PASS = 80; // score minimal (en %) pour réussir un examen de module
+export const examScore = (unit) => state.exams?.[unit] || 0;
+export const examPassed = (unit) => examScore(unit) >= EXAM_PASS;
+export function markExam(unit, pct) {
+  state.exams ||= {};
+  state.exams[unit] = Math.max(state.exams[unit] || 0, pct);
+  save();
+  dispatchEvent(new CustomEvent('haru:stat'));
+}
+export function markFinal(pct) {
+  const f = (state.final ||= { best: 0, n: 0, last: 0, date: '' });
+  f.best = Math.max(f.best || 0, pct);
+  f.n = (f.n || 0) + 1;
+  f.last = pct;
+  f.date = dayKey();
+  save();
+  dispatchEvent(new CustomEvent('haru:stat'));
+}
+
 export function dayKey(d = new Date()) {
   const z = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
@@ -107,6 +149,8 @@ export function addXp(n) {
   const dayBefore = state.days[k] || 0;
   state.xp += n;
   state.days[k] = dayBefore + n;
+  state.stats ||= {};
+  state.stats.streak = Math.max(state.stats.streak || 0, streak());
   save();
   dispatchEvent(new CustomEvent('haru:xp'));
   // Événements pour les célébrations (niveau gagné, objectif du jour atteint)

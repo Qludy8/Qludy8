@@ -22,3 +22,26 @@ export function localize(lessons, lang) {
     }),
   }));
 }
+
+/**
+ * Range les leçons par rubriques : sections = { catégorie: [{ title: B(…), ids: [...] }] }.
+ * La première leçon de chaque rubrique porte son titre (sec) ; les leçons hors rubrique gardent leur place à la suite.
+ */
+export function arrange(lessons, sections, lang) {
+  const byId = new Map(lessons.map((l) => [l.id, l]));
+  const used = new Set();
+  const out = [];
+  for (const secs of Object.values(sections)) {
+    for (const s of secs) {
+      let first = true;
+      for (const id of s.ids) {
+        const l = byId.get(id);
+        if (!l) continue;
+        out.push(first ? { ...l, sec: pick(s.title, lang) } : l);
+        used.add(id);
+        first = false;
+      }
+    }
+  }
+  return [...out, ...lessons.filter((l) => !used.has(l.id))];
+}

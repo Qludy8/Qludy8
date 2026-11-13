@@ -1,6 +1,7 @@
 // Générateur de phrases, exercice « reconstituer » et défi du jour.
 import { $, $$, esc, shuffle, sfx, speak, autoSpeak, canSpeak, confetti, countUp, pulse, floatXp, toast, burst, ICONS } from './ui.js';
-import { addXp, get, save, dayKey, dayNumber, markRoad, starsFor } from './store.js';
+import { addXp, get, save, dayKey, dayNumber, markRoad, starsFor, bump } from './store.js';
+import { mountTyping, normAnswer } from './keyboard.js';
 import { generate, rng, TENSE_LABEL, STYLE_LABEL, FORM_LABEL } from './generator.js';
 import { THEMES } from './content/concepts.js';
 import { course, t, tr, lang } from './course.js';
@@ -45,8 +46,11 @@ function rubyWord(w, r) {
 }
 
 // ---------- Exercice : reconstituer la phrase ----------
-/** Affiche des étiquettes à remettre dans l'ordre. onSolved(propre) : propre = sans indice ni solution. */
-export function reconstruct(box, phrase, onSolved) {
+/**
+ * Affiche des étiquettes à remettre dans l'ordre. onSolved(propre) : propre = sans indice ni solution.
+ * strict (examen) : pas d'aide, et une phrase fausse une fois complète appelle onFail.
+ */
+export function reconstruct(box, phrase, onSolved, { strict = false, onFail } = {}) {
   const tiles = phrase.tiles.map((x, i) => ({ t: x, i }));
   let order = shuffle(tiles);
   if (tiles.length > 1) while (order.every((x, k) => x.i === k)) order = shuffle(tiles);
@@ -59,7 +63,7 @@ export function reconstruct(box, phrase, onSolved) {
       <p class="recon-fr">${esc(meaning(phrase))}</p>
       <div class="answer-line" aria-label="${t('recon.answer')}"></div>
       <div class="bank"></div>
-      <div class="recon-tools">
+      <div class="recon-tools" ${strict ? 'hidden' : ''}>
         <button class="btn ghost small hint-btn">${t('recon.hint')}</button>
         <button class="btn ghost small sol-btn">${t('recon.solution')}</button>
       </div>
@@ -127,15 +131,94 @@ export function reconstruct(box, phrase, onSolved) {
       sfx.ok();
       burst(line, 16);
       autoSpeak(phrase.tl);
+      if (!strict) bump('phrases');
       onSolved?.(!helped, line);
     } else {
+      $$('.placed', line).forEach((b, k) => b.classList.toggle('bad', placed[k].t !== phrase.tiles[k]));
+      if (strict) {
+        solved = true;
+        return onFail?.();
+      }
       sfx.ko();
       pulse(line, 'shake');
-      $$('.placed', line).forEach((b, k) => b.classList.toggle('bad', placed[k].t !== phrase.tiles[k]));
     }
   }
 
   render();
+}
+
+/** Lecture attendue quand on écrit la phrase au clavier (en japonais : tout en kana). */
+export const phraseAnswer = (p) => p.reading || p.tl;
+
+/**
+ * Écrire la phrase entière au clavier, à partir de sa traduction (et de la voix).
+ * onSolved(propre) : propre = sans indice ni solution.
+ */
+export function typePhrase(box, phrase, onSolved) {
+  const C = course();
+  const target = phraseAnswer(phrase).replace(/[.?。？]$/, '');
+  let helped = false;
+  let tries = 0;
+  box.innerHTML = `
+    <div class="recon type-phrase">
+      <p class="recon-fr">${esc(meaning(phrase))}</p>
+      <p class="muted small type-help">${t(C.id === 'ja' ? 'type.phraseKana' : 'type.phrase')}</p>
+      <div class="type-host"></div>
+      <div class="type-actions">
+        ${canSpeak() ? `<button class="icon-btn listen-btn" aria-label="${t('listen')}">${ICONS.sound}</button>` : ''}
+        <button class="btn ghost small hint-btn">${t('recon.hint')}</button>
+        <button class="btn ghost small sol-btn">${t('recon.solution')}</button>
+        <button class="btn primary check-btn" disabled>${t('type.check')}</button>
+      </div>
+    </div>`;
+  const check = () => {
+    if (!normAnswer(typing.value)) return;
+    if (normAnswer(typing.value) === normAnswer(target)) {
+      typing.kb.lock(true);
+      typing.box.classList.add('good');
+      for (const sel of ['.type-actions', '.kb-host', '.type-help']) $(sel, box).hidden = true;
+      $('.type-text', box).textContent = phrase.tl;
+      sfx.ok();
+      burst(typing.box, 16);
+      autoSpeak(phrase.tl);
+      bump('typed');
+      bump('phrases');
+      onSolved?.(!helped, typing.box);
+    } else {
+      tries++;
+      sfx.ko();
+      typing.box.classList.add('bad');
+      pulse(typing.box, 'shake');
+      if (tries >= 2) pulse($('.hint-btn', box), 'bump');
+    }
+  };
+  const typing = mountTyping($('.type-host', box), {
+    kind: C.id, space: C.id === 'ko', placeholder: esc(t('type.placeholder')), onEnter: check,
+    onChange: (v) => { $('.check-btn', box).disabled = !v; },
+  });
+  $('.check-btn', box).addEventListener('click', check);
+  $('.listen-btn', box)?.addEventListener('click', () => { helped = true; speak(phrase.tl); });
+  $('.hint-btn', box).addEventListener('click', () => {
+    // Garde le début juste, puis complète jusqu'à la fin du mot suivant.
+    helped = true;
+    const cur = typing.value;
+    let k = 0;
+    while (k < cur.length && k < target.length && normAnswer(cur.slice(0, k + 1)) === normAnswer(target.slice(0, k + 1))) k++;
+    const sep = phrase.reading ? 0 : 1;
+    const words = phrase.reading ? phrase.ruby.map((x) => x.r + (x.p || '')) : target.split(' ');
+    let end = 0;
+    for (const w of words) {
+      end += w.length + sep;
+      if (end > k + sep) break;
+    }
+    typing.kb.set(target.slice(0, Math.min(end, target.length)));
+    sfx.tap();
+  });
+  $('.sol-btn', box).addEventListener('click', () => {
+    helped = true;
+    typing.kb.set(target);
+    check();
+  });
 }
 
 // ---------- Carte de phrase ----------
@@ -237,6 +320,7 @@ export function phrasesScreen(el) {
           <button class="seg-btn ${mode === 'read' ? 'on' : ''}" data-m="read">${t('phrase.read')}</button>
           <button class="seg-btn ${mode === 'translate' ? 'on' : ''}" data-m="translate">${t('phrase.translate')}</button>
           <button class="seg-btn ${mode === 'build' ? 'on' : ''}" data-m="build">${t('phrase.build')}</button>
+          <button class="seg-btn ${mode === 'write' ? 'on' : ''}" data-m="write">${t('phrase.write')}</button>
         </div>
         ${p.adjusted.map((a) => `<p class="note muted">${esc(tr(a))}</p>`).join('')}
         <div class="phrase-body"></div>
@@ -277,6 +361,13 @@ export function phrasesScreen(el) {
         } else sfx.tap();
         $('.self-check', body).innerHTML = `<p class="muted">${ok ? t('phrase.wellDone') : t('phrase.noWorries')}</p>`;
       }));
+    } else if (mode === 'write') {
+      typePhrase(body, p, (clean, line) => {
+        const xp = clean ? 8 : 3;
+        addXp(xp);
+        floatXp(xp, line);
+        body.insertAdjacentHTML('beforeend', `${p.ruby ? `<div class="phrase-kr kr has-ruby small-ruby">${phraseText(p)}</div>` : ''}${roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : ''}${details(p)}`);
+      });
     } else {
       reconstruct(body, p, (clean, line) => {
         const xp = clean ? 5 : 2;
@@ -316,7 +407,7 @@ export function phrasesScreen(el) {
     current = generate(crit, Math.random, course());
     $('.crit', el).open = false;
     showPhrase(true);
-    if (mode !== 'translate') autoSpeak(current.tl);
+    if (mode === 'read' || mode === 'build') autoSpeak(current.tl);
     zone.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 
@@ -373,20 +464,20 @@ export function phraseOfDay() {
   return generate({ level: 2, style: 'polite' }, rng(dayNumber() * 104729 + 1), course());
 }
 
-/** Série de phrases à reconstituer, l'une après l'autre. onEnd(nombre de phrases réussies sans aide). */
-function phraseSeries(el, list, onEnd) {
+/** Série de phrases à reconstituer (ou à écrire au clavier), l'une après l'autre. onEnd(nombre de phrases réussies sans aide). */
+function phraseSeries(el, list, onEnd, typed = false) {
   let i = 0;
   let clean = 0;
   function show() {
     el.innerHTML = `
       <div class="screen daily">
         <div class="dots">${list.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'cur' : ''}"></i>`).join('')}</div>
-        <p class="muted center">${t('daily.progress', { n: i + 1, total: list.length })}</p>
+        <p class="muted center">${t(typed ? 'daily.progressType' : 'daily.progress', { n: i + 1, total: list.length })}</p>
         <div class="card daily-card pop"></div>
         <button class="btn primary next" hidden>${i + 1 < list.length ? t('daily.next') : t('finish')}</button>
       </div>`;
     const p = list[i];
-    reconstruct($('.daily-card', el), p, (ok) => {
+    (typed ? typePhrase : reconstruct)($('.daily-card', el), p, (ok) => {
       if (ok) clean++;
       $('.daily-card', el).insertAdjacentHTML('beforeend', (p.ruby ? `<div class="phrase-kr kr has-ruby small-ruby">${phraseText(p)}</div>` : '') + (get().settings.roman ? `<div class="phrase-rom">${esc(p.rom)}</div>` : '') + details(p));
       const n = $('.next', el);
@@ -406,13 +497,16 @@ function phraseSeries(el, list, onEnd) {
   show();
 }
 
-/** Étape « phrases » du parcours : trois phrases selon les critères de l'étape. */
+/** Phrase générée selon les critères d'une étape du parcours (sert aussi aux examens). */
+export const phraseFor = (crit) => generate({ ...DEFAULT_CRIT, ...crit }, Math.random, course());
+
+/** Étape « phrases » du parcours : trois phrases selon les critères de l'étape (à reconstituer, ou à écrire pour « ptype »). */
 export function roadPhrases(el, step) {
   const C = course();
-  const crit = { ...DEFAULT_CRIT, ...step.crit };
-  const list = [1, 2, 3].map(() => generate(crit, Math.random, C));
+  const typed = step.kind === 'ptype';
+  const list = [1, 2, 3].map(() => phraseFor(step.crit));
   phraseSeries(el, list, (clean) => {
-    const xp = 6 + clean * 2;
+    const xp = (typed ? 10 : 6) + clean * (typed ? 3 : 2);
     addXp(xp);
     markRoad(step.id, starsFor(clean / list.length));
     sfx.win();
@@ -430,7 +524,7 @@ export function roadPhrases(el, step) {
       </div>`;
     countUp($('.xp-won .n', el), xp);
     $('.again', el).addEventListener('click', () => roadPhrases(el, step));
-  });
+  }, typed);
 }
 
 export function dailyScreen(el, q = {}) {

@@ -7,7 +7,8 @@ import { GUIDE } from '../content/guide.js';
 import { GUIDE_EN } from '../content/guide.en.js';
 import { GUIDE_KO_PLUS } from '../content/guide.plus.js';
 import { GUIDE_KO_ADV } from '../content/guide.adv.js';
-import { localize } from '../content/guide.util.js';
+import { GUIDE_KO_PRON, KO_SECTIONS } from '../content/guide.pron.js';
+import { localize, arrange } from '../content/guide.util.js';
 import { pick } from '../generator.js';
 import { LEXICON } from '../content/lexicon.js';
 
@@ -296,6 +297,7 @@ const TIPS_EN = {
 };
 const SET_LABELS = { vowels: L('Voyelles', 'Vowels'), consonants: L('Consonnes', 'Consonants'), compound: L('Voyelles composées', 'Compound vowels'), double: L('Consonnes doubles', 'Double consonants') };
 const SETS = Object.fromEntries(Object.entries(JAMO_SETS).map(([k, s]) => [k, {
+  sym: { vowels: 'ㅏ', consonants: 'ㄱ', compound: 'ㅘ', double: 'ㄲ' }[k],
   label: SET_LABELS[k],
   decoys: k === 'compound' ? VOWELS : k === 'double' ? CONSONANTS : [],
   items: s.items.map((x) => ({ ...x, tip: L(x.tip, TIPS_EN[x.j] || x.tip) })),
@@ -327,7 +329,6 @@ export const KO = {
   script: {
     title: L('Hangeul', 'Hangul'),
     sets: SETS,
-    builder: true,
     randomSyllable,
     syllableLabel: L('Syllabes', 'Syllables'),
     syllableSample: '가나다',
@@ -340,7 +341,7 @@ export const KO = {
   render,
   awkward,
   guide: {
-    fr: [...GUIDE, ...localize([...GUIDE_KO_PLUS, ...GUIDE_KO_ADV], 'fr')],
-    en: [...GUIDE_EN, ...localize([...GUIDE_KO_PLUS, ...GUIDE_KO_ADV], 'en')],
+    fr: arrange([...GUIDE, ...localize([...GUIDE_KO_PLUS, ...GUIDE_KO_PRON, ...GUIDE_KO_ADV], 'fr')], KO_SECTIONS, 'fr'),
+    en: arrange([...GUIDE_EN, ...localize([...GUIDE_KO_PLUS, ...GUIDE_KO_PRON, ...GUIDE_KO_ADV], 'en')], KO_SECTIONS, 'en'),
   },
 };

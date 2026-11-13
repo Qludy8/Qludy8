@@ -7,7 +7,7 @@ Elle fonctionne hors connexion. Toutes les données restent sur le téléphone, 
 
 Tout ce qui suit existe pour les deux langues (hangeul pour le coréen, hiragana et katakana pour le japonais, avec furigana au-dessus des kanji).
 
-- **Alphabet** : voyelles, consonnes, lettres composées et doubles, avec la prononciation (voix coréenne du téléphone), des conseils en français, un atelier pour construire des syllabes et des quiz de lecture.
+- **Alphabet** : voyelles, consonnes, lettres composées et doubles, avec la prononciation (voix coréenne du téléphone), des conseils en français, l’ordre des traits animé et des quiz de lecture.
 - **Vocabulaire** : plus de 150 mots classés en 6 thèmes. Trois façons de s’entraîner : quiz (coréen → français, français → coréen, écoute), cartes mémoire à glisser, et jeu des paires contre la montre. Une répétition espacée (boîtes de Leitner) fait revenir plus souvent les mots oubliés.
 - **Générateur de phrases**, selon cinq critères :
   - le niveau ;
@@ -17,7 +17,10 @@ Tout ce qui suit existe pour les deux langues (hangeul pour le coréen, hiragana
   - la forme (affirmative, négative, question, envie -고 싶다).
 
   Chaque phrase est conjuguée et accordée correctement : particules 은/는, 이/가, 을/를 et 에/에서, irrégularités, négations 안 et -지 않다. Elle est accompagnée de sa traduction française, de sa romanisation et d’une explication grammaticale. Trois modes d’exercice : Lire, Traduire, Reconstituer.
-- **Parcours** : une carte de modules de difficulté croissante (10 en coréen, 9 en japonais). Chaque étape renvoie à une leçon, un quiz, des cartes mémoire ou une série de phrases ; les quiz donnent 1 à 3 étoiles et chaque module terminé offre un bonus d’XP. Le contenu se règle dans `js/content/roadmap.js`.
+- **Parcours** : une carte de modules de difficulté croissante. Chaque étape renvoie à une leçon, un quiz, des cartes mémoire ou une série de phrases ; les quiz donnent 1 à 3 étoiles et chaque module terminé offre un bonus d’XP. Le contenu se règle dans `js/content/roadmap.js`.
+- **Écrire pour de bon** : clavier à l’écran (hangeul à deux jeux, tableau des kana) pour écrire les lettres, les mots et des phrases entières, dictées, et tracé des lettres au doigt dans le bon ordre et le bon sens des traits (hangeul, hiragana, katakana, 379 kanji).
+- **Chapitres, examens et platine** : 41 modules par langue rangés en 7 chapitres. Chaque module se termine par un examen sans indice (80 % pour le faire passer au platine). Un examen final, lançable à tout moment, porte sur tout ce qui est terminé.
+- **Succès** : 18 badges à cinq paliers (bronze, argent, or, platine, diamant) dans le Profil.
 - **Défi du jour** : 3 nouvelles phrases à remettre dans l’ordre chaque jour.
 - **Progression** : XP, niveaux, série de jours, objectif quotidien et calendrier d’activité. La progression peut être exportée ou restaurée.
 
@@ -53,3 +56,7 @@ Pour la voix : si aucune voix coréenne n’est installée, en ajouter une dans 
 ## Mise à jour
 
 Après une modification, changer `VERSION` dans `sw.js` et `APP_VERSION` dans `js/app.js` (affiché en bas des Réglages) pour que les téléphones récupèrent les nouveaux fichiers.
+
+## Crédits
+
+L’ordre des traits des kana et des kanji vient de [KanjiVG](https://kanjivg.tagaini.net) (© Ulrich Apel), sous licence [Creative Commons Attribution-Share Alike 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Les fichiers `js/content/strokes.ja.js` et `js/content/strokes.kanji.js` en sont dérivés et restent sous cette licence.

@@ -1,14 +1,15 @@
 // Haru (하루) — application d'entraînement au coréen et au japonais. Navigation et écrans principaux.
 import { $, $$, esc, speak, canSpeak, hasVoice, sfx, toast, countUp, pulse, celebrate, ICONS } from './ui.js';
 import * as store from './store.js';
-import { compose, CHO, JUNG, JONG } from './hangul.js';
-import { CONSONANTS, VOWELS } from './content/jamo.js';
 import { ALL_THEMES, isPhraseTheme, themeGlyph, themeColor, themeShort } from './content/lexicon.js';
 import { course, hasCourse, setCourse, COURSES, t, tr, lang, gloss } from './course.js';
 import { scriptQuiz, vocabQuiz, wordsOf } from './quiz.js';
 import { flashcards, pairs } from './games.js';
 import { phrasesScreen, dailyScreen, dailyPhrases, phraseOfDay, phraseText, meaning, roadPhrases } from './phrases.js';
 import { roadScreen, findStep } from './road.js';
+import { writeScreen, strokeDemo, canTrace, writeChars } from './draw.js';
+import { examScreen } from './exam.js';
+import { achievements, newTiers, TIERS } from './achievements.js';
 
 const view = $('#view');
 const titleEl = $('#title');
@@ -28,20 +29,22 @@ const SCREENS = {
   profile: { title: () => t('title.profile'), tab: 'profile', render: profile },
   settings: { title: () => t('title.settings'), tab: 'settings', top: 'settings', back: '#/profile', render: settings },
   lexicon: { title: () => t('title.lexicon'), tab: 'words', back: '#/words', render: lexicon },
-  hquiz: { title: () => t('title.scriptQuiz', { name: tr(course().script.title) }), tab: 'hangul', back: '#/hangul', focus: true, render: (el, q) => scriptQuiz(el, q.set || Object.keys(course().script.sets)[0], q.step) },
+  hquiz: { title: () => t('title.scriptQuiz', { name: tr(course().script.title) }), tab: 'hangul', back: '#/hangul', focus: true, render: (el, q) => scriptQuiz(el, q.set || Object.keys(course().script.sets)[0], q.step, q.mode) },
+  write: { title: () => t('title.write'), tab: 'hangul', back: '#/hangul', focus: true, render: writeScreen },
+  exam: { title: () => t('title.exam'), tab: 'road', back: '#/road', focus: true, render: examScreen },
   quiz: { title: () => t('title.quiz'), tab: 'words', back: '#/words', focus: true, render: (el, q) => vocabQuiz(el, q.t || 'all', q.mode, q.step) },
   cards: { title: () => t('title.cards'), tab: 'words', back: '#/words', focus: true, render: (el, q) => flashcards(el, q.t || 'all', q.step) },
   pairs: { title: () => t('title.pairs'), tab: 'words', back: '#/words', focus: true, render: (el, q) => pairs(el, q.step) },
   daily: { title: () => t('title.daily'), tab: 'phrases', back: '#/phrases', focus: true, render: dailyScreen },
   rphrase: { title: () => t('title.phrases'), tab: 'phrases', back: '#/road', focus: true, render: (el, q) => {
     const s = findStep(q.step);
-    if (s?.kind === 'phrase') roadPhrases(el, s);
+    if (s?.kind === 'phrase' || s?.kind === 'ptype') roadPhrases(el, s);
     else location.hash = '#/road';
   } },
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '26'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '27'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -213,8 +216,12 @@ function words(el) {
               <span class="muted small">${t('words.mastered', { m, n: ws.length })}</span>
               <div class="mini-bar"><i style="--w:${m / ws.length}"></i></div>
             </div>
-            <a class="btn small ghost" href="#/cards?t=${k}">${t('words.cards')}</a>
-            <a class="btn small primary" href="#/quiz?t=${k}">${t('title.quiz')}</a>
+            <div class="theme-actions">
+              <a class="btn small ghost" href="#/cards?t=${k}">${t('words.cards')}</a>
+              <a class="btn small primary" href="#/quiz?t=${k}">${t('title.quiz')}</a>
+              <a class="btn small ghost" href="#/quiz?t=${k}&mode=type">${t('words.typeShort')}</a>
+              <a class="btn small ghost" href="#/quiz?t=${k}&mode=dictation">${t('words.dictShort')}</a>
+            </div>
           </li>`;
   }).join('');
   el.innerHTML = `
@@ -222,6 +229,8 @@ function words(el) {
       <div class="grid2">
         <a class="tile-link" href="#/quiz?t=all" style="--i:0; --tc: var(--c-words)"><span class="tl-kr kr">${ja ? 'クイズ' : '퀴즈'}</span><b>${t('words.quiz')}</b><span class="muted small">${t('allThemes')}</span></a>
         <a class="tile-link" href="#/pairs" style="--i:1; --tc: var(--c-guide)"><span class="tl-kr kr">${ja ? 'ペア' : '짝'}</span><b>${t('title.pairs')}</b><span class="muted small">${t('words.pairsSub')}</span></a>
+        <a class="tile-link" href="#/quiz?t=all&mode=type" style="--i:2; --tc: var(--c-hangul)"><span class="tl-kr kr">${ja ? '書く' : '쓰기'}</span><b>${t('words.type')}</b><span class="muted small">${t('words.typeSub')}</span></a>
+        <a class="tile-link" href="#/quiz?t=all&mode=dictation" style="--i:3; --tc: var(--c-phrases)"><span class="tl-kr kr">${ja ? '聞く' : '듣기'}</span><b>${t('words.dictation')}</b><span class="muted small">${t('words.dictationSub')}</span></a>
         <a class="tile-link" href="#/quiz?mode=review" style="--i:2; --tc: var(--c-home)"><span class="tl-kr kr">${ja ? '復習' : '복습'}</span><b>${t('review')}</b><span class="muted small">${due ? t(due > 1 ? 'words.dueN' : 'words.due1', { n: due }) : t('words.consolidate')}</span>${due ? `<span class="badge">${due}</span>` : ''}</a>
         <a class="tile-link" href="#/lexicon" style="--i:3; --tc: var(--c-stats)"><span class="tl-kr kr">${ja ? '単語' : '단어'}</span><b>${t('title.lexicon')}</b><span class="muted small">${t('words.count', { n: C.words.length })}</span></a>
       </div>
@@ -240,36 +249,35 @@ function script(el) {
   const S = C.script;
   if (!S.sets[scriptSet[C.id]] || S.sets[scriptSet[C.id]].hidden) scriptSet[C.id] = Object.keys(S.sets)[0];
   const ja = C.id === 'ja';
+  const symOf = (set) => set.sym || set.items[0].j;
   el.innerHTML = `
     <div class="screen hangul">
-      <div class="seg sets ${ja ? 'scroll' : ''}">
-        ${Object.entries(S.sets).filter(([, s]) => !s.hidden).map(([k, s]) => `<button class="seg-btn ${k === scriptSet[C.id] ? 'on' : ''}" data-set="${k}">${esc(tr(s.label))}</button>`).join('')}
+      <div class="seg sets scroll">
+        ${Object.entries(S.sets).filter(([, s]) => !s.hidden).map(([k, s]) => `<button class="seg-btn ${k === scriptSet[C.id] ? 'on' : ''}" data-set="${k}"><span class="seg-sym kr">${esc(symOf(s))}</span>${esc(tr(s.label))}</button>`).join('')}
       </div>
       <div class="jamo-grid"></div>
       <div class="jamo-detail card" hidden></div>
       <a class="btn primary quiz-set" href="#">${t('script.quizSet')}</a>
-      <a class="card guide-link" href="#/guide?c=pron">
-        <span class="l-glyph kr">${ja ? '発音' : '발음'}</span>
-        <span class="l-text"><b>${t('script.rules')}</b><span class="muted small">${t('script.rulesSub.' + C.id)}</span></span>
-        <span class="chev">›</span>
-      </a>
 
-      ${S.builder ? `
-      <h2>${t('script.build')}</h2>
-      <p class="muted small">${t('script.buildHelp')}</p>
-      <div class="card builder">
-        <div class="built kr">가</div>
-        <div class="built-rom muted">ga</div>
-        <div class="b-row" data-part="c">${CONSONANTS.map((c, i) => `<button class="chip kr ${i === 0 ? 'on' : ''}" data-v="${CHO.indexOf(c.j)}">${c.j}</button>`).join('')}</div>
-        <div class="b-row" data-part="v">${VOWELS.map((v, i) => `<button class="chip kr ${i === 0 ? 'on' : ''}" data-v="${JUNG.indexOf(v.j)}">${v.j}</button>`).join('')}</div>
-        <div class="b-row" data-part="f">${['', 'ㄱ', 'ㄴ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ'].map((f, i) => `<button class="chip kr ${i === 0 ? 'on' : ''}" data-v="${JONG.indexOf(f)}">${f || '—'}</button>`).join('')}</div>
-      </div>` : `<p class="muted small script-help">${t('script.kanaHelp')}</p>`}
+      <h2>${t('script.writing')}</h2>
+      <p class="muted small">${t('script.writingHelp')}</p>
+      <div class="grid2 write-tiles"></div>
 
       <h2>${t('script.reading')}</h2>
       <div class="grid2">
         <a class="tile-link" href="#/hquiz?set=syllables" style="--i:0"><span class="tl-kr kr">${S.syllableSample}</span><b>${tr(S.syllableLabel)}</b><span class="muted small">${t('script.syllablesSub')}</span></a>
         <a class="tile-link" href="#/hquiz?set=words" style="--i:1"><span class="tl-kr kr">${ja ? 'さかな' : '사과'}</span><b>${t('script.words')}</b><span class="muted small">${t('script.wordsSub')}</span></a>
+        <a class="tile-link" href="#/hquiz?set=syllables&mode=type" style="--i:2; --tc: var(--c-guide)"><span class="tl-kr kr">${ja ? 'にゅ' : '봄'}</span><b>${t('script.typeSyl')}</b><span class="muted small">${t('script.typeSylSub')}</span></a>
+        <a class="tile-link" href="#/hquiz?set=words&mode=type" style="--i:3; --tc: var(--c-phrases)"><span class="tl-kr kr">${ja ? '聞く' : '듣기'}</span><b>${t('script.dictation')}</b><span class="muted small">${t('script.dictationSub')}</span></a>
       </div>
+
+      <a class="card guide-link" href="#/guide?c=pron">
+        <span class="l-glyph kr">${ja ? '発音' : '발음'}</span>
+        <span class="l-text"><b>${t('script.rules')}</b><span class="muted small">${t('script.rulesSub.' + C.id)}</span></span>
+        <span class="chev">›</span>
+      </a>
+      ${ja ? `<p class="muted small script-help">${t('script.kanaHelp')}</p>` : ''}
+      <p class="muted small center credit">${t('script.credit')}</p>
     </div>`;
 
   const grid = $('.jamo-grid', el);
@@ -292,12 +300,25 @@ function script(el) {
       grid.innerHTML = set.groups.map((g) => `
         <div class="jamo-group">
           <b>${esc(tr(g.label))}</b><span class="muted small">${g.items.length}</span>
+          <a class="btn small ghost" href="#/write?set=kanji-${g.id}">${t('script.trace')}</a>
           <a class="btn small ghost" href="#/hquiz?set=kanji-${g.id}">${t('title.quiz')}</a>
         </div>${g.items.map((x) => cell(x, n++)).join('')}`).join('');
     } else grid.innerHTML = items.map(cell).join('');
     detail.hidden = true;
     $('.quiz-set', el).href = `#/hquiz?set=${scriptSet[C.id]}`;
     $('.quiz-set', el).textContent = set.groups ? t('kanji.quizAll', { n: items.length }) : kanji ? t('kanji.quiz') : t('script.quizSet');
+    // Écriture : tracer à la main (hiragana et katakana séparément) et taper au clavier
+    const id = scriptSet[C.id];
+    const sample = items[0];
+    const tiles = [];
+    if (writeChars(id).length) {
+      if (sample.j2) {
+        tiles.push(`<a class="tile-link" href="#/write?set=${id}&form=hira" style="--tc: var(--c-hangul)"><span class="tl-kr kr">${sample.j}</span><b>${t('script.traceHira')}</b><span class="muted small">${t('script.traceSub')}</span></a>`);
+        tiles.push(`<a class="tile-link" href="#/write?set=${id}&form=kata" style="--tc: var(--c-guide)"><span class="tl-kr kr">${sample.j2}</span><b>${t('script.traceKata')}</b><span class="muted small">${t('script.traceSub')}</span></a>`);
+      } else tiles.push(`<a class="tile-link" href="#/write?set=${id}" style="--tc: var(--c-hangul)"><span class="tl-kr kr">${sample.j}</span><b>${t('script.trace')}</b><span class="muted small">${t('script.traceSub')}</span></a>`);
+    }
+    tiles.push(`<a class="tile-link" href="#/hquiz?set=${id}&mode=type" style="--tc: var(--c-words)"><span class="tl-kr kr">${ja ? 'かな' : 'ㅂㅈㄷ'}</span><b>${t('script.keyboard')}</b><span class="muted small">${t(kanji ? 'script.keyboardKanji' : 'script.keyboardSub')}</span></a>`);
+    $('.write-tiles', el).innerHTML = tiles.join('');
   }
   grid.addEventListener('click', (e) => {
     const b = e.target.closest('.jamo');
@@ -316,6 +337,7 @@ function script(el) {
           <button class="link ex-say" data-say="${esc(x.ex[0])}"><span class="kr">${esc(x.ex[0])}</span> <span class="kr muted small">${esc(x.ex[1])}</span> · ${esc(tr({ fr: x.ex[2], en: x.ex[3] }))}</button>
         </div>`;
       $('.ex-say', detail).addEventListener('click', (ev) => speak(ev.currentTarget.dataset.say));
+      strokes(x, [x.j]);
       pulse(detail, 'pop');
       return;
     }
@@ -326,8 +348,24 @@ function script(el) {
         <p>${esc(tr(x.tip))}</p>
         ${x.say !== x.j ? `<p class="muted small">${t('script.example')} <span class="kr">${x.say}</span> (${esc(C.romanize(x.say))})</p>` : ''}
       </div>`;
+    strokes(x, x.j2 ? [x.j, x.j2] : [x.j]);
     pulse(detail, 'pop');
   });
+  /** Sous le détail : l'ordre des traits animé, et un bouton pour s'exercer à tracer. */
+  function strokes(x, chars) {
+    const list = chars.filter((c) => [...c].length === 1 && canTrace(c));
+    if (!list.length) return;
+    const id = scriptSet[C.id];
+    detail.insertAdjacentHTML('beforeend', `
+      <div class="jd-strokes">
+        ${list.map((c) => `<div class="jd-demo" data-ch="${c}"></div>`).join('')}
+        <div class="jd-trace">
+          <span class="muted small">${t('script.strokeOrder')}</span>
+          ${list.map((c, k) => `<a class="btn small ${k ? 'ghost' : 'primary'}" href="#/write?set=${id}&ch=${encodeURIComponent(c)}${x.j2 ? `&form=${k ? 'kata' : 'hira'}` : ''}">${t('script.traceOne', { ch: c })}</a>`).join('')}
+        </div>
+      </div>`);
+    $$('.jd-demo', detail).forEach((h) => strokeDemo(h, h.dataset.ch));
+  }
   $('.sets', el).addEventListener('click', (e) => {
     const b = e.target.closest('.seg-btn');
     if (!b) return;
@@ -338,22 +376,6 @@ function script(el) {
   });
   renderGrid();
 
-  if (!S.builder) return;
-  // Atelier syllabe (coréen)
-  const part = { c: CHO.indexOf('ㄱ'), v: JUNG.indexOf('ㅏ'), f: 0 };
-  $('.builder', el).addEventListener('click', (e) => {
-    const b = e.target.closest('.chip');
-    if (!b) return;
-    const row = b.closest('.b-row');
-    part[row.dataset.part] = Number(b.dataset.v);
-    $$('.chip', row).forEach((x) => x.classList.toggle('on', x === b));
-    const s = compose(part.c, part.v, part.f);
-    const out = $('.built', el);
-    out.textContent = s;
-    $('.built-rom', el).textContent = C.romanize(s);
-    pulse(out, 'pop');
-    speak(s);
-  });
 }
 
 // ---------- Lexique ----------
@@ -430,7 +452,8 @@ function guide(el, q) {
   function render() {
     const ls = guideList().filter((g) => g.cat === guideCat);
     list.innerHTML = ls.map((g, i) => `
-      <li style="--i:${i}">
+      ${g.sec ? `<li class="guide-sec" style="--i:${Math.min(i, 14)}"><span>${esc(g.sec)}</span></li>` : ''}
+      <li style="--i:${Math.min(i, 14)}">
         <a class="lesson-row" href="#/guide?id=${g.id}">
           <span class="l-glyph kr">${esc(g.glyph)}</span>
           <span class="l-text"><b>${esc(g.title)}</b><span class="muted small">${esc(g.sum)}</span></span>
@@ -536,6 +559,9 @@ function profile(el) {
   const learned = Object.keys(st.srs).length;
   const lessons = Object.keys(st.read || {}).length;
   const n = st.journal.length;
+  newTiers(true);
+  const ach = achievements();
+  const fmtVal = (a) => (a.lower && !a.value ? '—' : String(a.value).replace('.', t('decimal')));
 
   el.innerHTML = `
     <div class="screen progress-screen">
@@ -575,6 +601,20 @@ function profile(el) {
       </div>
       <p class="muted small heat-legend"><i class="h1"></i> ${t('progress.lActive')} <i class="h2"></i> ${t('progress.lHalf')} <i class="h3"></i> ${t('progress.lGoal')}</p>
 
+      <h2>${t('ach.title')} <span class="muted">· ${ach.reduce((k, a) => k + a.tier, 0)} / ${ach.length * TIERS.length}</span></h2>
+      <p class="muted small">${t('ach.help')}</p>
+      <div class="ach-grid">
+        ${ach.map((a, i) => `
+          <button class="ach t${a.tier}" style="--i:${Math.min(i, 12)}" data-a="${a.id}">
+            <span class="ach-medal kr ${a.glyph.length > 2 ? 'long' : ''}">${esc(a.glyph)}</span>
+            <b>${esc(tr(a.title))}</b>
+            <span class="ach-tier">${a.tier ? esc(tr(TIERS[a.tier - 1])) : t('ach.locked')}</span>
+            <span class="ach-dots">${TIERS.map((_, k) => `<i class="${k < a.tier ? 'on' : ''}"></i>`).join('')}</span>
+            <span class="mini-bar"><i style="--w:${a.progress}"></i></span>
+            <span class="ach-val muted small">${a.next == null ? t('ach.max') : `${fmtVal(a)} / ${a.next}${a.unit || ''}`}</span>
+          </button>`).join('')}
+      </div>
+
       <h2>${t('journal.title')}</h2>
       <a class="card daily-cta" href="#/phrases">
         <div><b>${t(n > 1 ? 'progress.savedN' : 'progress.saved1', { n })}</b>
@@ -591,6 +631,14 @@ function profile(el) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     $('.xp-bar', el)?.classList.add('go');
     $('.goal-ring', el)?.classList.add('go');
+    $$('.ach .mini-bar', el).forEach((b) => b.classList.add('go'));
+  }));
+  // Toucher un badge : ce qu'il faut faire pour le palier suivant
+  $$('.ach', el).forEach((b) => b.addEventListener('click', () => {
+    const a = ach.find((x) => x.id === b.dataset.a);
+    sfx.tap();
+    pulse($('.ach-medal', b), 'bump');
+    toast(a.next == null ? `${tr(a.title)} · ${t('ach.max')}` : `${tr(TIERS[a.tier])} : ${tr(a.desc).replace('{n}', String(a.next).replace('.', t('decimal')))}`);
   }));
   $('.install', el)?.addEventListener('click', async () => {
     installEvent.prompt();
@@ -635,6 +683,8 @@ function settings(el) {
         <div class="set-row col"><span>${t('set.quizLen')}</span>${seg('quizLen', [[5, '5'], [10, '10'], [15, '15'], [20, '20']], s.quizLen)}
           <span class="muted small">${t('set.quizLenHelp')}</span></div>
         ${toggle('roman', t('set.roman'), s.roman)}
+        ${toggle('typing', t('set.typing'), s.typing !== false)}
+        <div class="set-row col"><span class="muted small">${t('set.typingHelp')}</span></div>
       </div>
 
       <h2>${t('set.sound')}</h2>
@@ -733,7 +783,8 @@ function settings(el) {
 function resetCourse() {
   const st = store.get();
   for (const k of ['xp']) st[k] = 0;
-  for (const k of ['days', 'srs', 'daily', 'best', 'read', 'road']) st[k] = {};
+  for (const k of ['days', 'srs', 'daily', 'best', 'read', 'road', 'exams', 'stats', 'ach', 'wr']) st[k] = {};
+  st.final = { best: 0, n: 0, last: 0, date: '' };
   st.journal = [];
   delete st.crit;
   store.save();
@@ -774,6 +825,22 @@ addEventListener('haru:goal', (e) => {
   celebrate({ glyph: course().id === 'ja' ? '目標' : '목표', title: t('cel.goal'), text: e.detail > 1 ? t('cel.goalStreak', { n: e.detail }) : t('cel.goalFirst'), button: t('continue') });
 });
 
+// Succès : un palier franchi s'annonce par un message (au plus un à la fois).
+let achTimer = 0;
+function checkAchievements() {
+  clearTimeout(achTimer);
+  achTimer = setTimeout(() => {
+    if (!hasCourse() || choosing) return;
+    const fresh = newTiers();
+    if (!fresh.length) return;
+    const a = fresh.at(-1);
+    sfx.win();
+    toast(`${t('ach.unlocked')} ${tr(a.title)} · ${tr(TIERS[a.tier - 1])}${fresh.length > 1 ? ` (+${fresh.length - 1})` : ''}`);
+  }, 900);
+}
+addEventListener('haru:xp', checkAchievements);
+addEventListener('haru:stat', checkAchievements);
+
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   installEvent = e;
@@ -809,5 +876,8 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 }
 
 applySettings();
-if (hasCourse()) dailyPhrases(); // précalcul pour un premier clic sans délai
+if (hasCourse()) {
+  dailyPhrases(); // précalcul pour un premier clic sans délai
+  newTiers(true); // les succès déjà acquis ne sont pas annoncés au lancement
+}
 route();

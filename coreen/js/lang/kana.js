@@ -55,15 +55,19 @@ const tip = (r) => TIPS[r] || TIPS[r.slice(0, 2)] || L(`« ${r} »`, `“${r}”
 // Chaque son regroupe sa forme hiragana (j) et katakana (j2).
 const item = ([k, r]) => ({ j: k, j2: toKata(k), r, say: k, tip: tip(r) });
 
+// sym : symbole affiché devant le libellé dans les onglets.
 export const KANA_SETS = {
-  base: { label: L('Kana あ ア', 'Kana あ ア'), items: BASE.map(item) },
-  voiced: { label: L('Sons が ガ', 'Sounds が ガ'), items: DAKUTEN.map(item), decoys: BASE.map(item) },
-  combo: { label: L('Combinés きゃ キャ', 'Combined きゃ キャ'), items: YOON.map(item) },
+  base: { sym: 'あ', label: L('Kana de base', 'Basic kana'), items: BASE.map(item) },
+  voiced: { sym: 'が', label: L('Sons voisés', 'Voiced sounds'), items: DAKUTEN.map(item), decoys: BASE.map(item) },
+  combo: { sym: 'きゃ', label: L('Sons combinés', 'Combined sounds'), items: YOON.map(item) },
 };
 
 // ---------- Rōmaji (Hepburn modifié) ----------
 const MAP = new Map([...BASE, ...DAKUTEN, ...YOON]);
 MAP.set('を', 'o');
+// Katakana étendus (mots étrangers) : ファ, ティ, ウェ, ヴ…
+for (const [k, r] of [['ふぁ', 'fa'], ['ふぃ', 'fi'], ['ふぇ', 'fe'], ['ふぉ', 'fo'], ['てぃ', 'ti'], ['でぃ', 'di'], ['とぅ', 'tu'], ['どぅ', 'du'], ['でゅ', 'dyu'],
+  ['うぃ', 'wi'], ['うぇ', 'we'], ['うぉ', 'wo'], ['しぇ', 'she'], ['じぇ', 'je'], ['ちぇ', 'che'], ['ゔぁ', 'va'], ['ゔぃ', 'vi'], ['ゔぇ', 've'], ['ゔぉ', 'vo'], ['ゔ', 'vu']]) MAP.set(k, r);
 const SMALL = { ぁ: 'a', ぃ: 'i', ぅ: 'u', ぇ: 'e', ぉ: 'o' };
 
 /** Convertit une chaîne en kana (hiragana ou katakana) en rōmaji. */
