@@ -134,6 +134,9 @@ export const STRINGS = {
     // ---------- Succès ----------
     'ach.title': 'Succès', 'ach.help': 'Chaque badge a cinq paliers : bronze, argent, or, platine, diamant. Touche un badge pour voir le prochain objectif.',
     'ach.locked': 'À débloquer', 'ach.max': 'Palier maximal atteint', 'ach.unlocked': 'Nouveau badge :',
+    'set.install': 'Installer l’application', 'set.installWhy': 'Elle s’ouvre alors en plein écran et fonctionne hors connexion.',
+    'set.installed': 'Haru est installée sur cet appareil.', 'set.installManual': 'Ton navigateur ne propose pas l’installation automatique. Voici comment faire :',
+    'set.installIos': 'bouton Partager → « Sur l’écran d’accueil ».', 'set.installAndroid': 'menu ⋮ → « Installer l’application » ou « Ajouter à l’écran d’accueil ».',
     'set.typing': 'Réponses à écrire au clavier', 'set.typingHelp': 'Dans les quiz, les mots déjà rencontrés sont à écrire au lieu d’être choisis. Les étapes « Au clavier » et « Dictée » du parcours restent toujours à écrire.',
   },
 
@@ -270,6 +273,9 @@ export const STRINGS = {
     // ---------- Achievements ----------
     'ach.title': 'Achievements', 'ach.help': 'Each badge has five tiers: bronze, silver, gold, platinum, diamond. Tap a badge to see the next goal.',
     'ach.locked': 'Locked', 'ach.max': 'Top tier reached', 'ach.unlocked': 'New badge:',
+    'set.install': 'Install the app', 'set.installWhy': 'It then opens full screen and works offline.',
+    'set.installed': 'Haru is installed on this device.', 'set.installManual': 'Your browser does not offer automatic installation. Here is how to do it:',
+    'set.installIos': 'Share button → “Add to Home Screen”.', 'set.installAndroid': 'menu ⋮ → “Install app” or “Add to Home screen”.',
     'set.typing': 'Typed answers', 'set.typingHelp': 'In quizzes, words you have already met must be typed instead of picked. The “Keyboard” and “Dictation” steps of the path are always typed.',
   },
 };

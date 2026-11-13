@@ -44,7 +44,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile' }; // anciennes adresses
 
-const APP_VERSION = '29'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '30'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -623,7 +623,6 @@ function profile(el) {
       </a>
 
       <div class="stack profile-actions">
-        ${installEvent ? `<button class="btn primary install">${t('home.install')}</button>` : ''}
         <a class="btn ghost" href="#/settings">${t('title.settings')}</a>
       </div>
     </div>`;
@@ -640,12 +639,6 @@ function profile(el) {
     pulse($('.ach-medal', b), 'bump');
     toast(a.next == null ? `${tr(a.title)} · ${t('ach.max')}` : `${tr(TIERS[a.tier])} : ${tr(a.desc).replace('{n}', String(a.next).replace('.', t('decimal')))}`);
   }));
-  $('.install', el)?.addEventListener('click', async () => {
-    installEvent.prompt();
-    await installEvent.userChoice;
-    installEvent = null;
-    route();
-  });
 }
 
 // ---------- Réglages ----------
@@ -701,6 +694,18 @@ function settings(el) {
         </div>
       </div>
 
+      <h2>${t('set.install')}</h2>
+      <div class="card install-card">
+        ${installed() ? `<p class="install-done">${ICONS.check}<span>${t('set.installed')}</span></p>` : `
+        <p class="muted small">${t('home.installSub')}. ${t('set.installWhy')}</p>
+        <button class="btn primary install-btn">${t('home.install')}</button>
+        <div class="install-steps" ${installEvent ? 'hidden' : ''}>
+          <p class="muted small">${t('set.installManual')}</p>
+          <p><b>iPhone (Safari)</b> : ${t('set.installIos')}</p>
+          <p><b>Android (Chrome)</b> : ${t('set.installAndroid')}</p>
+        </div>`}
+      </div>
+
       <h2>${t('set.data')}</h2>
       <div class="card data-actions">
         <p class="muted small">${t('set.dataHelp')}</p>
@@ -752,6 +757,21 @@ function settings(el) {
   rate.addEventListener('change', () => store.save());
   $('.test-voice', el).addEventListener('click', () => speak(C.testVoice));
 
+  // Installation : la fenêtre du navigateur quand il la propose, sinon la marche à suivre.
+  $('.install-btn', el)?.addEventListener('click', async () => {
+    sfx.tap();
+    if (!installEvent) {
+      const steps = $('.install-steps', el);
+      steps.hidden = false;
+      pulse(steps, 'flash');
+      return steps.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    installEvent.prompt();
+    await installEvent.userChoice;
+    installEvent = null;
+    route();
+  });
+
   $('.export', el).addEventListener('click', () => {
     const blob = new Blob([store.exportAll()], { type: 'application/json' });
     const a = document.createElement('a');
@@ -789,6 +809,9 @@ function resetCourse() {
   delete st.crit;
   store.save();
 }
+
+/** L'application est-elle déjà ouverte depuis l'écran d'accueil ? */
+const installed = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
 const toggle = (name, label, on) => `
   <label class="set-row switch">
@@ -844,7 +867,7 @@ addEventListener('haru:stat', checkAchievements);
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   installEvent = e;
-  if (location.hash.startsWith('#/profile')) route();
+  if (location.hash.startsWith('#/settings')) route();
 });
 
 $$('a', tabs).forEach((a) => a.addEventListener('click', () => {

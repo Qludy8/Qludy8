@@ -1240,3 +1240,10 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 @media (min-width: 900px) { .ach-grid { grid-template-columns: repeat(4, 1fr); } .kb { margin: 0; } }
 .kb-ja .kb-key[data-mark] { color: var(--accent); font-size: 1.5rem; font-weight: 900; }
 .kb-ja .kb-key[data-mark="小"] { font-size: 1rem; }
+
+/* Réglages : installer l'application */
+.install-card { display: grid; gap: 10px; }
+.install-card .btn { width: 100%; }
+.install-steps { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: .92rem; }
+.install-steps.flash { animation: flash .6s ease; }
+.install-done { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ok); }
