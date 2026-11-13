@@ -22,7 +22,7 @@ Tout ce qui suit existe pour les deux langues (hangeul pour le coréen, hiragana
 - **Chapitres, examens et platine** : 41 modules par langue rangés en 7 chapitres. Chaque module se termine par un examen sans indice (80 % pour le faire passer au platine). Un examen final, lançable à tout moment, porte sur tout ce qui est terminé.
 - **Succès** : 18 badges à cinq paliers (bronze, argent, or, platine, diamant) dans le Profil.
 - **À voix haute** : le téléphone écoute (reconnaissance vocale du navigateur) et vérifie qu’il comprend le bon mot ou la bonne lettre. Sans micro, ces exercices sont remplacés par des exercices écrits.
-- **Sans QCM** : les exercices demandent d’écrire (clavier latin AZERTY ou QWERTY pour la lecture, clavier coréen ou japonais pour l’écriture), de relier des paires, ou de remettre syllabes et mots dans l’ordre par glisser-déposer. Plus on avance dans le parcours, plus il faut écrire.
+- **Difficulté progressive** : au début du parcours, surtout des choix multiples ; ensuite, de plus en plus d’exercices à écrire (clavier coréen ou japonais), des paires à relier, des syllabes et des mots à remettre dans l’ordre par glisser-déposer ; à la fin, plus aucun choix multiple. Le nombre de questions est fixé par type de série (`SERIES` dans `js/quiz.js`).
 - **Progression** : XP, niveaux, série de jours, objectif quotidien et calendrier d’activité. La progression peut être exportée ou restaurée.
 
 ## Organisation du code

@@ -44,7 +44,7 @@ const SCREENS = {
 };
 const ALIASES = { learn: 'words', home: 'road', progress: 'profile', daily: 'phrases' }; // anciennes adresses
 
-const APP_VERSION = '31'; // à changer avec VERSION dans sw.js
+const APP_VERSION = '32'; // à changer avec VERSION dans sw.js
 
 // À chaque lancement, on repasse par le choix de la langue (sauf après un rechargement de mise à jour).
 const SKIP_MENU = 'haru.skipMenu';
@@ -641,9 +641,6 @@ function settings(el) {
 
       <h2>${t('set.learning')}</h2>
       <div class="card settings">
-        <div class="set-row col"><span>${t('set.goal')}</span>${seg('goal', [[10, '10'], [30, '30'], [50, '50'], [100, '100']], st.goal)}</div>
-        <div class="set-row col"><span>${t('set.quizLen')}</span>${seg('quizLen', [[5, '5'], [10, '10'], [15, '15'], [20, '20']], s.quizLen)}
-          <span class="muted small">${t('set.quizLenHelp')}</span></div>
         ${toggle('roman', t('set.roman'), s.roman)}
         ${toggle('speech', t('set.speech'), s.speech !== false)}
         <div class="set-row col"><span class="muted small">${t(listenSupported() ? 'set.speechHelp' : 'set.speechNo')}</span></div>
@@ -703,9 +700,7 @@ function settings(el) {
       store.save();
       return route();
     }
-    if (k === 'goal') st.goal = Number(v);
-    else if (k === 'quizLen') s.quizLen = Number(v);
-    else if (k === 'krLarge') s.krLarge = v === 'true';
+    if (k === 'krLarge') s.krLarge = v === 'true';
     else s[k] = v;
     store.save();
     applySettings();

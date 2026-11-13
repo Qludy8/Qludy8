@@ -6,6 +6,7 @@ import { HANGUL_STROKES } from './content/strokes.ko.js';
 import { KANA_STROKES } from './content/strokes.ja.js';
 
 const SIZE = 109;
+const WRITE_LEN = 6; // signes par séance de tracé
 let kanjiStrokes = null; // chargé à la demande (fichier volumineux)
 
 /** Traits d'un signe (tableau de chemins SVG), ou null si on ne sait pas le tracer. */
@@ -244,7 +245,7 @@ export async function writeScreen(el, q) {
   let list;
   if (q.ch) list = all.filter((x) => x.ch === q.ch);
   // Les signes les moins tracés d'abord, pour faire le tour du jeu au fil des séances.
-  else list = shuffle(all).sort((a, b) => (st.wr[a.ch] || 0) - (st.wr[b.ch] || 0)).slice(0, Math.min(st.settings.quizLen || 10, 8));
+  else list = shuffle(all).sort((a, b) => (st.wr[a.ch] || 0) - (st.wr[b.ch] || 0)).slice(0, WRITE_LEN);
   const back = q.step ? '#/road' : '#/hangul';
   if (!list.length) {
     el.innerHTML = `<div class="screen result"><p class="muted">${t('quiz.empty')}</p><a class="btn primary" href="${back}">${t('back')}</a></div>`;

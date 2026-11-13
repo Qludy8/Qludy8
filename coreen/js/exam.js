@@ -76,7 +76,7 @@ const matchExamples = (list) => ({ type: 'match', sub: t('match.examples'), pair
 
 // ---------- Composition d'un examen ----------
 /** Tire n questions en puisant tour à tour dans chaque type de contenu. */
-function compose(src, n) {
+function compose(src, n, depth = 1) {
   const C = course();
   const S = C.script;
   const pools = [];
@@ -84,8 +84,8 @@ function compose(src, n) {
   // Vocabulaire : écrire, comprendre à l'oreille, prononcer
   const words = shuffle(C.words.filter((w) => src.themes.has(w.t)));
   if (words.length) {
-    const kinds = ['type', 'dict', 'speak', 'type', 'dict'];
-    const hard = ['order', 'speak', 'spell'];
+    const kinds = depth < 0.2 ? ['type', 'kr2fr', 'dict', 'fr2kr', 'speak'] : depth < 0.45 ? ['type', 'dict', 'speak', 'kr2fr', 'type'] : ['type', 'dict', 'speak', 'type', 'dict'];
+    const hard = depth < 0.3 ? ['order', 'kr2fr', 'speak', 'listen2fr'] : ['order', 'speak', 'spell'];
     pools.push(words.map((w, k) => () => wordQuestion(w, typable(w) ? kinds[k % kinds.length] : hard[k % hard.length], { pool: words, n: N_OPT, plain: true })));
   }
 
@@ -98,13 +98,15 @@ function compose(src, n) {
       for (let k = 0; k + 3 < items.length; k += 6) letters.push(() => matchKanji(items.slice(k, k + 4)));
       items.forEach((x, k) => letters.push(() => kanjiQuestion(x, k % 3 === 2 ? 'speak' : 'type')));
     } else if (set) {
-      const kinds = ['type', 'rom', 'type', 'speak'];
-      shuffle(kanaForms(set.items)).slice(0, n).forEach((x, k) => letters.push(() => letterQuestion(x, kinds[k % kinds.length])));
+      const kinds = ['type', 'read', 'type', 'speak', 'pick'];
+      const items = kanaForms(set.items);
+      const others = [...items, ...kanaForms(set.decoys || [])];
+      shuffle(items).slice(0, n).forEach((x, k) => letters.push(() => letterQuestion(x, kinds[k % kinds.length], others, N_OPT)));
     } else if (id === 'syllables') {
-      for (let k = 0; k < 4; k++) letters.push(() => syllableQuestion(k % 2 ? 'rom' : 'type'));
+      for (let k = 0; k < 4; k++) letters.push(() => syllableQuestion(k % 2 ? 'read' : 'type'));
     } else if (id === 'words') {
       const pool = shortWords();
-      shuffle(pool).slice(0, 4).forEach((w, k) => letters.push(() => (k % 2 ? readWordQuestion(w) : wordQuestion(w, 'dict', { pool, plain: true, track: false }))));
+      shuffle(pool).slice(0, 4).forEach((w, k) => letters.push(() => (k % 2 ? readWordQuestion(w, 'read', pool) : wordQuestion(w, 'dict', { pool, plain: true, track: false }))));
     }
   }
   if (letters.length) pools.push(shuffle(letters));
@@ -156,7 +158,8 @@ export function examScreen(el, q) {
     title = tr(unit.title);
   }
   const n = final ? FINAL_LEN : UNIT_LEN;
-  const probe = compose(src, n);
+  const depth = final ? 1 : R.units.indexOf(unit) / Math.max(1, R.units.length - 1);
+  const probe = compose(src, n, depth);
   const score = final ? st.final?.best || 0 : store.examScore(unit.id);
   const pass = final ? FINAL_PASS : store.EXAM_PASS / 100;
 
@@ -173,7 +176,7 @@ export function examScreen(el, q) {
 
   function start() {
     runQuiz(el, {
-      questions: compose(src, n),
+      questions: compose(src, n, depth),
       title,
       again: () => examScreen(el, q),
       exam: {

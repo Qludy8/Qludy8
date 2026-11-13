@@ -6,7 +6,7 @@ const DAY = 86400000;
 
 const SETTINGS = () => ({
   roman: true, sound: true, rate: 0.85, theme: 'auto', krLarge: false, motion: true,
-  autoplay: true, quizLen: 10, lang: 'fr', course: null, speech: true,
+  autoplay: true, lang: 'fr', course: null, speech: true,
 });
 const COURSE = () => ({
   xp: 0,
@@ -22,7 +22,8 @@ const COURSE = () => ({
   stats: {}, // compteurs pour les succès : typed, traced, dictation, perfect, phrases, combo, streak
   ach: {}, // succès : id → palier déjà fêté
 });
-const ROOT = () => ({ v: 2, goal: 30, settings: SETTINGS(), courses: { ko: COURSE(), ja: COURSE() } });
+const DAILY_GOAL = 30; // XP par jour pour compter dans la série (le réglage n'existe plus)
+const ROOT = () => ({ v: 2, goal: DAILY_GOAL, settings: SETTINGS(), courses: { ko: COURSE(), ja: COURSE() } });
 
 let root = load();
 let state; // progression du cours actif (avec accès à settings et goal)
@@ -40,13 +41,11 @@ function load() {
 export function normalize(s) {
   const r = ROOT();
   if (s.v === 2) {
-    r.goal = s.goal ?? r.goal;
     r.settings = { ...r.settings, ...(s.settings || {}) };
     for (const k of Object.keys(r.courses)) r.courses[k] = { ...COURSE(), ...(s.courses?.[k] || {}) };
     return r;
   }
   // Ancien format : tout appartenait au cours de coréen.
-  r.goal = s.goal ?? r.goal;
   r.settings = { ...r.settings, ...(s.settings || {}), course: 'ko' };
   const { settings, goal, ...rest } = s;
   r.courses.ko = { ...COURSE(), ...rest };

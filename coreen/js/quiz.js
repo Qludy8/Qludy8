@@ -12,7 +12,8 @@ import { canListen, listen, matchSpoken, muteSpeech } from './speech.js';
 import { stepDepth } from './road.js';
 
 const wordsOf = (theme) => (!theme || theme === 'all' ? course().words : course().words.filter((w) => w.t === theme));
-const len = () => get().settings.quizLen || 10;
+// Nombre de questions par série, selon l'exercice (le réglage n'existe plus).
+export const SERIES = { letters: 10, kanji: 8, syllables: 8, readWords: 8, words: 8, typed: 8, cards: 10, write: 6 };
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 /** La voix sert aux dictées : sans elle, on écrit à partir de la traduction. */
 const canDictate = () => canSpeak() && hasVoice();
@@ -457,13 +458,26 @@ export function matchWords(words, track = true) {
  * Plus on avance, plus il faut écrire au clavier ; au début, on remet des syllabes dans l'ordre.
  */
 export function wordKind(w, ease, k) {
+  const of = (list) => list[k % list.length];
   if (!typable(w)) {
-    // Phrases toutes faites : remettre les mots dans l'ordre, puis les dire
-    return (ease >= 0.5 ? ['order', 'speak', 'dict', 'order'] : ['order', 'speak', 'order', 'spell'])[k % 4];
+    // Phrases toutes faites : les reconnaître d'abord, puis remettre les mots dans l'ordre et les dire
+    if (ease < 0.2) return of(['kr2fr', 'listen2fr', 'order', 'fr2kr']);
+    if (ease < 0.45) return of(['kr2fr', 'order', 'listen2fr', 'speak']);
+    return of(['order', 'speak', 'dict', 'order']);
   }
-  if (ease < 0.34) return ['spell', 'type', 'speak', 'dict'][k % 4];
-  if (ease < 0.67) return ['type', 'dict', 'speak', 'type', 'spell'][k % 5];
-  return ['type', 'dict', 'type', 'speak', 'dict'][k % 5];
+  // Au début : surtout des choix. Ensuite, de plus en plus de clavier, jusqu'à ne plus avoir de choix du tout.
+  if (ease < 0.2) return of(['kr2fr', 'fr2kr', 'spell', 'listen', 'kr2fr', 'type']);
+  if (ease < 0.45) return of(['kr2fr', 'spell', 'type', 'fr2kr', 'speak', 'dict']);
+  if (ease < 0.7) return of(['type', 'dict', 'speak', 'spell', 'kr2fr', 'type']);
+  return of(['type', 'dict', 'type', 'speak', 'dict']);
+}
+
+/** Exercices sur une lettre selon l'avancement : choix au début, puis clavier de la langue ; la romanisation à écrire reste rare. */
+export function letterKind(ease, k) {
+  const of = (list) => list[k % list.length];
+  if (ease < 0.25) return of(['read', 'pick', 'read', 'type', 'pick', 'speak']);
+  if (ease < 0.6) return of(['read', 'type', 'pick', 'type', 'speak', 'type']);
+  return of(['type', 'speak', 'type', 'pick', 'type', 'rom']);
 }
 
 /** Phrase générée à remettre dans l'ordre, en lien avec le thème quand le générateur le connaît. */
@@ -482,8 +496,8 @@ export function vocabQuiz(el, theme, mode, step) {
   let list;
   if (mode === 'type' || mode === 'dictation') {
     const ok = pool.filter((w) => typable(w));
-    list = pickForReview(ok.length >= 5 ? ok : pool, len());
-  } else list = pickForReview(pool, len());
+    list = pickForReview(ok.length >= 5 ? ok : pool, SERIES.typed);
+  } else list = pickForReview(pool, SERIES.words);
   const ease = (w) => Math.max(depth, Math.max(0, box(w.id)) / 5);
   let questions;
   if (mode === 'type') questions = list.map((w) => wordQuestion(w, 'type', { pool }));
@@ -557,9 +571,15 @@ export const matchKanji = (items) => ({
 /** Les deux formes d'un kana (hiragana j, katakana j2) deviennent deux lettres distinctes. */
 export const kanaForms = (items) => items.flatMap((x) => (x.j2 ? [x, { ...x, j: x.j2 }] : [x]));
 
-/** Syllabe au hasard. kind : rom (la lire : écrire sa romanisation) · type (l'écrire) */
+/** Syllabe au hasard. kind : read (la lire : choisir sa lecture) · rom (écrire sa romanisation) · type (l'écrire) */
 export function syllableQuestion(kind) {
-  const s = course().script.randomSyllable();
+  const S = course().script;
+  const s = S.randomSyllable();
+  if (kind === 'read') {
+    const decoys = [];
+    while (decoys.length < 8) decoys.push({ label: S.randomSyllable().rom });
+    return mcq({ prompt: `<span class="qkr">${s.text}</span>`, sub: t('quiz.howReadSyl'), say: s.text }, { label: s.rom }, decoys);
+  }
   if (kind === 'type') {
     return { type: 'input', answer: s.text, accept: [s.text], say: s.text, auto: true, prompt: `<span class="qlatin">${esc(s.rom)}</span>`, sub: t('type.syllable') };
   }
@@ -569,9 +589,16 @@ export function syllableQuestion(kind) {
 /** Mots courts, pour lire et écrire de vrais mots. */
 export const shortWords = () => course().words.filter((w) => !/[\s?？]/.test(w.tl) && (w.r || w.tl).length <= 5);
 /** Lire un mot : écrire sa romanisation au clavier latin. */
-export function readWordQuestion(w) {
+export function readWordQuestion(w, kind = 'rom', pool = []) {
   const C = course();
   const shown = C.id === 'ja' ? w.r || w.tl : w.tl;
+  if (kind === 'read') {
+    return mcq(
+      { prompt: `<span class="qkr ${sizeCls(shown)}">${esc(shown)}</span>`, sub: t('quiz.howReadWord'), say: w.tl, explain: `${t('quiz.meaning')} ${esc(gloss(w))}` },
+      { label: C.wordRom(w) },
+      pool.filter((o) => o.tl !== w.tl).map((o) => ({ label: C.wordRom(o) })),
+    );
+  }
   return { type: 'input', kb: 'latin', answer: C.wordRom(w), accept: [C.wordRom(w)], say: w.tl, prompt: `<span class="qkr ${sizeCls(shown)}">${esc(shown)}</span>`, sub: t('type.romWord'), explain: `${t('quiz.meaning')} ${esc(gloss(w))}` };
 }
 
@@ -582,13 +609,14 @@ export function readWordQuestion(w) {
 export function scriptQuiz(el, set, step, mode) {
   const C = course();
   const S = C.script;
-  const depth = step ? stepDepth(step) : 0;
+  // Les lettres s'apprennent dans les premiers modules : la difficulté y monte vite. Hors parcours : niveau moyen.
+  const ease = step ? Math.min(1, stepDepth(step) * 8) : 0.5;
   const all = mode === 'type';
   const oral = mode === 'speak';
   let questions;
   let title;
   if (S.sets[set]?.kind === 'kanji') {
-    const items = shuffle(S.sets[set].items).slice(0, len());
+    const items = shuffle(S.sets[set].items).slice(0, SERIES.kanji);
     title = tr(S.sets[set].label);
     questions = [];
     // Par groupes de quatre : relier les kanji à leur sens, puis écrire ou dire la lecture des mots
@@ -602,18 +630,19 @@ export function scriptQuiz(el, set, step, mode) {
     const form = (x) => (x.j2 && Math.random() < 0.5 ? { ...x, j: x.j2 } : x);
     const items = S.sets[set].items.map(form);
     title = tr(S.sets[set].label);
-    const kinds = depth < 0.2 ? ['rom', 'type', 'rom', 'speak'] : ['type', 'rom', 'type', 'speak'];
-    questions = shuffle(items).slice(0, len()).map((x, k) => letterQuestion(x, all ? 'type' : oral ? 'speak' : kinds[k % 4]));
+    const others = [...items, ...(S.sets[set].decoys || []).map(form)];
+    questions = shuffle(items).slice(0, SERIES.letters).map((x, k) => letterQuestion(x, all ? 'type' : oral ? 'speak' : letterKind(ease, k), others));
   } else if (set === 'syllables') {
     title = tr(S.syllableLabel);
-    questions = Array.from({ length: len() }, (_, k) => syllableQuestion(all || k % 2 ? 'type' : 'rom'));
+    const kinds = ease < 0.6 ? ['read', 'type', 'read', 'type'] : ['type', 'read', 'type', 'rom'];
+    questions = Array.from({ length: SERIES.syllables }, (_, k) => syllableQuestion(all ? 'type' : kinds[k % 4]));
   } else {
     title = t('script.readWords');
     const pool = shortWords();
-    const kinds = ['rom', 'dict', 'speak', 'dict'];
-    questions = shuffle(pool).slice(0, len()).map((w, k) => {
-      const kind = all ? 'dict' : oral ? 'speak' : kinds[k % 4];
-      return kind === 'rom' ? readWordQuestion(w) : wordQuestion(w, kind, { pool, track: false });
+    const kinds = ease < 0.6 ? ['read', 'dict', 'read', 'speak'] : ['dict', 'read', 'speak', 'dict', 'rom'];
+    questions = shuffle(pool).slice(0, SERIES.readWords).map((w, k) => {
+      const kind = all ? 'dict' : oral ? 'speak' : kinds[k % kinds.length];
+      return kind === 'rom' || kind === 'read' ? readWordQuestion(w, kind, pool) : wordQuestion(w, kind, { pool, track: false });
     });
   }
   if (all) title = `${t('road.type')} · ${title}`;

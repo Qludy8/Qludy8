@@ -158,7 +158,7 @@ test('migration de l’ancienne progression (coréen seul)', () => {
   const old = { xp: 120, days: { '2026-11-10': 40 }, goal: 50, srs: { 빵: { b: 3 } }, journal: [{ kr: '빵' }], settings: { roman: false } };
   const r = normalize(old);
   assert.equal(r.v, 2);
-  assert.equal(r.goal, 50);
+  assert.equal(r.goal, 30); // l'objectif quotidien n'est plus réglable
   assert.equal(r.settings.roman, false);
   assert.equal(r.settings.course, 'ko');
   assert.equal(r.courses.ko.xp, 120);

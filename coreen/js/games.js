@@ -2,12 +2,12 @@
 import { $, $$, esc, shuffle, sfx, speak, autoSpeak, confetti, countUp, pulse, burst, ICONS } from './ui.js';
 import { addXp, review, pickForReview, get, save, markRoad, starsFor } from './store.js';
 import { course, t, gloss } from './course.js';
-import { wordsOf, sizeCls } from './quiz.js';
+import { wordsOf, sizeCls, SERIES } from './quiz.js';
 
 // ---------- Cartes mémoire ----------
 export function flashcards(el, theme, step) {
   const C = course();
-  const deck = pickForReview(wordsOf(theme), get().settings.quizLen || 10);
+  const deck = pickForReview(wordsOf(theme), SERIES.cards);
   const roman = get().settings.roman;
   let i = 0;
   let known = 0;
