@@ -1143,7 +1143,7 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .guide-sec span { display: block; padding: 2px 4px; font-size: .74rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
 
 /* ---------- Parcours : chapitres ---------- */
-:root { --plat: linear-gradient(115deg, #b9c7d8 0%, #f3f7fb 22%, #c3d0df 44%, #eef3f8 62%, #aebdd0 82%, #e6ecf3 100%); --plat-ink: #243244; --plat-deep: #8493a6; }
+:root { /* dégradé horizontal : seul un dégradé droit se répète sans couture */ --plat: linear-gradient(90deg, #b9c7d8 0%, #f3f7fb 20%, #c3d0df 40%, #eef3f8 60%, #aebdd0 80%, #b9c7d8 100%); --plat-ink: #243244; --plat-deep: #8493a6; }
 .chapter { margin-bottom: 14px; }
 .ch-head {
   display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 22px; cursor: pointer; list-style: none;
@@ -1167,22 +1167,29 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .ch-body .ru:last-child { margin-bottom: 10px; }
 
 /* Examen du module et module platine */
-.rn.exam .rn-btn { border-radius: 22px; font-size: 1rem; color: var(--plat-ink); background: var(--plat); background-size: 220% 100%; border-color: var(--plat-deep); box-shadow: 0 6px 0 var(--plat-deep); }
+.rn.exam .rn-btn { border-radius: 22px; font-size: 1rem; color: var(--plat-ink); background: var(--plat); background-size: 200% 100%; border-color: var(--plat-deep); box-shadow: 0 6px 0 var(--plat-deep); }
 .rn.exam.wait { opacity: .6; }
 .rn.exam.wait .rn-btn { background: var(--surface-2); color: var(--muted); border-color: var(--line); box-shadow: 0 6px 0 var(--line); }
 .rn.exam .rn-btn svg { width: 26px; height: 26px; stroke-width: 2.2; }
 .rn.exam.done .rn-btn { animation: popIn .45s var(--spring) both, shimmer 3.2s linear infinite; }
 .rn-label > .rn-go.plat { color: var(--plat-ink); background: var(--plat); box-shadow: 0 2px 0 var(--plat-deep); }
-@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -100% 0; } }
-.ru.plat .ru-head { position: relative; overflow: hidden; color: var(--plat-ink); background: var(--plat); background-size: 220% 100%; box-shadow: 0 5px 0 var(--plat-deep), 0 0 22px rgb(185 205 230 / .55); animation: shimmer 4s linear infinite; }
+/* La texture fait 200 % de large : la décaler de 200 % la déplace d'un motif entier, la boucle est donc invisible. */
+@keyframes shimmer { from { background-position: 0 0; } to { background-position: 200% 0; } }
+/* Reflet : une bande claire qui traverse puis attend hors champ (aucun raccord visible). */
+@keyframes glint { 0% { transform: translateX(-160%) skewX(-20deg); } 55%, 100% { transform: translateX(260%) skewX(-20deg); } }
+.ru.plat .ru-head { position: relative; overflow: hidden; color: var(--plat-ink); background: var(--plat); background-size: 200% 100%; box-shadow: 0 5px 0 var(--plat-deep), 0 0 22px rgb(185 205 230 / .55); animation: shimmer 4s linear infinite; }
 .ru.plat .ru-glyph { background: rgb(255 255 255 / .55); }
 .ru.plat .ru-count { background: rgb(36 50 68 / .14); }
 .ru.plat .ru-count svg { width: 18px; height: 18px; stroke-width: 2.2; }
-.ru.plat .ru-head::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 40%, rgb(255 255 255 / .75) 50%, transparent 60%); background-size: 250% 100%; animation: shimmer 2.8s ease-in-out infinite; pointer-events: none; }
+.ru.plat .ru-head::after, .ru.plat .rn.done .rn-btn::after { content: ''; position: absolute; top: -10%; bottom: -10%; left: 0; width: 45%; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .8) 50%, transparent); animation: glint 3.4s ease-in-out infinite; pointer-events: none; }
+.ru.plat .rn.done .rn-btn { position: relative; overflow: hidden; }
+.ru.plat .rn.done .rn-btn::after { width: 55%; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .6) 50%, transparent); animation-delay: calc(.5s + var(--k, 0) * .22s); }
+.ru.plat .rn.done .rn-btn svg, .ru.plat .rn.done .rn-btn { isolation: isolate; }
 .ru.plat .rn.done:not(.exam) .rn-btn { box-shadow: 0 6px 0 color-mix(in srgb, var(--tc) 60%, #000), 0 0 0 3px rgb(200 214 232 / .7); }
-.cel-card.plat .cel-glyph { color: var(--plat-ink); background: var(--plat); background-size: 220% 100%; animation: celEmoji .8s var(--spring) both, shimmer 3s linear .8s infinite; }
-:root.no-motion .ru.plat .ru-head, :root.no-motion .ru.plat .ru-head::after, :root.no-motion .rn.exam.done .rn-btn { animation: none; }
-@media (prefers-reduced-motion: reduce) { .ru.plat .ru-head, .ru.plat .ru-head::after, .rn.exam.done .rn-btn { animation: none; } }
+.cel-card.plat .cel-glyph { color: var(--plat-ink); background: var(--plat); background-size: 200% 100%; animation: celEmoji .8s var(--spring) both, shimmer 3s linear .8s infinite; }
+:root.no-motion .ru.plat .ru-head, :root.no-motion .rn.exam.done .rn-btn { animation: none; }
+:root.no-motion .ru.plat .ru-head::after, :root.no-motion .ru.plat .rn-btn::after { display: none; }
+@media (prefers-reduced-motion: reduce) { .ru.plat .ru-head, .rn.exam.done .rn-btn { animation: none; } .ru.plat .ru-head::after, .ru.plat .rn-btn::after { display: none; } }
 
 /* Examen final */
 .final-card { display: flex; align-items: center; gap: 14px; margin-top: 22px; border: 2px solid color-mix(in srgb, var(--gold) 55%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 20%, var(--surface)), var(--surface) 70%); box-shadow: 0 5px 0 color-mix(in srgb, var(--gold) 45%, var(--line)); }
@@ -1192,7 +1199,7 @@ a.rn:active .rn-btn { transform: translateY(5px); box-shadow: 0 1px 0 color-mix(
 .final-card .eyebrow { color: color-mix(in srgb, var(--gold) 70%, var(--ink)); margin: 0; }
 .exam-intro { gap: 10px; padding-top: 22px; }
 .exam-intro .eyebrow { margin: 6px 0 0; }
-.exam-seal { display: grid; place-items: center; width: 104px; height: 104px; border-radius: 30px; font-size: 1.7rem; font-weight: 900; color: var(--plat-ink); background: var(--plat); background-size: 220% 100%; box-shadow: 0 6px 0 var(--plat-deep); animation: popIn .5s var(--spring) both; }
+.exam-seal { display: grid; place-items: center; width: 104px; height: 104px; border-radius: 30px; font-size: 1.7rem; font-weight: 900; color: var(--plat-ink); background: var(--plat); background-size: 200% 100%; box-shadow: 0 6px 0 var(--plat-deep); animation: popIn .5s var(--spring) both; }
 .exam-intro.plat .exam-seal { animation: popIn .5s var(--spring) both, shimmer 3.2s linear infinite; }
 .exam-rules { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin: 8px 0 0; padding: 0; }
 .exam-rules li { display: grid; gap: 2px; padding: 12px 6px; border-radius: 16px; background: var(--surface); border: 1.5px solid var(--line); }

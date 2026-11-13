@@ -145,8 +145,8 @@ export function roadScreen(el) {
               <span class="rn-label"><b>${esc(info.title)}</b><span>${esc(info.type)}</span>${s.stars ? starRow(s.stars) : ''}${cur ? `<span class="rn-go">${R.done ? t('road.continue') : t('road.start')}</span>` : ''}</span>`;
             const cls = `rn ${x > 0 ? 'right' : 'left'} ${s.done ? 'done' : ''} ${cur ? 'cur' : ''}`;
             return u.open
-              ? `<a class="${cls}" href="${info.href}" style="--x:${x}">${inner}</a>`
-              : `<div class="${cls}" style="--x:${x}">${inner}</div>`;
+              ? `<a class="${cls}" href="${info.href}" style="--x:${x}; --k:${n}">${inner}</a>`
+              : `<div class="${cls}" style="--x:${x}; --k:${n}">${inner}</div>`;
           }).join('')}
           ${(() => {
             // Examen du module : accessible une fois toutes les étapes terminées
@@ -156,7 +156,7 @@ export function roadScreen(el) {
             const inner = `
               <span class="rn-btn kr">${u.plat ? GEM : u.complete ? (ja ? '試験' : '시험') : LOCK}</span>
               <span class="rn-label"><b>${t('exam.node')}</b><span>${sub}</span>${u.complete && !u.plat ? `<span class="rn-go plat">${t('exam.go')}</span>` : ''}</span>`;
-            return u.complete ? `<a class="${cls}" href="#/exam?u=${u.id}" style="--x:${x}">${inner}</a>` : `<div class="${cls}" style="--x:${x}">${inner}</div>`;
+            return u.complete ? `<a class="${cls}" href="#/exam?u=${u.id}" style="--x:${x}; --k:${u.steps.length}">${inner}</a>` : `<div class="${cls}" style="--x:${x}">${inner}</div>`;
           })()}
         </div>
       </section>`;
